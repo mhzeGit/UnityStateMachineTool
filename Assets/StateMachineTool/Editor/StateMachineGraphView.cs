@@ -18,9 +18,12 @@ namespace StateMachineTool.Editor
 
         private Vector2 lastMousePosition;
         private bool isBuilding;
+        private Label emptyGraphLabel;
 
         public StateMachineGraphView()
         {
+            this.StretchToParentSize();
+
             SetupZoom(ContentZoomer.DefaultMinScale, ContentZoomer.DefaultMaxScale);
             this.AddManipulator(new ContentDragger());
             this.AddManipulator(new SelectionDragger());
@@ -32,17 +35,14 @@ namespace StateMachineTool.Editor
                 anchored = true,
                 windowed = false
             };
-            minimap.SetPosition(new Rect(15, 15, 180, 130));
+            minimap.SetPosition(new Rect(10, 30, 180, 130));
+            minimap.AddToClassList("graph-minimap");
             Add(minimap);
 
             RegisterCallback<MouseMoveEvent>(e =>
             {
                 lastMousePosition = e.localMousePosition;
             });
-
-            var grid = new GridBackground();
-            Insert(0, grid);
-            grid.StretchToParentSize();
 
             graphViewChanged += OnGraphViewChanged;
             serializeGraphElements += OnSerializeGraphElements;
@@ -67,6 +67,16 @@ namespace StateMachineTool.Editor
             });
 
             style.flexGrow = 1;
+
+            var grid = new GridBackground();
+            grid.name = "grid-background";
+            grid.StretchToParentSize();
+            Insert(0, grid);
+
+            emptyGraphLabel = new Label("Right-click here or use the Toolbar buttons to add states.\nDrag from Out ports ( ) to connect states.");
+            emptyGraphLabel.name = "empty-graph-label";
+            emptyGraphLabel.AddToClassList("empty-graph-label");
+            Add(emptyGraphLabel);
         }
 
         public void LoadAsset(SM.StateMachineAsset asset)
@@ -100,14 +110,38 @@ namespace StateMachineTool.Editor
             var graphData = Asset.graphData;
 
             foreach (var state in graphData.states)
-            {
                 CreateStateNodeView(state);
-            }
 
             foreach (var transition in graphData.transitions)
-            {
                 CreateTransitionEdge(transition);
-            }
+
+            UpdateEmptyLabel();
+        }
+
+        private void UpdateEmptyLabel()
+        {
+            if (emptyGraphLabel == null) return;
+            bool hasStates = Asset != null ? Asset.graphData.states.Count > 0 : false;
+            emptyGraphLabel.style.display = hasStates ? DisplayStyle.None : DisplayStyle.Flex;
+        }
+
+        public void CreateStateAtCenter(string name)
+        {
+            if (Asset == null) return;
+            var center = contentViewContainer.WorldToLocal(
+                new Vector2(contentViewContainer.layout.width / 2, contentViewContainer.layout.height / 2));
+            var stateData = new SM.StateData(name, center);
+            CreateStateNode(stateData);
+        }
+
+        public void CreateEntryStateAtCenter()
+        {
+            if (Asset == null) return;
+            var center = contentViewContainer.WorldToLocal(
+                new Vector2(contentViewContainer.layout.width / 2, contentViewContainer.layout.height / 2));
+            var stateData = new SM.StateData("Entry", center, SM.StateType.Entry);
+            Asset.graphData.entryStateId = stateData.id;
+            CreateStateNode(stateData);
         }
 
         public StateNodeView CreateStateNode(SM.StateData stateData)
@@ -121,6 +155,7 @@ namespace StateMachineTool.Editor
             var nodeView = CreateStateNodeView(stateData);
             EditorUtility.SetDirty(Asset);
             OnGraphChanged?.Invoke();
+            UpdateEmptyLabel();
             return nodeView;
         }
 
@@ -135,23 +170,24 @@ namespace StateMachineTool.Editor
             return nodeView;
         }
 
-        public TransitionEdgeView CreateTransition(SM.StateData fromState, SM.StateData toState)
+        public void CreateTransition(SM.StateData fromState, SM.StateData toState)
         {
             var fromNode = GetNodeByStateId(fromState.id);
             var toNode = GetNodeByStateId(toState.id);
-            if (fromNode == null || toNode == null) return null;
+            if (fromNode == null || toNode == null) return;
 
-            var transitionData = new SM.TransitionData(fromState.id, toState.id);
-            transitionData.displayName = $"{fromState.displayName} -> {toState.displayName}";
+            var transitionData = new SM.TransitionData(fromState.id, toState.id)
+            {
+                displayName = $"{fromState.displayName} -> {toState.displayName}"
+            };
             Asset.graphData.transitions.Add(transitionData);
 
-            var edge = ConnectNodes(fromNode, toNode, transitionData.id);
+            ConnectNodes(fromNode, toNode, transitionData.id);
             EditorUtility.SetDirty(Asset);
             OnGraphChanged?.Invoke();
-            return edge;
         }
 
-        private TransitionEdgeView ConnectNodes(StateNodeView fromNode, StateNodeView toNode, string transitionId)
+        private void ConnectNodes(StateNodeView fromNode, StateNodeView toNode, string transitionId)
         {
             var edge = new TransitionEdgeView(transitionId);
             edge.output = fromNode.GetOutputPort();
@@ -167,7 +203,6 @@ namespace StateMachineTool.Editor
             });
 
             AddElement(edge);
-            return edge;
         }
 
         private void CreateTransitionEdge(SM.TransitionData transitionData)
@@ -198,11 +233,6 @@ namespace StateMachineTool.Editor
             return nodes.OfType<StateNodeView>().FirstOrDefault(n => n.StateId == stateId);
         }
 
-        public TransitionEdgeView GetEdgeByTransitionId(string transitionId)
-        {
-            return edges.OfType<TransitionEdgeView>().FirstOrDefault(e => e.TransitionId == transitionId);
-        }
-
         public override List<Port> GetCompatiblePorts(Port startPort, NodeAdapter nodeAdapter)
         {
             return ports.ToList().Where(endPort =>
@@ -215,7 +245,6 @@ namespace StateMachineTool.Editor
         {
             if (isBuilding) return change;
 
-            // Handle removals
             if (change.elementsToRemove != null)
             {
                 var transitionsToRemove = change.elementsToRemove
@@ -230,12 +259,10 @@ namespace StateMachineTool.Editor
 
                 foreach (var tid in transitionsToRemove)
                     RemoveTransitionData(tid);
-
                 foreach (var sid in statesToRemove)
                     RemoveStateData(sid);
             }
 
-            // Handle edge creation (user dragging ports)
             if (change.edgesToCreate != null)
             {
                 for (int i = change.edgesToCreate.Count - 1; i >= 0; i--)
@@ -275,7 +302,6 @@ namespace StateMachineTool.Editor
                 OnGraphChanged?.Invoke();
             }
 
-            // Handle moved elements
             if (change.movedElements != null)
             {
                 foreach (var element in change.movedElements)
@@ -284,9 +310,7 @@ namespace StateMachineTool.Editor
                     {
                         var stateData = Asset.GetState(stateNode.StateId);
                         if (stateData != null)
-                        {
                             stateData.position = stateNode.GetPosition().position;
-                        }
                     }
                 }
                 EditorUtility.SetDirty(Asset);
@@ -312,6 +336,7 @@ namespace StateMachineTool.Editor
 
             EditorUtility.SetDirty(Asset);
             OnGraphChanged?.Invoke();
+            UpdateEmptyLabel();
         }
 
         public override void BuildContextualMenu(ContextualMenuPopulateEvent evt)
@@ -327,32 +352,31 @@ namespace StateMachineTool.Editor
                 var mousePos = viewTransform.matrix.inverse.MultiplyPoint(lastMousePosition);
                 var stateData = new SM.StateData("New State", mousePos);
                 CreateStateNode(stateData);
-            });
+            }, DropdownMenuAction.AlwaysEnabled);
 
-            evt.menu.AppendAction("Add Entry State", action =>
+            evt.menu.AppendAction("Add Entry State (Start)", action =>
             {
                 var mousePos = viewTransform.matrix.inverse.MultiplyPoint(lastMousePosition);
                 var stateData = new SM.StateData("Entry", mousePos, SM.StateType.Entry);
                 Asset.graphData.entryStateId = stateData.id;
                 CreateStateNode(stateData);
-            });
+            }, DropdownMenuAction.AlwaysEnabled);
+
+            bool hasEntryState = Asset.graphData.states.Any(s => s.stateType == SM.StateType.Entry);
+            if (!hasEntryState)
+            {
+                evt.menu.AppendSeparator();
+
+                evt.menu.AppendAction("(No entry state defined)", null,
+                    DropdownMenuAction.AlwaysDisabled);
+            }
 
             evt.menu.AppendSeparator();
             base.BuildContextualMenu(evt);
         }
 
-        private string OnSerializeGraphElements(IEnumerable<GraphElement> elements)
-        {
-            return string.Empty;
-        }
-
-        private void OnUnserializeAndPaste(string operationName, string data)
-        {
-        }
-
-        private bool OnCanPasteSerializedData(string data)
-        {
-            return false;
-        }
+        private string OnSerializeGraphElements(IEnumerable<GraphElement> elements) => string.Empty;
+        private void OnUnserializeAndPaste(string operationName, string data) { }
+        private bool OnCanPasteSerializedData(string data) => false;
     }
 }
