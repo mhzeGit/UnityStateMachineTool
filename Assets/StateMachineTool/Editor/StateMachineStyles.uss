@@ -1,0 +1,201 @@
+.editor-toolbar {
+    height: 28px;
+    min-height: 28px;
+    background-color: rgb(40, 40, 40);
+    border-bottom-width: 1px;
+    border-bottom-color: rgb(60, 60, 60);
+    flex-direction: row;
+    align-items: center;
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+.toolbar-label {
+    color: rgb(200, 200, 200);
+    font-size: 12px;
+    -unity-font-style: bold;
+}
+
+.toolbar-button {
+    height: 22px;
+    font-size: 11px;
+    padding-left: 8px;
+    padding-right: 8px;
+    margin-left: 4px;
+    background-color: rgba(80, 80, 90, 0.4);
+    color: rgb(200, 200, 210);
+    border-radius: 3px;
+    border-width: 1px;
+    border-color: rgba(100, 100, 110, 0.3);
+}
+
+.toolbar-button:hover {
+    background-color: rgba(100, 100, 120, 0.6);
+}
+
+.state-node {
+    border-radius: 6px;
+    min-width: 150px;
+    border-width: 2px;
+}
+
+.state-normal {
+    background-color: rgb(50, 52, 56);
+    border-color: rgb(70, 82, 100);
+}
+
+.state-entry {
+    background-color: rgb(40, 55, 40);
+    border-color: rgb(70, 160, 80);
+}
+
+.state-any {
+    background-color: rgb(55, 45, 35);
+    border-color: rgb(180, 130, 50);
+}
+
+.state-type-badge {
+    font-size: 9px;
+    padding-left: 6px;
+    padding-right: 6px;
+    padding-top: 1px;
+    padding-bottom: 1px;
+    border-radius: 3px;
+    color: rgb(200, 200, 200);
+    background-color: rgba(100, 100, 100, 0.4);
+}
+
+.transition-edge {
+    --edge-stroke-color: rgb(100, 140, 200);
+}
+
+.state-inspector {
+    background-color: rgb(45, 45, 48);
+    min-width: 240px;
+    max-width: 320px;
+}
+
+.inspector-header {
+    background-color: rgb(35, 35, 38);
+    color: rgb(200, 200, 200);
+    font-size: 13px;
+    -unity-font-style: bold;
+    padding: 8px 12px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgb(60, 60, 60);
+}
+
+.inspector-content {
+    padding: 8px;
+}
+
+.inspector-empty-label {
+    color: rgb(140, 140, 150);
+    font-size: 12px;
+    padding: 20px 12px;
+    -unity-text-align: middle-center;
+}
+
+.inspector-info-label {
+    color: rgb(170, 170, 180);
+    font-size: 12px;
+    padding-top: 4px;
+    padding-bottom: 8px;
+}
+
+.edit-panel-title {
+    color: rgb(190, 190, 210);
+    font-size: 13px;
+    -unity-font-style: bold;
+    margin-bottom: 8px;
+    margin-top: 8px;
+    padding-bottom: 4px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgb(70, 70, 80);
+}
+
+.blackboard-editor {
+    background-color: rgb(40, 40, 43);
+    min-width: 220px;
+    max-width: 300px;
+}
+
+.blackboard-header {
+    background-color: rgb(30, 30, 33);
+    color: rgb(200, 200, 200);
+    font-size: 13px;
+    -unity-font-style: bold;
+    padding: 8px 12px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgb(55, 55, 55);
+}
+
+.blackboard-section-header {
+    color: rgb(170, 170, 180);
+    font-size: 12px;
+    -unity-font-style: bold;
+    padding: 8px 12px 4px 12px;
+}
+
+.blackboard-add-btn {
+    margin: 2px 12px;
+    font-size: 11px;
+    height: 22px;
+    background-color: rgba(80, 80, 90, 0.5);
+    color: rgb(180, 200, 220);
+    border-radius: 3px;
+}
+
+.blackboard-list-container {
+    margin: 4px 8px;
+}
+
+.blackboard-list-item {
+    color: rgb(200, 200, 210);
+    font-size: 12px;
+    padding: 2px 8px;
+}
+
+.blackboard-edit-panel {
+    margin: 6px 8px;
+    padding: 8px;
+    background-color: rgba(50, 50, 55, 0.6);
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: rgb(60, 60, 65);
+}
+
+.delete-btn {
+    margin-top: 8px;
+    height: 24px;
+    font-size: 12px;
+    color: rgb(240, 150, 150);
+    background-color: rgba(180, 60, 60, 0.3);
+    border-radius: 3px;
+    border-width: 1px;
+    border-color: rgba(180, 60, 60, 0.4);
+}
+
+.unity-base-text-field,
+.unity-enum-field,
+.unity-integer-field,
+.unity-float-field,
+.unity-vector2-field,
+.unity-vector3-field,
+.unity-object-field {
+    margin-bottom: 4px;
+}
+
+.unity-foldout {
+    margin-top: 4px;
+    margin-bottom: 4px;
+}
+
+.unity-foldout .unity-foldout__header {
+    background-color: rgba(60, 60, 68, 0.5);
+    border-radius: 3px;
+}
+
+.unity-graph-view {
+    background-color: rgb(45, 45, 48);
+}

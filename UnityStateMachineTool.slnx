@@ -1,2 +1,5 @@
 ﻿<Solution>
+  <Project Path="StateMachineTool.Runtime.csproj" />
+  <Project Path="StateMachineTool.Editor.csproj" />
+  <Project Path="StateMachineTool.Samples.Demo.csproj" />
 </Solution>

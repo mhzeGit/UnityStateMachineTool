@@ -145,6 +145,13 @@
       "dependencies": {},
       "url": "https://packages.unity.com"
     },
+    "com.unity.objectsnaptool": {
+      "version": "https://github.com/mhzeGit/unity-object-snap-tool.git",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "35fa0aa48939749f53af8ed0290eb86aa538b56a"
+    },
     "com.unity.quick-texture-tools": {
       "version": "https://github.com/mhzeGit/unity-quick-texture-tools.git",
       "depth": 0,

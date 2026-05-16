@@ -1,0 +1,16 @@
+{
+    "name": "StateMachineTool.Samples.Demo",
+    "rootNamespace": "StateMachineTool.Samples.Demo",
+    "references": [
+        "StateMachineTool.Runtime"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
