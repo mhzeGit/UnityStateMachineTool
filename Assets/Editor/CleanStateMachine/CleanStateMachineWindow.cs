@@ -14,6 +14,7 @@ namespace CleanStateMachine
         }
 
         [SerializeField] private Vector2 _panOffset;
+        [SerializeField] private float _zoom = 1f;
 
         private GraphView _graphView;
         private GraphPanController _panController;
@@ -32,10 +33,11 @@ namespace CleanStateMachine
 
             var rect = new Rect(0f, 0f, position.width, position.height);
 
-            _panController.HandleInput(rect, ref _panOffset);
-            _graphView.Draw(rect, _panOffset);
+            float prevZoom = _zoom;
+            _panController.HandleInput(rect, ref _panOffset, ref _zoom);
+            _graphView.Draw(rect, _panOffset, _zoom);
 
-            if (_panController.IsPanning)
+            if (_panController.IsPanning || !Mathf.Approximately(prevZoom, _zoom))
                 Repaint();
         }
     }

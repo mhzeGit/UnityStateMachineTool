@@ -9,7 +9,11 @@ namespace CleanStateMachine
         private Vector2 _panStartMouse;
         private Vector2 _panStartOffset;
 
-        public void HandleInput(Rect rect, ref Vector2 panOffset)
+        private const float ZoomMin = 0.1f;
+        private const float ZoomMax = 5f;
+        private const float ZoomStep = 0.05f;
+
+        public void HandleInput(Rect rect, ref Vector2 panOffset, ref float zoom)
         {
             var e = Event.current;
 
@@ -29,6 +33,21 @@ namespace CleanStateMachine
 
                 case EventType.MouseUp when IsPanning:
                     IsPanning = false;
+                    e.Use();
+                    break;
+
+                case EventType.ScrollWheel when rect.Contains(e.mousePosition):
+                    float zoomFactor = 1f + Mathf.Abs(e.delta.y) * ZoomStep;
+                    float newZoom = e.delta.y > 0
+                        ? zoom / zoomFactor
+                        : zoom * zoomFactor;
+                    newZoom = Mathf.Clamp(newZoom, ZoomMin, ZoomMax);
+
+                    Vector2 mouseScreen = e.mousePosition;
+                    Vector2 worldPos = (mouseScreen - panOffset) / zoom;
+                    panOffset = mouseScreen - worldPos * newZoom;
+                    zoom = newZoom;
+
                     e.Use();
                     break;
             }

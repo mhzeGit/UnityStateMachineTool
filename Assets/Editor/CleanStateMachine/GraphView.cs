@@ -12,48 +12,57 @@ namespace CleanStateMachine
 
         private const float GridS = 20f;
         private const float GridL = 100f;
+        private const float CrosshairSize = 4f;
 
-        public void Draw(Rect rect, Vector2 panOffset)
+        public void Draw(Rect rect, Vector2 panOffset, float zoom)
         {
             EditorGUI.DrawRect(rect, Bg);
 
-            Handles.BeginGUI();
-            DrawGrid(rect, panOffset);
-            Handles.EndGUI();
+            float thickness = Mathf.Max(1f, zoom);
+            float sGridS = GridS * zoom;
+            float sGridL = GridL * zoom;
+            float sCross = CrosshairSize * zoom;
+
+            DrawGridLines(rect, panOffset, sGridS, sGridL, thickness);
+            DrawCrosshairs(rect, panOffset, sGridL, sCross);
         }
 
-        private void DrawGrid(Rect rect, Vector2 panOffset)
+        private static void DrawGridLines(Rect rect, Vector2 panOffset, float sGridS, float sGridL, float thickness)
         {
-            float ox = panOffset.x % GridS;
-            float oy = panOffset.y % GridS;
-            if (ox < 0f) ox += GridS;
-            if (oy < 0f) oy += GridS;
+            float ox = panOffset.x % sGridS;
+            float oy = panOffset.y % sGridS;
+            if (ox < 0f) ox += sGridS;
+            if (oy < 0f) oy += sGridS;
 
-            Handles.color = GridMinor;
-            for (float x = ox; x < rect.width; x += GridS)
-                Handles.DrawLine(new Vector3(x, 0f), new Vector3(x, rect.height));
-            for (float y = oy; y < rect.height; y += GridS)
-                Handles.DrawLine(new Vector3(0f, y), new Vector3(rect.width, y));
+            for (float x = ox; x < rect.width; x += sGridS)
+                EditorGUI.DrawRect(new Rect(x, 0f, thickness, rect.height), GridMinor);
+            for (float y = oy; y < rect.height; y += sGridS)
+                EditorGUI.DrawRect(new Rect(0f, y, rect.width, thickness), GridMinor);
 
-            ox = panOffset.x % GridL;
-            oy = panOffset.y % GridL;
-            if (ox < 0f) ox += GridL;
-            if (oy < 0f) oy += GridL;
+            ox = panOffset.x % sGridL;
+            oy = panOffset.y % sGridL;
+            if (ox < 0f) ox += sGridL;
+            if (oy < 0f) oy += sGridL;
 
-            Handles.color = GridMajor;
-            for (float x = ox; x < rect.width; x += GridL)
-                Handles.DrawLine(new Vector3(x, 0f), new Vector3(x, rect.height));
-            for (float y = oy; y < rect.height; y += GridL)
-                Handles.DrawLine(new Vector3(0f, y), new Vector3(rect.width, y));
+            for (float x = ox; x < rect.width; x += sGridL)
+                EditorGUI.DrawRect(new Rect(x, 0f, thickness, rect.height), GridMajor);
+            for (float y = oy; y < rect.height; y += sGridL)
+                EditorGUI.DrawRect(new Rect(0f, y, rect.width, thickness), GridMajor);
+        }
 
-            Handles.color = Crosshair;
-            for (float x = ox; x < rect.width; x += GridL)
+        private static void DrawCrosshairs(Rect rect, Vector2 panOffset, float sGridL, float sCross)
+        {
+            float ox = panOffset.x % sGridL;
+            float oy = panOffset.y % sGridL;
+            if (ox < 0f) ox += sGridL;
+            if (oy < 0f) oy += sGridL;
+
+            for (float x = ox; x < rect.width; x += sGridL)
             {
-                for (float y = oy; y < rect.height; y += GridL)
+                for (float y = oy; y < rect.height; y += sGridL)
                 {
-                    var center = new Vector3(x, y, 0f);
-                    Handles.DrawLine(center + Vector3.left * 4f, center + Vector3.right * 4f);
-                    Handles.DrawLine(center + Vector3.down * 4f, center + Vector3.up * 4f);
+                    EditorGUI.DrawRect(new Rect(x - sCross, y - 1f, sCross * 2f, 2f), Crosshair);
+                    EditorGUI.DrawRect(new Rect(x - 1f, y - sCross, 2f, sCross * 2f), Crosshair);
                 }
             }
         }
