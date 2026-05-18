@@ -33,11 +33,10 @@ namespace CleanStateMachine
 
             var rect = new Rect(0f, 0f, position.width, position.height);
 
-            float prevZoom = _zoom;
             _panController.HandleInput(rect, ref _panOffset, ref _zoom);
             _graphView.Draw(rect, _panOffset, _zoom);
 
-            if (_panController.IsPanning || !Mathf.Approximately(prevZoom, _zoom))
+            if (_panController.IsPanning)
                 Repaint();
         }
     }

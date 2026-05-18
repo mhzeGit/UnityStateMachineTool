@@ -11,7 +11,8 @@ namespace CleanStateMachine
 
         private const float ZoomMin = 0.1f;
         private const float ZoomMax = 5f;
-        private const float ZoomStep = 0.05f;
+        private const float ZoomSensitivity = 0.02f;
+        private const float ZoomClamp = 0.5f;
 
         public void HandleInput(Rect rect, ref Vector2 panOffset, ref float zoom)
         {
@@ -37,11 +38,8 @@ namespace CleanStateMachine
                     break;
 
                 case EventType.ScrollWheel when rect.Contains(e.mousePosition):
-                    float zoomFactor = 1f + Mathf.Abs(e.delta.y) * ZoomStep;
-                    float newZoom = e.delta.y > 0
-                        ? zoom / zoomFactor
-                        : zoom * zoomFactor;
-                    newZoom = Mathf.Clamp(newZoom, ZoomMin, ZoomMax);
+                    float clamped = Mathf.Clamp(-e.delta.y * ZoomSensitivity, -ZoomClamp, ZoomClamp);
+                    float newZoom = Mathf.Clamp(zoom * Mathf.Exp(clamped), ZoomMin, ZoomMax);
 
                     Vector2 mouseScreen = e.mousePosition;
                     Vector2 worldPos = (mouseScreen - panOffset) / zoom;
