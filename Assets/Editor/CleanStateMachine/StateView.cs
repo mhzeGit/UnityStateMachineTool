@@ -9,12 +9,12 @@ namespace CleanStateMachine
         public string Name { get; set; }
 
         private static GUIStyle _style;
+        private static Texture2D _cachedTexture;
+        private static int _cachedCornerRadius;
         private static readonly Color FillColor = new Color(0.18f, 0.18f, 0.20f);
         private const float DefaultWidth = 160f;
         private const float DefaultHeight = 60f;
-        private const int TexWidth = 24;
-        private const int TexHeight = 24;
-        private const int CornerRadius = 8;
+        private const int BaseCornerRadius = 8;
 
         public StateView(Vector2 position, string name = "State")
         {
@@ -26,78 +26,88 @@ namespace CleanStateMachine
         public void Draw(float zoom, Vector2 panOffset)
         {
             if (_style == null)
-                _style = CreateStyle();
+            {
+                _style = new GUIStyle
+                {
+                    alignment = TextAnchor.MiddleCenter,
+                    normal = { textColor = Color.white },
+                    padding = new RectOffset(4, 4, 4, 4)
+                };
+            }
+
+            int scaledRadius = Mathf.Max(1, Mathf.RoundToInt(BaseCornerRadius * zoom));
+            EnsureTexture(scaledRadius);
+
+            _style.normal.background = _cachedTexture;
+            _style.border = new RectOffset(scaledRadius, scaledRadius, scaledRadius, scaledRadius);
 
             Vector2 screenPos = Position * zoom + panOffset;
             Vector2 scaledSize = Size * zoom;
 
             var rect = new Rect(screenPos.x, screenPos.y, scaledSize.x, scaledSize.y);
 
-            int fontSize = Mathf.Max(10, Mathf.RoundToInt(12 * zoom));
-            _style.fontSize = fontSize;
+            _style.fontSize = Mathf.RoundToInt(12 * zoom);
 
             GUI.Box(rect, Name, _style);
         }
 
-        private static GUIStyle CreateStyle()
+        private static void EnsureTexture(int cornerRadius)
         {
-            var texture = GenerateTexture();
-            texture.hideFlags = HideFlags.HideAndDontSave;
+            if (_cachedTexture != null && _cachedCornerRadius == cornerRadius)
+                return;
 
-            return new GUIStyle
+            if (_cachedTexture != null)
             {
-                normal =
-                {
-                    background = texture,
-                    textColor = Color.white
-                },
-                alignment = TextAnchor.MiddleCenter,
-                border = new RectOffset(CornerRadius, CornerRadius, CornerRadius, CornerRadius),
-                padding = new RectOffset(4, 4, 4, 4)
-            };
+                Object.DestroyImmediate(_cachedTexture);
+                _cachedTexture = null;
+            }
+
+            int texSize = cornerRadius * 2 + 8;
+            _cachedTexture = GenerateTexture(texSize, texSize, cornerRadius);
+            _cachedTexture.hideFlags = HideFlags.HideAndDontSave;
+            _cachedCornerRadius = cornerRadius;
         }
 
-        private static Texture2D GenerateTexture()
+        private static Texture2D GenerateTexture(int width, int height, int radius)
         {
-            var tex = new Texture2D(TexWidth, TexHeight, TextureFormat.RGBA32, false);
+            var tex = new Texture2D(width, height, TextureFormat.RGBA32, false);
             tex.wrapMode = TextureWrapMode.Clamp;
             tex.filterMode = FilterMode.Bilinear;
 
             Color transparent = Color.clear;
-            int r = CornerRadius;
 
-            for (int y = 0; y < TexHeight; y++)
+            for (int y = 0; y < height; y++)
             {
-                for (int x = 0; x < TexWidth; x++)
+                for (int x = 0; x < width; x++)
                 {
                     Color color = FillColor;
 
-                    if (x < r && y < r)
+                    if (x < radius && y < radius)
                     {
-                        float dx = r - x - 0.5f;
-                        float dy = r - y - 0.5f;
-                        if (dx * dx + dy * dy > r * r)
+                        float dx = radius - x - 0.5f;
+                        float dy = radius - y - 0.5f;
+                        if (dx * dx + dy * dy > radius * radius)
                             color = transparent;
                     }
-                    else if (x >= TexWidth - r && y < r)
+                    else if (x >= width - radius && y < radius)
                     {
-                        float dx = x - (TexWidth - r) + 0.5f;
-                        float dy = r - y - 0.5f;
-                        if (dx * dx + dy * dy > r * r)
+                        float dx = x - (width - radius) + 0.5f;
+                        float dy = radius - y - 0.5f;
+                        if (dx * dx + dy * dy > radius * radius)
                             color = transparent;
                     }
-                    else if (x < r && y >= TexHeight - r)
+                    else if (x < radius && y >= height - radius)
                     {
-                        float dx = r - x - 0.5f;
-                        float dy = y - (TexHeight - r) + 0.5f;
-                        if (dx * dx + dy * dy > r * r)
+                        float dx = radius - x - 0.5f;
+                        float dy = y - (height - radius) + 0.5f;
+                        if (dx * dx + dy * dy > radius * radius)
                             color = transparent;
                     }
-                    else if (x >= TexWidth - r && y >= TexHeight - r)
+                    else if (x >= width - radius && y >= height - radius)
                     {
-                        float dx = x - (TexWidth - r) + 0.5f;
-                        float dy = y - (TexHeight - r) + 0.5f;
-                        if (dx * dx + dy * dy > r * r)
+                        float dx = x - (width - radius) + 0.5f;
+                        float dy = y - (height - radius) + 0.5f;
+                        if (dx * dx + dy * dy > radius * radius)
                             color = transparent;
                     }
 
