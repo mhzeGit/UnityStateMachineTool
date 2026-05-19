@@ -99,8 +99,8 @@ namespace CleanStateMachine
             _graphView.Draw(rect, _panOffset, _zoom);
             DrawGroups();
             DrawConnections();
-            DrawSelectionOverlays();
             DrawStates();
+            DrawSelectionOverlays();
             _connectionController.DrawPending(_zoom, _panOffset);
             _selectionBox.DrawScreen(_zoom, _panOffset);
 

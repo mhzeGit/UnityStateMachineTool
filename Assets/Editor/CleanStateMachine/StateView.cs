@@ -132,8 +132,6 @@ namespace CleanStateMachine
 
             var rect = new Rect(screenPos.x, screenPos.y, scaledSize.x, scaledSize.y);
 
-            _outlineStyle.fontSize = Mathf.RoundToInt(12 * zoom);
-
             GUI.Box(rect, "", _outlineStyle);
         }
 

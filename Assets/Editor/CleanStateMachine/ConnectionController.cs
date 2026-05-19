@@ -67,7 +67,24 @@ namespace CleanStateMachine
             Vector3 endTan = endPos - dir * tangentStrength;
 
             Handles.DrawBezier(startPos, endPos, startTan, endTan, PendingColor, null, 2f);
-            DrawArrowhead(endPos, endTan - endPos, PendingColor, zoom);
+
+            if (distance > 1f)
+            {
+                EvaluateCubicBezier(startPos, startTan, endTan, endPos, 0.5f, out Vector3 mid, out Vector3 tan);
+                DrawArrowhead(mid, tan, PendingColor, zoom);
+            }
+        }
+
+        private static void EvaluateCubicBezier(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, float t, out Vector3 position, out Vector3 tangent)
+        {
+            float u = 1f - t;
+            float u2 = u * u;
+            float u3 = u2 * u;
+            float t2 = t * t;
+            float t3 = t2 * t;
+
+            position = u3 * p0 + 3f * u2 * t * p1 + 3f * u * t2 * p2 + t3 * p3;
+            tangent = 3f * u2 * (p1 - p0) + 6f * u * t * (p2 - p1) + 3f * t2 * (p3 - p2);
         }
 
         private static void DrawArrowhead(Vector3 tip, Vector3 tangent, Color color, float zoom)
