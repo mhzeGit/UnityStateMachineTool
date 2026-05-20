@@ -32,7 +32,7 @@ namespace CleanStateMachine
         private static readonly Color SelectionColor = Color.yellow;
 
         private const float DefaultWidth = 160f;
-        private const float DefaultHeight = 60f;
+        private const float DefaultHeight = 40f;
         private const int BaseCornerRadius = 8;
         private const float PermanentBorderWidth = 1f;
         private const float SelectionBorderWidth = 1f;

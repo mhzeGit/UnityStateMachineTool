@@ -27,6 +27,17 @@ namespace CleanStateMachine
         [SerializeField] private Vector2 _panOffset;
         [SerializeField] private float _zoom = 1f;
 
+        [SerializeField] private bool _showBlackboard = true;
+        [SerializeField] private bool _showDetails = true;
+        [SerializeField] private float _blackboardWidth = 220f;
+        [SerializeField] private float _detailsWidth = 220f;
+        [SerializeField] private List<BlackboardVariable> _blackboardVariables = new();
+
+        private BlackboardView _blackboardView;
+        private DetailsPanelView _detailsView;
+        private bool _isDraggingLeftSplitter;
+        private bool _isDraggingRightSplitter;
+
         private Vector2 _lastMouseGraphPos;
 
         private UndoRedoSystem _undoRedoSystem;
@@ -55,6 +66,13 @@ namespace CleanStateMachine
             _selectionBox = new SelectionBox();
             _connectionController = new ConnectionController();
 
+            _blackboardView = new BlackboardView();
+            _detailsView = new DetailsPanelView();
+
+            _blackboardView.CloseRequested += OnBlackboardCloseRequested;
+            _detailsView.CloseRequested += OnDetailsCloseRequested;
+            _blackboardView.VariablesChanged += Repaint;
+
             _contextMenu.CreateStateRequested += OnCreateStateRequested;
             _contextMenu.ConnectRequested += OnConnectRequested;
             _contextMenu.UngroupRequested += OnUngroupRequested;
@@ -75,6 +93,10 @@ namespace CleanStateMachine
             _contextMenu.DeleteRequested -= DeleteSelected;
             _connectionController.ConnectionCompleted -= OnConnectionCompleted;
             _selectionController.SelectionChanged -= OnSelectionChanged;
+
+            _blackboardView.CloseRequested -= OnBlackboardCloseRequested;
+            _detailsView.CloseRequested -= OnDetailsCloseRequested;
+            _blackboardView.VariablesChanged -= Repaint;
         }
 
         private void OnGUI()
@@ -82,17 +104,19 @@ namespace CleanStateMachine
             if (position.width < 1f || position.height < 1f)
                 return;
 
-            var rect = new Rect(0f, 0f, position.width, position.height);
             var e = Event.current;
 
-            _panController.HandleInput(rect, ref _panOffset, ref _zoom);
+            ComputeLayout(out Rect graphRect, out Rect leftRect, out Rect rightRect,
+                out Rect leftSplitterRect, out Rect rightSplitterRect);
+
+            _panController.HandleInput(graphRect, ref _panOffset, ref _zoom);
 
             _lastMouseGraphPos = (e.mousePosition - _panOffset) / _zoom;
 
             if (!_connectionController.IsConnecting)
                 HandleKeyboardShortcuts(e);
 
-            if (e.type == EventType.ContextClick && rect.Contains(e.mousePosition))
+            if (e.type == EventType.ContextClick && graphRect.Contains(e.mousePosition))
             {
                 _connectionController.Cancel();
                 Vector2 graphMousePosition = (e.mousePosition - _panOffset) / _zoom;
@@ -106,13 +130,9 @@ namespace CleanStateMachine
             }
 
             if (_connectionController.IsConnecting)
-            {
-                HandleConnectingInput(rect);
-            }
+                HandleConnectingInput(graphRect);
             else
-            {
-                HandleLeftClickInteraction(rect);
-            }
+                HandleLeftClickInteraction(graphRect);
 
             if (e.type == EventType.KeyDown && e.keyCode == KeyCode.Escape)
             {
@@ -124,7 +144,7 @@ namespace CleanStateMachine
                 }
             }
 
-            _graphView.Draw(rect, _panOffset, _zoom);
+            _graphView.Draw(graphRect, _panOffset, _zoom);
             DrawGroups();
             DrawConnections();
             DrawStates();
@@ -132,8 +152,119 @@ namespace CleanStateMachine
             _connectionController.DrawPending(_zoom, _panOffset);
             _selectionBox.DrawScreen(_zoom, _panOffset);
 
+            if (_showBlackboard)
+                _blackboardView.Draw(leftRect, _blackboardVariables);
+            else
+                DrawCollapsedPanel(leftRect, "BB", ref _showBlackboard);
+
+            if (_showDetails)
+                _detailsView.Draw(rightRect, _selectionController.Selected, _states, _connections);
+            else
+                DrawCollapsedPanel(rightRect, "Det", ref _showDetails);
+
+            HandleSplitter(leftSplitterRect, _showBlackboard, ref _isDraggingLeftSplitter, isLeft: true);
+            HandleSplitter(rightSplitterRect, _showDetails, ref _isDraggingRightSplitter, isLeft: false);
+
             if (_panController.IsPanning || _dragController.IsActive || _selectionBox.IsActive || _connectionController.IsConnecting)
                 Repaint();
+        }
+
+        private void ComputeLayout(out Rect graphRect, out Rect leftRect, out Rect rightRect,
+            out Rect leftSplitterRect, out Rect rightSplitterRect)
+        {
+            float leftW = _showBlackboard ? _blackboardWidth : UITheme.CollapsedWidth;
+            float rightW = _showDetails ? _detailsWidth : UITheme.CollapsedWidth;
+            float splitter = UITheme.SplitterWidth;
+
+            float minGraph = 200f;
+            float leftMax = position.width - rightW - splitter * 2f - minGraph;
+            float rightMax = position.width - leftW - splitter * 2f - minGraph;
+
+            if (_showBlackboard && _blackboardWidth > leftMax)
+                _blackboardWidth = Mathf.Max(UITheme.MinPanelWidth, leftMax);
+
+            if (_showDetails && _detailsWidth > rightMax)
+                _detailsWidth = Mathf.Max(UITheme.MinPanelWidth, rightMax);
+
+            leftW = _showBlackboard ? _blackboardWidth : UITheme.CollapsedWidth;
+            rightW = _showDetails ? _detailsWidth : UITheme.CollapsedWidth;
+
+            leftRect = new Rect(0f, 0f, leftW, position.height);
+
+            float rightX = position.width - rightW;
+            rightRect = new Rect(rightX, 0f, rightW, position.height);
+
+            float gx = leftW + (_showBlackboard ? splitter : 0f);
+            float gw = position.width - leftW - rightW
+                - (_showBlackboard ? splitter : 0f)
+                - (_showDetails ? splitter : 0f);
+            graphRect = new Rect(gx, 0f, gw, position.height);
+
+            leftSplitterRect = _showBlackboard
+                ? new Rect(leftW, 0f, splitter, position.height)
+                : new Rect(0f, 0f, 0f, 0f);
+
+            rightSplitterRect = _showDetails
+                ? new Rect(rightX - splitter, 0f, splitter, position.height)
+                : new Rect(0f, 0f, 0f, 0f);
+        }
+
+        private static void DrawCollapsedPanel(Rect rect, string label, ref bool showPanel)
+        {
+            EditorGUI.DrawRect(rect, UITheme.PanelHeaderBg);
+            EditorGUI.DrawRect(new Rect(rect.x, rect.y, 1f, rect.height), UITheme.PanelBorder);
+
+            if (GUI.Button(rect, label, UITheme.CollapsedTabStyle))
+            {
+                showPanel = true;
+            }
+        }
+
+        private void HandleSplitter(Rect rect, bool visible, ref bool isDragging, bool isLeft)
+        {
+            if (!visible || rect.width <= 0f)
+                return;
+
+            bool hover = rect.Contains(Event.current.mousePosition);
+            UITheme.DrawSplitter(rect, hover || isDragging);
+            EditorGUIUtility.AddCursorRect(rect, MouseCursor.ResizeHorizontal);
+
+            var e = Event.current;
+            switch (e.type)
+            {
+                case EventType.MouseDown when e.button == 0 && rect.Contains(e.mousePosition):
+                    isDragging = true;
+                    e.Use();
+                    break;
+                case EventType.MouseDrag when isDragging:
+                {
+                    if (isLeft)
+                        _blackboardWidth = Mathf.Clamp(e.mousePosition.x, UITheme.MinPanelWidth, UITheme.MaxPanelWidth);
+                    else
+                        _detailsWidth = Mathf.Clamp(
+                            position.width - e.mousePosition.x - UITheme.SplitterWidth,
+                            UITheme.MinPanelWidth, UITheme.MaxPanelWidth);
+                    e.Use();
+                    Repaint();
+                    break;
+                }
+                case EventType.MouseUp when isDragging:
+                    isDragging = false;
+                    e.Use();
+                    break;
+            }
+        }
+
+        private void OnBlackboardCloseRequested()
+        {
+            _showBlackboard = false;
+            Repaint();
+        }
+
+        private void OnDetailsCloseRequested()
+        {
+            _showDetails = false;
+            Repaint();
         }
 
         private void HandleKeyboardShortcuts(Event e)
@@ -304,6 +435,12 @@ namespace CleanStateMachine
                         boxStates.Add(_states[i]);
                 _selectionController.SelectRange(boxStates);
 
+                var boxConnections = new List<ConnectionView>();
+                for (int i = 0; i < _connections.Count; i++)
+                    if (r.Overlaps(_connections[i].GetGraphBounds()))
+                        boxConnections.Add(_connections[i]);
+                _selectionController.SelectRange(boxConnections);
+
                 var boxGroups = new List<CommentGroupView>();
                 for (int i = 0; i < _groups.Count; i++)
                     if (r.Overlaps(_groups[i].GetGraphBounds()))
@@ -377,6 +514,12 @@ namespace CleanStateMachine
             {
                 if (_states[i].ContainsPoint(graphPos))
                     return _states[i];
+            }
+
+            for (int i = _connections.Count - 1; i >= 0; i--)
+            {
+                if (_connections[i].ContainsPoint(graphPos))
+                    return _connections[i];
             }
 
             for (int i = _groups.Count - 1; i >= 0; i--)
@@ -564,6 +707,19 @@ namespace CleanStateMachine
                     if (_states[i].IsSelected)
                         _states.RemoveAt(i);
                 _states.AddRange(pickedStates);
+            }
+
+            List<ConnectionView> pickedConnections = new();
+            for (int i = 0; i < _connections.Count; i++)
+                if (_connections[i].IsSelected)
+                    pickedConnections.Add(_connections[i]);
+
+            if (pickedConnections.Count > 0)
+            {
+                for (int i = _connections.Count - 1; i >= 0; i--)
+                    if (_connections[i].IsSelected)
+                        _connections.RemoveAt(i);
+                _connections.AddRange(pickedConnections);
             }
 
             List<CommentGroupView> pickedGroups = new();

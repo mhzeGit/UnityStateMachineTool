@@ -3,12 +3,17 @@ using UnityEngine;
 
 namespace CleanStateMachine
 {
-    public class ConnectionView
+    public class ConnectionView : ISelectable
     {
         public StateView From { get; }
         public StateView To { get; }
+        public bool IsSelected { get; set; }
 
         private static readonly Color ConnectionColor = new Color(0.60f, 0.80f, 1.00f, 0.90f);
+        private static readonly Color SelectedColor = new Color(0.80f, 0.92f, 1.00f, 1.00f);
+        private const float HitTestThreshold = 10f;
+        private const float BaseWidth = 5f;
+        private const float SelectedBaseWidth = 7f;
 
         public ConnectionView(StateView from, StateView to)
         {
@@ -16,49 +21,84 @@ namespace CleanStateMachine
             To = to;
         }
 
+        public Vector2 Position
+        {
+            get => GetGraphBounds().position;
+            set { }
+        }
+
+        public Vector2 Size => GetGraphBounds().size;
+
+        public Rect GetGraphBounds()
+        {
+            Vector3 from = From.GetCenter();
+            Vector3 to = To.GetCenter();
+
+            float minX = Mathf.Min(from.x, to.x);
+            float maxX = Mathf.Max(from.x, to.x);
+            float minY = Mathf.Min(from.y, to.y);
+            float maxY = Mathf.Max(from.y, to.y);
+
+            float margin = HitTestThreshold;
+            return new Rect(minX - margin, minY - margin, maxX - minX + margin * 2, maxY - minY + margin * 2);
+        }
+
+        public bool ContainsPoint(Vector2 graphPoint)
+        {
+            Vector3 from = From.GetCenter();
+            Vector3 to = To.GetCenter();
+
+            Vector3 line = to - from;
+            float lineLen = line.magnitude;
+            if (lineLen < 0.001f)
+                return Vector2.Distance(graphPoint, from) <= HitTestThreshold;
+
+            Vector3 dir = line / lineLen;
+            Vector3 toPoint = graphPoint - (Vector2)from;
+            float projection = Vector3.Dot(toPoint, dir);
+
+            Vector3 closest;
+            if (projection <= 0f)
+                closest = from;
+            else if (projection >= lineLen)
+                closest = to;
+            else
+                closest = from + dir * projection;
+
+            return Vector2.Distance(graphPoint, closest) <= HitTestThreshold;
+        }
+
+        public void DrawSelectionOverlay(float zoom, Vector2 panOffset)
+        {
+            DrawLine(From.GetCenter() * zoom + panOffset, To.GetCenter() * zoom + panOffset, SelectedColor, Mathf.Max(1f, (SelectedBaseWidth + 3f) * zoom));
+        }
+
         public void Draw(float zoom, Vector2 panOffset)
         {
             Vector3 startPos = From.GetCenter() * zoom + panOffset;
             Vector3 endPos = To.GetCenter() * zoom + panOffset;
 
-            Vector3 dir = (endPos - startPos).normalized;
-            float distance = Vector3.Distance(startPos, endPos);
-            float tangentStrength = Mathf.Max(distance * 0.5f, 50f);
-            Vector3 startTan = startPos + dir * tangentStrength;
-            Vector3 endTan = endPos - dir * tangentStrength;
+            Color color = IsSelected ? SelectedColor : ConnectionColor;
+            float width = Mathf.Max(1f, (IsSelected ? SelectedBaseWidth : BaseWidth) * zoom);
 
-            Handles.DrawBezier(startPos, endPos, startTan, endTan, ConnectionColor, null, 3f);
-
-            EvaluateCubicBezier(startPos, startTan, endTan, endPos, 0.5f, out Vector3 mid, out Vector3 tan);
-            DrawArrowhead(mid, tan, ConnectionColor, zoom);
+            DrawLine(startPos, endPos, color, width);
         }
 
-        private static void EvaluateCubicBezier(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, float t, out Vector3 position, out Vector3 tangent)
+        private static void DrawLine(Vector3 start, Vector3 end, Color color, float width)
         {
-            float u = 1f - t;
-            float u2 = u * u;
-            float u3 = u2 * u;
-            float t2 = t * t;
-            float t3 = t2 * t;
-
-            position = u3 * p0 + 3f * u2 * t * p1 + 3f * u * t2 * p2 + t3 * p3;
-            tangent = 3f * u2 * (p1 - p0) + 6f * u * t * (p2 - p1) + 3f * t2 * (p3 - p2);
-        }
-
-        private static void DrawArrowhead(Vector3 tip, Vector3 tangent, Color color, float zoom)
-        {
-            float size = Mathf.Max(8f, 12f * zoom);
-            Vector3 dir = tangent.normalized;
+            Vector3 dir = (end - start).normalized;
             Vector3 perp = new Vector3(-dir.y, dir.x, 0f);
+            float halfW = width * 0.5f;
 
-            Vector3 p1 = tip;
-            Vector3 p2 = tip - dir * size + perp * (size * 0.4f);
-            Vector3 p3 = tip - dir * size - perp * (size * 0.4f);
+            Vector3[] corners = new Vector3[]
+            {
+                start + perp * halfW,
+                start - perp * halfW,
+                end - perp * halfW,
+                end + perp * halfW,
+            };
 
-            Color prev = Handles.color;
-            Handles.color = color;
-            Handles.DrawAAConvexPolygon(p1, p2, p3);
-            Handles.color = prev;
+            Handles.DrawSolidRectangleWithOutline(corners, color, color);
         }
     }
 }
