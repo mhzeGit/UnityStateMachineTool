@@ -73,15 +73,15 @@ namespace CleanStateMachine
             Vector3 perp = new Vector3(-dir.y, dir.x, 0f);
             float halfW = width * 0.5f;
 
-            Vector3[] corners = new Vector3[]
-            {
+            Color prev = Handles.color;
+            Handles.color = color;
+            Handles.DrawAAConvexPolygon(
                 start + perp * halfW,
                 start - perp * halfW,
                 end - perp * halfW,
-                end + perp * halfW,
-            };
-
-            Handles.DrawSolidRectangleWithOutline(corners, color, color);
+                end + perp * halfW
+            );
+            Handles.color = prev;
         }
 
         private static void DrawMidArrowhead(Vector3 start, Vector3 end, Color color, float zoom)
