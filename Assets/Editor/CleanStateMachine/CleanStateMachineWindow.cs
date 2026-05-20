@@ -451,7 +451,7 @@ namespace CleanStateMachine
                     }
                     else
                     {
-                        var newState = new StateView(graphMousePos);
+                        var newState = new StateView(graphMousePos - new Vector2(80f, 20f));
                         var connection = new ConnectionView(source, newState);
                         var composite = new CompositeCommand("Create State and Connect");
                         composite.Add(new CreateStateCommand(_states, newState));
@@ -824,6 +824,12 @@ namespace CleanStateMachine
 
         private void OnConnectionCompleted(StateView from, StateView to)
         {
+            if (to.IsEntry)
+                return;
+
+            if (from.IsEntry && HasOutgoingConnection(from))
+                return;
+
             var connection = new ConnectionView(from, to);
             var cmd = new CreateConnectionCommand(_connections, connection);
             _undoRedoSystem.Execute(cmd);
