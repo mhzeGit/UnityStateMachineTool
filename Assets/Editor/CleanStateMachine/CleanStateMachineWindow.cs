@@ -308,6 +308,27 @@ namespace CleanStateMachine
                 return;
             }
 
+            if (e.keyCode == KeyCode.C && !e.control)
+            {
+                StateView source = null;
+                for (int i = 0; i < _selectionController.Count; i++)
+                {
+                    if (_selectionController.Selected[i] is StateView s)
+                    {
+                        if (source != null) { source = null; break; }
+                        source = s;
+                    }
+                }
+
+                if (source != null)
+                {
+                    _connectionController.StartConnection(source);
+                    e.Use();
+                    Repaint();
+                    return;
+                }
+            }
+
             if (e.keyCode == KeyCode.V && e.control)
             {
                 PasteStates();
@@ -379,12 +400,6 @@ namespace CleanStateMachine
 
             if (hit != null)
             {
-                if (hit is StateView s && s.IsEntry)
-                {
-                    e.Use();
-                    return;
-                }
-
                 if (e.shift)
                 {
                     _selectionController.Toggle(hit);
@@ -394,9 +409,12 @@ namespace CleanStateMachine
                     _selectionController.SelectOnly(hit);
                 }
 
-                var dragItems = GetDragItems();
-                CapturePreDragPositions(dragItems);
-                _dragController.StartDrag(graphPos, dragItems);
+                if (!(hit is StateView s && s.IsEntry))
+                {
+                    var dragItems = GetDragItems();
+                    CapturePreDragPositions(dragItems);
+                    _dragController.StartDrag(graphPos, dragItems);
+                }
             }
             else
             {
@@ -442,7 +460,7 @@ namespace CleanStateMachine
 
                 var boxStates = new List<StateView>();
                 for (int i = 0; i < _states.Count; i++)
-                    if (!_states[i].IsEntry && r.Overlaps(_states[i].GetGraphBounds()))
+                    if (r.Overlaps(_states[i].GetGraphBounds()))
                         boxStates.Add(_states[i]);
                 _selectionController.SelectRange(boxStates);
 
@@ -595,9 +613,31 @@ namespace CleanStateMachine
 
         private void DrawConnections()
         {
+            var groups = new Dictionary<(StateView, StateView), List<ConnectionView>>();
             for (int i = 0; i < _connections.Count; i++)
             {
-                _connections[i].Draw(_zoom, _panOffset);
+                var conn = _connections[i];
+                var key = conn.From.GetHashCode() < conn.To.GetHashCode()
+                    ? (conn.From, conn.To)
+                    : (conn.To, conn.From);
+                if (!groups.TryGetValue(key, out var list))
+                {
+                    list = new List<ConnectionView>();
+                    groups[key] = list;
+                }
+                list.Add(conn);
+            }
+
+            foreach (var kvp in groups)
+            {
+                var list = kvp.Value;
+                int count = list.Count;
+                for (int i = 0; i < count; i++)
+                {
+                    float offset = count == 1 ? 0f : (i - (count - 1) * 0.5f) * 15f;
+                    list[i].PerpendicularOffset = offset;
+                    list[i].Draw(_zoom, _panOffset);
+                }
             }
         }
 
@@ -743,6 +783,12 @@ namespace CleanStateMachine
                     if (_states[i].IsSelected)
                         _states.RemoveAt(i);
                 _states.AddRange(pickedStates);
+            }
+
+            if (_entryState != null && _states[0] != _entryState)
+            {
+                _states.Remove(_entryState);
+                _states.Insert(0, _entryState);
             }
 
             List<ConnectionView> pickedConnections = new();

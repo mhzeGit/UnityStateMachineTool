@@ -29,20 +29,20 @@ namespace CleanStateMachine
             if (ox < 0f) ox += sGridS;
             if (oy < 0f) oy += sGridS;
 
-            for (float x = ox; x < rect.width; x += sGridS)
-                EditorGUI.DrawRect(new Rect(x, 0f, thickness, rect.height), GridMinor);
-            for (float y = oy; y < rect.height; y += sGridS)
-                EditorGUI.DrawRect(new Rect(0f, y, rect.width, thickness), GridMinor);
+            for (float x = rect.x + ox; x < rect.x + rect.width; x += sGridS)
+                EditorGUI.DrawRect(new Rect(x, rect.y, thickness, rect.height), GridMinor);
+            for (float y = rect.y + oy; y < rect.y + rect.height; y += sGridS)
+                EditorGUI.DrawRect(new Rect(rect.x, y, rect.width, thickness), GridMinor);
 
             ox = panOffset.x % sGridL;
             oy = panOffset.y % sGridL;
             if (ox < 0f) ox += sGridL;
             if (oy < 0f) oy += sGridL;
 
-            for (float x = ox; x < rect.width; x += sGridL)
-                EditorGUI.DrawRect(new Rect(x, 0f, thickness, rect.height), GridMajor);
-            for (float y = oy; y < rect.height; y += sGridL)
-                EditorGUI.DrawRect(new Rect(0f, y, rect.width, thickness), GridMajor);
+            for (float x = rect.x + ox; x < rect.x + rect.width; x += sGridL)
+                EditorGUI.DrawRect(new Rect(x, rect.y, thickness, rect.height), GridMajor);
+            for (float y = rect.y + oy; y < rect.y + rect.height; y += sGridL)
+                EditorGUI.DrawRect(new Rect(rect.x, y, rect.width, thickness), GridMajor);
         }
 
     }

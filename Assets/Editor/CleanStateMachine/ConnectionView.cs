@@ -8,6 +8,7 @@ namespace CleanStateMachine
         public StateView From { get; }
         public StateView To { get; }
         public bool IsSelected { get; set; }
+        public float PerpendicularOffset { get; set; }
 
         private static readonly Color ConnectionColor = new Color(0.60f, 0.80f, 1.00f, 1.00f);
         private static readonly Color SelectedColor = new Color(0.80f, 0.92f, 1.00f, 1.00f);
@@ -30,10 +31,21 @@ namespace CleanStateMachine
 
         public Vector2 Size => GetGraphBounds().size;
 
+        private Vector2 GetOffsetVector()
+        {
+            if (PerpendicularOffset == 0f)
+                return Vector2.zero;
+
+            Vector2 from = From.GetCenter();
+            Vector2 to = To.GetCenter();
+            Vector2 dir = (to - from).normalized;
+            return new Vector2(-dir.y, dir.x) * PerpendicularOffset;
+        }
+
         public Rect GetGraphBounds()
         {
-            Vector3 from = From.GetCenter();
-            Vector3 to = To.GetCenter();
+            Vector3 from = From.GetCenter() + GetOffsetVector();
+            Vector3 to = To.GetCenter() + GetOffsetVector();
 
             float minX = Mathf.Min(from.x, to.x);
             float maxX = Mathf.Max(from.x, to.x);
@@ -46,8 +58,8 @@ namespace CleanStateMachine
 
         public bool ContainsPoint(Vector2 graphPoint)
         {
-            Vector3 from = From.GetCenter();
-            Vector3 to = To.GetCenter();
+            Vector3 from = From.GetCenter() + GetOffsetVector();
+            Vector3 to = To.GetCenter() + GetOffsetVector();
 
             Vector3 line = to - from;
             float lineLen = line.magnitude;
@@ -75,8 +87,9 @@ namespace CleanStateMachine
 
         public void Draw(float zoom, Vector2 panOffset)
         {
-            Vector3 startPos = From.GetCenter() * zoom + panOffset;
-            Vector3 endPos = To.GetCenter() * zoom + panOffset;
+            Vector2 offsetVec = GetOffsetVector() * zoom;
+            Vector3 startPos = (Vector3)(From.GetCenter() * zoom + panOffset + offsetVec);
+            Vector3 endPos = (Vector3)(To.GetCenter() * zoom + panOffset + offsetVec);
 
             Color color = IsSelected ? SelectedColor : ConnectionColor;
             float width = Mathf.Max(1f, (IsSelected ? SelectedBaseWidth : BaseWidth) * zoom);
