@@ -89,7 +89,6 @@ namespace CleanStateMachine
             _contextMenu.CopyRequested += CopySelectedStates;
             _contextMenu.PasteRequested += PasteStates;
             _contextMenu.DeleteRequested += DeleteSelected;
-            _connectionController.ConnectionCompleted += OnConnectionCompleted;
             _selectionController.SelectionChanged += OnSelectionChanged;
         }
 
@@ -101,7 +100,6 @@ namespace CleanStateMachine
             _contextMenu.CopyRequested -= CopySelectedStates;
             _contextMenu.PasteRequested -= PasteStates;
             _contextMenu.DeleteRequested -= DeleteSelected;
-            _connectionController.ConnectionCompleted -= OnConnectionCompleted;
             _selectionController.SelectionChanged -= OnSelectionChanged;
 
             _blackboardView.VariablesChanged -= Repaint;
@@ -443,20 +441,43 @@ namespace CleanStateMachine
                     StateView source = _connectionController.SourceNode;
                     StateView target = HitTestState(graphMousePos);
 
-                    if (target != null && target != source)
+                    if (target != null)
                     {
-                        var connection = new ConnectionView(source, target);
-                        var cmd = new CreateConnectionCommand(_connections, connection);
+                        if (target == source || target.IsEntry)
+                        {
+                            _connectionController.Cancel();
+                            e.Use();
+                            Repaint();
+                            break;
+                        }
+
+                        var cmd = new CompositeCommand("Create Connection");
+
+                        if (source.IsEntry)
+                        {
+                            ConnectionView existing = GetEntryOutgoingConnection();
+                            if (existing != null)
+                                cmd.Add(new DeleteConnectionCommand(_connections, existing));
+                        }
+
+                        cmd.Add(new CreateConnectionCommand(_connections, new ConnectionView(source, target)));
                         _undoRedoSystem.Execute(cmd);
                     }
                     else
                     {
                         var newState = new StateView(graphMousePos - new Vector2(80f, 20f));
-                        var connection = new ConnectionView(source, newState);
-                        var composite = new CompositeCommand("Create State and Connect");
-                        composite.Add(new CreateStateCommand(_states, newState));
-                        composite.Add(new CreateConnectionCommand(_connections, connection));
-                        _undoRedoSystem.Execute(composite);
+                        var cmd = new CompositeCommand("Create State and Connect");
+
+                        if (source.IsEntry)
+                        {
+                            ConnectionView existing = GetEntryOutgoingConnection();
+                            if (existing != null)
+                                cmd.Add(new DeleteConnectionCommand(_connections, existing));
+                        }
+
+                        cmd.Add(new CreateStateCommand(_states, newState));
+                        cmd.Add(new CreateConnectionCommand(_connections, new ConnectionView(source, newState)));
+                        _undoRedoSystem.Execute(cmd);
                     }
 
                     _connectionController.Cancel();
@@ -799,41 +820,41 @@ namespace CleanStateMachine
         private void OnCreateStateRequested(Vector2 graphMousePosition)
         {
             var state = new StateView(graphMousePosition);
-            var cmd = new CreateStateCommand(_states, state);
-            _undoRedoSystem.Execute(cmd);
+
+            if (_entryState != null && GetEntryOutgoingConnection() == null)
+            {
+                var cmd = new CompositeCommand("Create State");
+                cmd.Add(new CreateStateCommand(_states, state));
+                cmd.Add(new CreateConnectionCommand(_connections, new ConnectionView(_entryState, state)));
+                _undoRedoSystem.Execute(cmd);
+            }
+            else
+            {
+                var cmd = new CreateStateCommand(_states, state);
+                _undoRedoSystem.Execute(cmd);
+            }
+
             Repaint();
         }
 
         private void OnConnectRequested(StateView source)
         {
-            if (source.IsEntry && HasOutgoingConnection(source))
-                return;
             _connectionController.StartConnection(source);
             Repaint();
         }
 
-        private bool HasOutgoingConnection(StateView source)
+        private ConnectionView GetEntryOutgoingConnection()
         {
+            if (_entryState == null)
+                return null;
+
             for (int i = 0; i < _connections.Count; i++)
             {
-                if (_connections[i].From == source)
-                    return true;
+                if (_connections[i].From == _entryState)
+                    return _connections[i];
             }
-            return false;
-        }
 
-        private void OnConnectionCompleted(StateView from, StateView to)
-        {
-            if (to.IsEntry)
-                return;
-
-            if (from.IsEntry && HasOutgoingConnection(from))
-                return;
-
-            var connection = new ConnectionView(from, to);
-            var cmd = new CreateConnectionCommand(_connections, connection);
-            _undoRedoSystem.Execute(cmd);
-            Repaint();
+            return null;
         }
 
         private void OnUngroupRequested(CommentGroupView group)
