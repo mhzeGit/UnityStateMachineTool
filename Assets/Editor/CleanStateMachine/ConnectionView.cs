@@ -36,9 +36,13 @@ namespace CleanStateMachine
             if (PerpendicularOffset == 0f)
                 return Vector2.zero;
 
-            Vector2 from = From.GetCenter();
-            Vector2 to = To.GetCenter();
-            Vector2 dir = (to - from).normalized;
+            Vector2 a = From.GetCenter();
+            Vector2 b = To.GetCenter();
+            Vector2 dir = (b - a).normalized;
+
+            if (From.GetHashCode() > To.GetHashCode())
+                dir = -dir;
+
             return new Vector2(-dir.y, dir.x) * PerpendicularOffset;
         }
 

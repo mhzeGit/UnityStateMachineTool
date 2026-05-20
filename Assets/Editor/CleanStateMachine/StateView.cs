@@ -10,11 +10,14 @@ namespace CleanStateMachine
 
         public bool IsSelected { get; set; }
         public bool IsEntry { get; }
+        public bool IsEditing { get; set; }
+        public string EditingBuffer { get; set; }
 
         private static GUIStyle _fillStyle;
         private static GUIStyle _borderStyle;
         private static GUIStyle _shadowStyle;
         private static GUIStyle _selectionStyle;
+        private static GUIStyle _editStyle;
 
         private static Texture2D _cachedFillTexture;
         private static int _cachedFillRadius;
@@ -161,7 +164,43 @@ namespace CleanStateMachine
             _fillStyle.normal.background = IsEntry ? _cachedEntryFillTexture : _cachedFillTexture;
             _fillStyle.border = fillBorder;
             _fillStyle.fontSize = Mathf.RoundToInt(12 * zoom);
-            GUI.Box(rect, Name, _fillStyle);
+
+            if (IsEditing)
+            {
+                GUI.Box(rect, "", _fillStyle);
+
+                if (_editStyle == null)
+                {
+                    _editStyle = new GUIStyle
+                    {
+                        alignment = TextAnchor.MiddleCenter,
+                        normal = { textColor = Color.white },
+                        focused = { textColor = Color.white },
+                        padding = new RectOffset(4, 4, 4, 4),
+                        border = new RectOffset(0, 0, 0, 0),
+                        margin = new RectOffset(0, 0, 0, 0),
+                        overflow = new RectOffset(0, 0, 0, 0),
+                        wordWrap = false,
+                        clipping = TextClipping.Clip
+                    };
+                }
+
+                _editStyle.normal.background = _fillStyle.normal.background;
+                _editStyle.focused.background = _fillStyle.normal.background;
+                _editStyle.fontSize = _fillStyle.fontSize;
+                _editStyle.border = fillBorder;
+
+                GUI.SetNextControlName("StateRenameField");
+                string newName = GUI.TextField(rect, EditingBuffer, _editStyle);
+                if (newName != EditingBuffer)
+                {
+                    EditingBuffer = newName;
+                }
+            }
+            else
+            {
+                GUI.Box(rect, Name, _fillStyle);
+            }
 
             _borderStyle.normal.background = IsEntry ? _cachedEntryBorderTexture : _cachedBorderTexture;
             _borderStyle.border = fillBorder;

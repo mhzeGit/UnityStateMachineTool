@@ -8,8 +8,6 @@ namespace CleanStateMachine
     {
         private Vector2 _scrollPos;
 
-        public event System.Action CloseRequested;
-
         public void Draw(Rect rect, IReadOnlyList<ISelectable> selected,
             List<StateView> states, List<ConnectionView> connections)
         {
@@ -34,10 +32,6 @@ namespace CleanStateMachine
             EditorGUI.DrawRect(rect, UITheme.PanelHeaderBg);
 
             GUI.Label(rect, "Details", UITheme.HeaderStyle);
-
-            Rect closeRect = new Rect(rect.xMax - 20f, rect.y + (rect.height - 16f) * 0.5f, 16f, 16f);
-            if (GUI.Button(closeRect, "X", UITheme.CloseButtonStyle))
-                CloseRequested?.Invoke();
         }
 
         private void DrawContent(Rect rect, IReadOnlyList<ISelectable> selected,

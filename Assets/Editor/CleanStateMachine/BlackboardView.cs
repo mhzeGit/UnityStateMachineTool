@@ -10,7 +10,6 @@ namespace CleanStateMachine
         private string _newVariableName = "New Variable";
         private BlackboardVariableType _newVariableType = BlackboardVariableType.Float;
 
-        public event System.Action CloseRequested;
         public event System.Action VariablesChanged;
 
         public void Draw(Rect rect, List<BlackboardVariable> variables)
@@ -47,10 +46,6 @@ namespace CleanStateMachine
             EditorGUI.DrawRect(rect, UITheme.PanelHeaderBg);
 
             GUI.Label(rect, "Blackboard", UITheme.HeaderStyle);
-
-            Rect closeRect = new Rect(rect.xMax - 20f, rect.y + (rect.height - 16f) * 0.5f, 16f, 16f);
-            if (GUI.Button(closeRect, "X", UITheme.CloseButtonStyle))
-                CloseRequested?.Invoke();
         }
 
         private void DrawVariableList(Rect rect, List<BlackboardVariable> variables)

@@ -28,7 +28,6 @@ namespace CleanStateMachine
         [SerializeField] private float _zoom = 1f;
 
         [SerializeField] private bool _showBlackboard = true;
-        [SerializeField] private bool _showDetails = true;
         [SerializeField] private float _blackboardWidth = 220f;
         [SerializeField] private float _detailsWidth = 220f;
         [SerializeField] private List<BlackboardVariable> _blackboardVariables = new();
@@ -54,6 +53,12 @@ namespace CleanStateMachine
         private readonly List<CommentGroupView> _groups = new();
         private Dictionary<ISelectable, Vector2> _preDragPositions;
         private StateView _entryState;
+        private StateView _editingState;
+        private string _editingOriginalName;
+        private bool _focusRequested;
+        private bool _selectAllRequested;
+        private double _lastClickTime;
+        private StateView _lastDoubleClickCandidate;
 
         private static readonly Vector2 EntryStatePosition = new Vector2(50f, 200f);
 
@@ -72,8 +77,6 @@ namespace CleanStateMachine
             _blackboardView = new BlackboardView();
             _detailsView = new DetailsPanelView();
 
-            _blackboardView.CloseRequested += OnBlackboardCloseRequested;
-            _detailsView.CloseRequested += OnDetailsCloseRequested;
             _blackboardView.VariablesChanged += Repaint;
 
             EnsureEntryStateExists();
@@ -99,8 +102,6 @@ namespace CleanStateMachine
             _connectionController.ConnectionCompleted -= OnConnectionCompleted;
             _selectionController.SelectionChanged -= OnSelectionChanged;
 
-            _blackboardView.CloseRequested -= OnBlackboardCloseRequested;
-            _detailsView.CloseRequested -= OnDetailsCloseRequested;
             _blackboardView.VariablesChanged -= Repaint;
         }
 
@@ -116,13 +117,35 @@ namespace CleanStateMachine
 
             _panController.HandleInput(graphRect, ref _panOffset, ref _zoom);
 
+            if (_editingState != null)
+            {
+                if (e.type == EventType.KeyDown)
+                {
+                    if (e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter)
+                    {
+                        CommitEditing();
+                        e.Use();
+                        Repaint();
+                    }
+                    else if (e.keyCode == KeyCode.Escape)
+                    {
+                        CancelEditing();
+                        e.Use();
+                        Repaint();
+                    }
+                }
+            }
+
             _lastMouseGraphPos = (e.mousePosition - _panOffset) / _zoom;
 
-            if (!_connectionController.IsConnecting)
+            if (!_connectionController.IsConnecting && _editingState == null)
                 HandleKeyboardShortcuts(e);
 
             if (e.type == EventType.ContextClick && graphRect.Contains(e.mousePosition))
             {
+                if (_editingState != null)
+                    CommitEditing();
+
                 _connectionController.Cancel();
                 Vector2 graphMousePosition = (e.mousePosition - _panOffset) / _zoom;
                 ISelectable hit = HitTest(graphMousePosition);
@@ -154,21 +177,41 @@ namespace CleanStateMachine
             DrawConnections();
             _connectionController.DrawPending(_zoom, _panOffset);
             DrawStates();
+
+            if (_focusRequested)
+            {
+                EditorGUI.FocusTextInControl("StateRenameField");
+                _focusRequested = false;
+                _selectAllRequested = true;
+            }
+
+            if (_selectAllRequested && Event.current.type == EventType.Repaint)
+            {
+                if (GUI.GetNameOfFocusedControl() == "StateRenameField")
+                {
+                    var textEditor = (TextEditor)GUIUtility.GetStateObject(typeof(TextEditor), GUIUtility.keyboardControl);
+                    if (textEditor != null)
+                        textEditor.SelectAll();
+                    _selectAllRequested = false;
+                }
+            }
+
             DrawSelectionOverlays();
             _selectionBox.DrawScreen(_zoom, _panOffset);
 
             if (_showBlackboard)
+            {
                 _blackboardView.Draw(leftRect, _blackboardVariables);
+                DrawBlackboardToggle(leftRect);
+            }
             else
-                DrawCollapsedPanel(leftRect, "BB", ref _showBlackboard);
+                DrawCollapsedPanel(leftRect, ">", ref _showBlackboard);
 
-            if (_showDetails)
+            if (_selectionController.Count > 0)
                 _detailsView.Draw(rightRect, _selectionController.Selected, _states, _connections);
-            else
-                DrawCollapsedPanel(rightRect, "Det", ref _showDetails);
 
             HandleSplitter(leftSplitterRect, _showBlackboard, ref _isDraggingLeftSplitter, isLeft: true);
-            HandleSplitter(rightSplitterRect, _showDetails, ref _isDraggingRightSplitter, isLeft: false);
+            HandleSplitter(rightSplitterRect, _selectionController.Count > 0, ref _isDraggingRightSplitter, isLeft: false);
 
             if (_panController.IsPanning || _dragController.IsActive || _selectionBox.IsActive || _connectionController.IsConnecting)
                 Repaint();
@@ -178,7 +221,7 @@ namespace CleanStateMachine
             out Rect leftSplitterRect, out Rect rightSplitterRect)
         {
             float leftW = _showBlackboard ? _blackboardWidth : UITheme.CollapsedWidth;
-            float rightW = _showDetails ? _detailsWidth : UITheme.CollapsedWidth;
+            float rightW = _selectionController.Count > 0 ? _detailsWidth : 0f;
             float splitter = UITheme.SplitterWidth;
 
             float minGraph = 200f;
@@ -188,11 +231,11 @@ namespace CleanStateMachine
             if (_showBlackboard && _blackboardWidth > leftMax)
                 _blackboardWidth = Mathf.Max(UITheme.MinPanelWidth, leftMax);
 
-            if (_showDetails && _detailsWidth > rightMax)
+            if (_selectionController.Count > 0 && _detailsWidth > rightMax)
                 _detailsWidth = Mathf.Max(UITheme.MinPanelWidth, rightMax);
 
             leftW = _showBlackboard ? _blackboardWidth : UITheme.CollapsedWidth;
-            rightW = _showDetails ? _detailsWidth : UITheme.CollapsedWidth;
+            rightW = _selectionController.Count > 0 ? _detailsWidth : 0f;
 
             leftRect = new Rect(0f, 0f, leftW, position.height);
 
@@ -202,26 +245,70 @@ namespace CleanStateMachine
             float gx = leftW + (_showBlackboard ? splitter : 0f);
             float gw = position.width - leftW - rightW
                 - (_showBlackboard ? splitter : 0f)
-                - (_showDetails ? splitter : 0f);
+                - (_selectionController.Count > 0 ? splitter : 0f);
             graphRect = new Rect(gx, 0f, gw, position.height);
 
             leftSplitterRect = _showBlackboard
                 ? new Rect(leftW, 0f, splitter, position.height)
                 : new Rect(0f, 0f, 0f, 0f);
 
-            rightSplitterRect = _showDetails
+            rightSplitterRect = _selectionController.Count > 0
                 ? new Rect(rightX - splitter, 0f, splitter, position.height)
                 : new Rect(0f, 0f, 0f, 0f);
+        }
+
+        private void DrawBlackboardToggle(Rect panelRect)
+        {
+            float toggleSize = 20f;
+            Rect toggleRect = new Rect(
+                panelRect.xMax - toggleSize,
+                panelRect.y + 4f,
+                toggleSize,
+                toggleSize
+            );
+
+            bool hover = toggleRect.Contains(Event.current.mousePosition);
+            EditorGUI.DrawRect(toggleRect, hover ? UITheme.ButtonHover : UITheme.PanelHeaderBg);
+
+            var style = new GUIStyle
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 12,
+                fontStyle = FontStyle.Bold,
+                normal = { textColor = hover ? Color.white : UITheme.TextSecondary }
+            };
+            GUI.Label(toggleRect, "<", style);
+
+            if (Event.current.type == EventType.MouseDown && Event.current.button == 0 && toggleRect.Contains(Event.current.mousePosition))
+            {
+                _showBlackboard = false;
+                Event.current.Use();
+                Repaint();
+            }
         }
 
         private static void DrawCollapsedPanel(Rect rect, string label, ref bool showPanel)
         {
             EditorGUI.DrawRect(rect, UITheme.PanelHeaderBg);
-            EditorGUI.DrawRect(new Rect(rect.x, rect.y, 1f, rect.height), UITheme.PanelBorder);
+            EditorGUI.DrawRect(new Rect(rect.x + rect.width - 1f, rect.y, 1f, rect.height), UITheme.PanelBorder);
 
-            if (GUI.Button(rect, label, UITheme.CollapsedTabStyle))
+            float labelH = 22f;
+            Rect labelRect = new Rect(rect.x, rect.y + 4f, rect.width, labelH);
+            bool hover = labelRect.Contains(Event.current.mousePosition);
+            var style = new GUIStyle
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 12,
+                fontStyle = FontStyle.Bold,
+                normal = { textColor = hover ? Color.white : UITheme.TextSecondary }
+            };
+            GUI.Label(labelRect, label, style);
+
+            var e = Event.current;
+            if (e.type == EventType.MouseDown && e.button == 0 && rect.Contains(e.mousePosition))
             {
                 showPanel = true;
+                e.Use();
             }
         }
 
@@ -258,18 +345,6 @@ namespace CleanStateMachine
                     e.Use();
                     break;
             }
-        }
-
-        private void OnBlackboardCloseRequested()
-        {
-            _showBlackboard = false;
-            Repaint();
-        }
-
-        private void OnDetailsCloseRequested()
-        {
-            _showDetails = false;
-            Repaint();
         }
 
         private void HandleKeyboardShortcuts(Event e)
@@ -360,10 +435,34 @@ namespace CleanStateMachine
                     break;
 
                 case EventType.MouseDown when e.button == 0 && viewRect.Contains(e.mousePosition):
-                    if (!_connectionController.TryComplete(graphMousePos, _states))
+                {
+                    StateView source = _connectionController.SourceNode;
+                    StateView target = HitTestState(graphMousePos);
+
+                    if (target != null && target != source)
                     {
-                        _connectionController.Cancel();
+                        var connection = new ConnectionView(source, target);
+                        var cmd = new CreateConnectionCommand(_connections, connection);
+                        _undoRedoSystem.Execute(cmd);
                     }
+                    else
+                    {
+                        var newState = new StateView(graphMousePos);
+                        var connection = new ConnectionView(source, newState);
+                        var composite = new CompositeCommand("Create State and Connect");
+                        composite.Add(new CreateStateCommand(_states, newState));
+                        composite.Add(new CreateConnectionCommand(_connections, connection));
+                        _undoRedoSystem.Execute(composite);
+                    }
+
+                    _connectionController.Cancel();
+                    e.Use();
+                    Repaint();
+                    break;
+                }
+
+                case EventType.MouseDown when e.button == 1:
+                    _connectionController.Cancel();
                     e.Use();
                     Repaint();
                     break;
@@ -398,6 +497,31 @@ namespace CleanStateMachine
         {
             ISelectable hit = HitTest(graphPos);
 
+            if (hit is StateView sv && !sv.IsEntry)
+            {
+                double now = EditorApplication.timeSinceStartup;
+                if (sv == _lastDoubleClickCandidate && (now - _lastClickTime) < 0.3)
+                {
+                    _lastDoubleClickCandidate = null;
+                    if (!_selectionController.IsSelected(sv))
+                        _selectionController.SelectOnly(sv);
+                    StartEditing(sv);
+                    e.Use();
+                    return;
+                }
+                _lastClickTime = now;
+                _lastDoubleClickCandidate = sv;
+            }
+            else
+            {
+                _lastDoubleClickCandidate = null;
+            }
+
+            if (_editingState != null && hit != _editingState)
+            {
+                CommitEditing();
+            }
+
             if (hit != null)
             {
                 if (e.shift)
@@ -409,7 +533,7 @@ namespace CleanStateMachine
                     _selectionController.SelectOnly(hit);
                 }
 
-                if (!(hit is StateView s && s.IsEntry))
+                if (!(hit is StateView s && s.IsEntry) && _editingState == null)
                 {
                     var dragItems = GetDragItems();
                     CapturePreDragPositions(dragItems);
@@ -421,10 +545,14 @@ namespace CleanStateMachine
                 if (!e.shift)
                     _selectionController.Clear();
 
-                _selectionBox.Start(graphPos);
+                if (_editingState == null)
+                    _selectionBox.Start(graphPos);
             }
 
-            e.Use();
+            if (!(_editingState != null && hit == _editingState))
+            {
+                e.Use();
+            }
         }
 
         private void OnLeftMouseDrag(Vector2 graphPos, Event e)
@@ -432,10 +560,13 @@ namespace CleanStateMachine
             if (_dragController.IsActive)
             {
                 _dragController.UpdateDrag(graphPos, _zoom);
+                if (_dragController.IsMoving)
+                    _lastDoubleClickCandidate = null;
             }
             else if (_selectionBox.IsActive)
             {
                 _selectionBox.Update(graphPos);
+                _lastDoubleClickCandidate = null;
             }
 
             e.Use();
@@ -445,11 +576,14 @@ namespace CleanStateMachine
         {
             if (_dragController.IsActive)
             {
+                bool wasMoving = _dragController.IsMoving;
                 _dragController.EndDrag();
                 var moveCmd = CreateMoveCommandIfMoved();
                 if (moveCmd != null)
                     _undoRedoSystem.Execute(moveCmd);
                 _preDragPositions = null;
+                if (wasMoving)
+                    _lastDoubleClickCandidate = null;
             }
             else if (_selectionBox.IsActive)
             {
@@ -477,6 +611,7 @@ namespace CleanStateMachine
                 _selectionController.SelectRange(boxGroups);
 
                 _selectionBox.End();
+                _lastDoubleClickCandidate = null;
             }
 
             e.Use();
@@ -631,6 +766,7 @@ namespace CleanStateMachine
             foreach (var kvp in groups)
             {
                 var list = kvp.Value;
+                list.Sort((a, b) => a.GetHashCode().CompareTo(b.GetHashCode()));
                 int count = list.Count;
                 for (int i = 0; i < count; i++)
                 {
@@ -748,6 +884,56 @@ namespace CleanStateMachine
             _undoRedoSystem.Execute(cmd);
 
             _selectionController.Clear();
+            Repaint();
+        }
+
+        private void StartEditing(StateView state)
+        {
+            if (_editingState != null && _editingState != state)
+            {
+                _editingState.IsEditing = false;
+                _editingState.Name = _editingOriginalName;
+            }
+
+            state.IsEditing = true;
+            state.EditingBuffer = state.Name;
+            _editingOriginalName = state.Name;
+            _editingState = state;
+            _focusRequested = true;
+            Repaint();
+        }
+
+        private void CommitEditing()
+        {
+            if (_editingState == null)
+                return;
+
+            _editingState.IsEditing = false;
+            string newName = _editingState.EditingBuffer;
+
+            if (newName != _editingOriginalName && !string.IsNullOrEmpty(newName))
+            {
+                var cmd = new RenameStateCommand(_editingState, _editingOriginalName, newName);
+                _undoRedoSystem.Execute(cmd);
+            }
+            else
+            {
+                _editingState.Name = _editingOriginalName;
+            }
+
+            _editingState = null;
+            Repaint();
+        }
+
+        private void CancelEditing()
+        {
+            if (_editingState == null)
+                return;
+
+            _editingState.IsEditing = false;
+            _editingState.Name = _editingOriginalName;
+
+            _editingState = null;
             Repaint();
         }
 
