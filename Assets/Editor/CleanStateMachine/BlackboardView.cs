@@ -103,6 +103,7 @@ namespace CleanStateMachine
                     variables.RemoveAt(_dragIndex);
                     variables.Insert(targetIndex, item);
                     _dragIndex = targetIndex;
+                    _selectedIndex = targetIndex;
                     VariablesChanged?.Invoke();
                 }
 
@@ -113,6 +114,7 @@ namespace CleanStateMachine
             if (e.type == EventType.MouseUp || e.rawType == EventType.MouseUp)
             {
                 _isDragging = false;
+                _selectedIndex = _dragIndex;
                 _dragIndex = -1;
                 e.Use();
                 return;
@@ -126,19 +128,27 @@ namespace CleanStateMachine
         {
             var e = Event.current;
 
-            if (e.type == EventType.MouseDown && e.button == 0 && rect.Contains(e.mousePosition))
-            {
-                _selectedIndex = -1;
-                _editingIndex = -1;
-                DefocusTextField();
-            }
-
             HandleDragBeforeScroll(rect, variables, e);
 
             float totalHeight = variables.Count * UITheme.RowHeight;
             Rect viewRect = new Rect(0f, 0f, rect.width - 14f, totalHeight);
 
             _scrollPos = GUI.BeginScrollView(rect, _scrollPos, viewRect);
+
+            if (e.type == EventType.MouseDown && e.button == 0)
+            {
+                int clickedIndex = Mathf.FloorToInt(e.mousePosition.y / UITheme.RowHeight);
+                if (clickedIndex >= 0 && clickedIndex < variables.Count)
+                {
+                    _selectedIndex = clickedIndex;
+                }
+                else
+                {
+                    _selectedIndex = -1;
+                    _editingIndex = -1;
+                    DefocusTextField();
+                }
+            }
 
             int deleteIndex = -1;
 
@@ -204,7 +214,7 @@ namespace CleanStateMachine
 
             Color rowBg = isDragSource
                 ? UITheme.RowBgDrag
-                : (index == _selectedIndex ? UITheme.RowBgSelected : UITheme.RowBg);
+                : (index == _selectedIndex && !_isDragging ? UITheme.RowBgSelected : UITheme.RowBg);
             EditorGUI.DrawRect(rect, rowBg);
 
             if (isDragSource)
@@ -229,7 +239,6 @@ namespace CleanStateMachine
 
             if (e.type == EventType.MouseDown && e.button == 0 && handleRect.Contains(e.mousePosition))
             {
-                _selectedIndex = index;
                 if (_editingIndex < 0 && variables.Count > 1)
                 {
                     _isDragging = true;
@@ -240,12 +249,6 @@ namespace CleanStateMachine
 
             if (e.type == EventType.Repaint && handleRect.Contains(e.mousePosition) && !_isDragging)
                 EditorGUIUtility.AddCursorRect(handleRect, MouseCursor.MoveArrow);
-
-            if (e.type == EventType.MouseDown && e.button == 0 && rect.Contains(e.mousePosition)
-                && !handleRect.Contains(e.mousePosition))
-            {
-                _selectedIndex = index;
-            }
 
             Rect nameRect = new Rect(handleRect.xMax + gap, fieldY, nameW, fieldH);
 
