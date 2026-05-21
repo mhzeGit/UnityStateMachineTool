@@ -184,41 +184,26 @@ namespace CleanStateMachine
             fade = fade * fade;
 
             Vector3 dir = (end - start).normalized;
-            Vector3 perp = new Vector3(-dir.y, dir.x, 0f);
             float totalLen = Vector3.Distance(start, end);
             if (totalLen < 0.01f) return;
 
             float speed = 1.5f;
-            float wavePos = (Time.realtimeSinceStartup * speed) % 1.0f;
-            float centerDist = wavePos * totalLen;
-
-            float waveHalfLen = Mathf.Max(10f, 20f * zoom);
-            float maxWidth = (3f + 2f * zoom);
+            int circleCount = 5;
+            float circleRadius = Mathf.Max(1.5f, 3f * zoom);
 
             Color prevColor = Handles.color;
-            int steps = 12;
-            for (int i = 0; i < steps; i++)
+
+            for (int i = 0; i < circleCount; i++)
             {
-                float t = (float)i / (steps - 1);
-                float distFromCenter = (t - 0.5f) * 2f * waveHalfLen;
-                float d = centerDist + distFromCenter;
-                if (d < 0f || d > totalLen) continue;
+                float phase = (float)i / circleCount;
+                float t = (Time.realtimeSinceStartup * speed + phase) % 1.0f;
 
-                float norm = distFromCenter / waveHalfLen;
-                float alpha = Mathf.Exp(-norm * norm * 3f);
+                Vector3 pos = start + dir * (t * totalLen);
 
-                float w = maxWidth * (0.5f + 0.5f * alpha);
-                Vector3 p = start + dir * d;
-
-                Color waveColor = UITheme.ActiveConnectionWave;
-                waveColor.a *= alpha * fade * 0.7f;
-                Handles.color = waveColor;
-                Handles.DrawAAConvexPolygon(
-                    p + perp * w * 0.5f,
-                    p - perp * w * 0.5f,
-                    p + dir * 1.5f + perp * w * 0.5f,
-                    p + dir * 1.5f - perp * w * 0.5f
-                );
+                Color circleColor = UITheme.ActiveConnectionWave;
+                circleColor.a *= fade * (0.5f + 0.3f * Mathf.Sin(i * 2.5f + 1f));
+                Handles.color = circleColor;
+                Handles.DrawSolidDisc(pos, Vector3.forward, circleRadius);
             }
 
             if (fade < 0.5f)
