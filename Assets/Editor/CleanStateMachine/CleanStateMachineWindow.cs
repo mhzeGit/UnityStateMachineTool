@@ -36,9 +36,8 @@ namespace CleanStateMachine
         [SerializeField] private Vector2 _panOffset;
         [SerializeField] private float _zoom = 1f;
 
-        [SerializeField] private bool _showBlackboard = true;
-        [SerializeField] private float _blackboardWidth = 220f;
-        [SerializeField] private float _detailsWidth = 220f;
+        [SerializeField] private bool _showSidePanel = true;
+        [SerializeField] private float _sidePanelWidth = 220f;
         private List<BlackboardVariable> _blackboardVariables = new();
         [SerializeField] private StateMachineController _controller;
 
@@ -47,8 +46,9 @@ namespace CleanStateMachine
         private StateMachineController _pendingController;
         private BlackboardView _blackboardView;
         private DetailsPanelView _detailsView;
-        private bool _isDraggingLeftSplitter;
-        private bool _isDraggingRightSplitter;
+        private bool _isDraggingSplitter;
+        private bool _isDraggingInternalSplitter;
+        private float _detailsHeightRatio = 0.5f;
 
         private Vector2 _lastMouseGraphPos;
 
@@ -150,11 +150,9 @@ namespace CleanStateMachine
 
             Rect contentRect = new Rect(0f, 0f, position.width, position.height);
 
-            ComputeLayout(contentRect, out Rect graphRect, out Rect leftRect, out Rect rightRect,
-                out Rect leftSplitterRect, out Rect rightSplitterRect);
+            ComputeLayout(contentRect, out Rect graphRect, out Rect sidePanelRect, out Rect splitterRect);
 
-            HandleSplitter(leftSplitterRect, contentRect, _showBlackboard, ref _isDraggingLeftSplitter, isLeft: true);
-            HandleSplitter(rightSplitterRect, contentRect, _selectionController.Count > 0, ref _isDraggingRightSplitter, isLeft: false);
+            HandleSplitter(splitterRect, contentRect, _showSidePanel, ref _isDraggingSplitter);
 
             _panController.HandleInput(graphRect, ref _panOffset, ref _zoom);
 
@@ -242,66 +240,42 @@ namespace CleanStateMachine
             DrawSelectionOverlays();
             _selectionBox.DrawScreen(_zoom, _panOffset);
 
-            if (_showBlackboard)
+            if (_showSidePanel)
             {
-                _blackboardView.Draw(leftRect, _blackboardVariables);
-                DrawBlackboardToggle(leftRect);
+                DrawCombinedPanel(sidePanelRect);
+                DrawPanelToggle(sidePanelRect);
             }
             else
-                DrawCollapsedPanel(leftRect, ref _showBlackboard);
-
-            if (_selectionController.Count > 0)
-                _detailsView.Draw(rightRect, _selectionController.Selected, _states, _connections, _blackboardVariables);
+                DrawCollapsedPanel(sidePanelRect, ref _showSidePanel);
 
             if (_panController.IsPanning || _dragController.IsActive || _selectionBox.IsActive || _connectionController.IsConnecting)
                 Repaint();
         }
 
-        private void ComputeLayout(Rect contentRect, out Rect graphRect, out Rect leftRect, out Rect rightRect,
-            out Rect leftSplitterRect, out Rect rightSplitterRect)
+        private void ComputeLayout(Rect contentRect, out Rect graphRect, out Rect sidePanelRect, out Rect splitterRect)
         {
-            float leftW = _showBlackboard ? _blackboardWidth : UITheme.CollapsedWidth;
-            float rightW = _selectionController.Count > 0 ? _detailsWidth : 0f;
+            float sideW = _showSidePanel ? _sidePanelWidth : UITheme.CollapsedWidth;
             float splitter = UITheme.SplitterWidth;
-
             float minGraph = 200f;
-            float leftMax = contentRect.width - rightW
-                - (_selectionController.Count > 0 ? splitter : 0f)
-                - splitter - minGraph;
-            float rightMax = contentRect.width - leftW
-                - (_showBlackboard ? splitter : 0f)
-                - splitter - minGraph;
+            float sideMax = contentRect.width - splitter - minGraph;
 
-            if (_showBlackboard && _blackboardWidth > leftMax)
-                _blackboardWidth = Mathf.Max(UITheme.MinPanelWidth, leftMax);
+            if (_showSidePanel && _sidePanelWidth > sideMax)
+                _sidePanelWidth = Mathf.Max(UITheme.MinPanelWidth, sideMax);
 
-            if (_selectionController.Count > 0 && _detailsWidth > rightMax)
-                _detailsWidth = Mathf.Max(UITheme.MinPanelWidth, rightMax);
+            sideW = _showSidePanel ? _sidePanelWidth : UITheme.CollapsedWidth;
 
-            leftW = _showBlackboard ? _blackboardWidth : UITheme.CollapsedWidth;
-            rightW = _selectionController.Count > 0 ? _detailsWidth : 0f;
+            float sideX = contentRect.width - sideW;
+            sidePanelRect = new Rect(sideX, 0f, sideW, contentRect.height);
 
-            leftRect = new Rect(0f, 0f, leftW, contentRect.height);
+            float gw = contentRect.width - sideW - (_showSidePanel ? splitter : 0f);
+            graphRect = new Rect(0f, 0f, gw, contentRect.height);
 
-            float rightX = contentRect.width - rightW;
-            rightRect = new Rect(rightX, 0f, rightW, contentRect.height);
-
-            float gx = leftW + (_showBlackboard ? splitter : 0f);
-            float gw = contentRect.width - leftW - rightW
-                - (_showBlackboard ? splitter : 0f)
-                - (_selectionController.Count > 0 ? splitter : 0f);
-            graphRect = new Rect(gx, 0f, gw, contentRect.height);
-
-            leftSplitterRect = _showBlackboard
-                ? new Rect(leftW, 0f, splitter, contentRect.height)
-                : new Rect(0f, 0f, 0f, 0f);
-
-            rightSplitterRect = _selectionController.Count > 0
-                ? new Rect(rightX - splitter, 0f, splitter, contentRect.height)
+            splitterRect = _showSidePanel
+                ? new Rect(sideX - splitter, 0f, splitter, contentRect.height)
                 : new Rect(0f, 0f, 0f, 0f);
         }
 
-        private void DrawBlackboardToggle(Rect panelRect)
+        private void DrawPanelToggle(Rect panelRect)
         {
             float toggleSize = 20f;
             Rect toggleRect = new Rect(
@@ -313,11 +287,11 @@ namespace CleanStateMachine
 
             bool hover = toggleRect.Contains(Event.current.mousePosition);
             if (Event.current.type == EventType.Repaint)
-                UITheme.DrawArrowLeft(toggleRect, hover ? UITheme.TextColor : UITheme.IconColor);
+                UITheme.DrawArrowRight(toggleRect, hover ? UITheme.TextColor : UITheme.IconColor);
 
             if (Event.current.type == EventType.MouseDown && Event.current.button == 0 && toggleRect.Contains(Event.current.mousePosition))
             {
-                _showBlackboard = false;
+                _showSidePanel = false;
                 Event.current.Use();
                 Repaint();
             }
@@ -326,11 +300,11 @@ namespace CleanStateMachine
         private static void DrawCollapsedPanel(Rect rect, ref bool showPanel)
         {
             EditorGUI.DrawRect(rect, UITheme.PanelHeaderBg);
-            EditorGUI.DrawRect(new Rect(rect.x + rect.width - 1f, rect.y, 1f, rect.height), UITheme.RowBorder);
+            EditorGUI.DrawRect(new Rect(rect.x, rect.y, 1f, rect.height), UITheme.RowBorder);
 
             bool hover = rect.Contains(Event.current.mousePosition);
             if (Event.current.type == EventType.Repaint)
-                UITheme.DrawArrowRight(rect, hover ? UITheme.TextColor : UITheme.IconColor);
+                UITheme.DrawArrowLeft(rect, hover ? UITheme.TextColor : UITheme.IconColor);
 
             var e = Event.current;
             if (e.type == EventType.MouseDown && e.button == 0 && rect.Contains(e.mousePosition))
@@ -340,7 +314,71 @@ namespace CleanStateMachine
             }
         }
 
-        private void HandleSplitter(Rect splitterRect, Rect contentRect, bool visible, ref bool isDragging, bool isLeft)
+        private void DrawCombinedPanel(Rect panelRect)
+        {
+            var e = Event.current;
+
+            float splitterDragHeight = 6f;
+            float splitterVisualHeight = 1f;
+            float minSectionHeight = 60f;
+            float availableHeight = panelRect.height - splitterDragHeight;
+
+            float detailsHeight = Mathf.Clamp(availableHeight * _detailsHeightRatio, minSectionHeight, availableHeight - minSectionHeight);
+            float blackboardHeight = availableHeight - detailsHeight;
+
+            float splitterY = panelRect.y + detailsHeight;
+
+            Rect detailsRect = new Rect(panelRect.x, panelRect.y, panelRect.width, detailsHeight);
+            Rect splitterRect = new Rect(panelRect.x, splitterY, panelRect.width, splitterDragHeight);
+            Rect blackboardRect = new Rect(panelRect.x, splitterRect.yMax, panelRect.width, blackboardHeight);
+
+            // Draw details section (top)
+            _detailsView.Draw(detailsRect, _selectionController.Selected, _states, _connections, _blackboardVariables);
+
+            // Draw splitter area
+            float visualY = splitterRect.y + (splitterRect.height - splitterVisualHeight) * 0.5f;
+            Rect visualRect = new Rect(
+                panelRect.x + UITheme.Padding,
+                visualY,
+                panelRect.width - UITheme.Padding * 2,
+                splitterVisualHeight
+            );
+
+            bool hover = splitterRect.Contains(e.mousePosition);
+            Color splitterColor = _isDraggingInternalSplitter
+                ? UITheme.SplitterActive
+                : (hover ? UITheme.SplitterHover : UITheme.RowBorder);
+            EditorGUI.DrawRect(visualRect, splitterColor);
+
+            EditorGUIUtility.AddCursorRect(splitterRect, MouseCursor.ResizeVertical);
+
+            // Handle internal splitter drag
+            if (e.type == EventType.MouseDown && e.button == 0 && splitterRect.Contains(e.mousePosition))
+            {
+                _isDraggingInternalSplitter = true;
+                e.Use();
+            }
+
+            if (e.type == EventType.MouseDrag && _isDraggingInternalSplitter)
+            {
+                float mouseY = e.mousePosition.y - panelRect.y;
+                _detailsHeightRatio = Mathf.Clamp01(mouseY / panelRect.height);
+                e.Use();
+                Repaint();
+            }
+
+            if (e.type == EventType.MouseUp && _isDraggingInternalSplitter)
+            {
+                _isDraggingInternalSplitter = false;
+                e.Use();
+                Repaint();
+            }
+
+            // Draw blackboard section (bottom)
+            _blackboardView.Draw(blackboardRect, _blackboardVariables, false);
+        }
+
+        private void HandleSplitter(Rect splitterRect, Rect contentRect, bool visible, ref bool isDragging)
         {
             if (!visible || splitterRect.width <= 0f)
             {
@@ -365,9 +403,6 @@ namespace CleanStateMachine
             {
                 case EventType.MouseDown when e.button == 0:
                 {
-                    if (isDragging)
-                        isDragging = false;
-
                     if (hotRect.Contains(e.mousePosition))
                     {
                         isDragging = true;
@@ -381,25 +416,12 @@ namespace CleanStateMachine
                     float maxW = UITheme.MaxPanelWidth;
                     float minGraph = 200f;
                     float splitter = UITheme.SplitterWidth;
-
-                    if (isLeft)
-                    {
-                        float rightW = _selectionController.Count > 0 ? _detailsWidth : 0f;
-                        float taken = rightW + (_selectionController.Count > 0 ? splitter : 0f) + minGraph + splitter;
-                        float available = contentRect.width - taken;
-                        float actualMax = Mathf.Min(maxW, available);
-                        _blackboardWidth = Mathf.Clamp(e.mousePosition.x, minW, actualMax);
-                    }
-                    else
-                    {
-                        float leftW = _showBlackboard ? _blackboardWidth : UITheme.CollapsedWidth;
-                        float taken = leftW + (_showBlackboard ? splitter : 0f) + minGraph + splitter;
-                        float available = contentRect.width - taken;
-                        float actualMax = Mathf.Min(maxW, available);
-                        _detailsWidth = Mathf.Clamp(
-                            contentRect.width - e.mousePosition.x - splitter,
-                            minW, actualMax);
-                    }
+                    float taken = minGraph + splitter;
+                    float available = contentRect.width - taken;
+                    float actualMax = Mathf.Min(maxW, available);
+                    _sidePanelWidth = Mathf.Clamp(
+                        contentRect.width - e.mousePosition.x - splitter,
+                        minW, actualMax);
                     e.Use();
                     Repaint();
                     break;
@@ -1290,9 +1312,9 @@ namespace CleanStateMachine
 
                 _panOffset = data.PanOffset;
                 _zoom = data.Zoom;
-                _showBlackboard = data.ShowBlackboard;
-                _blackboardWidth = data.BlackboardWidth;
-                _detailsWidth = data.DetailsWidth;
+                _showSidePanel = data.ShowSidePanel;
+                _sidePanelWidth = data.SidePanelWidth;
+                _detailsHeightRatio = data.DetailsHeightRatio;
             }
 
             EnsureEntryStateExists();
@@ -1359,9 +1381,9 @@ namespace CleanStateMachine
 
             data.PanOffset = _panOffset;
             data.Zoom = _zoom;
-            data.ShowBlackboard = _showBlackboard;
-            data.BlackboardWidth = _blackboardWidth;
-            data.DetailsWidth = _detailsWidth;
+            data.ShowSidePanel = _showSidePanel;
+            data.SidePanelWidth = _sidePanelWidth;
+            data.DetailsHeightRatio = _detailsHeightRatio;
 
             _controller.Data = data;
         }
@@ -1425,9 +1447,9 @@ namespace CleanStateMachine
             ClearActiveStates();
             _panOffset = Vector2.zero;
             _zoom = 1f;
-            _showBlackboard = true;
-            _blackboardWidth = 220f;
-            _detailsWidth = 220f;
+            _showSidePanel = true;
+            _sidePanelWidth = 220f;
+            _detailsHeightRatio = 0.5f;
 
             EnsureEntryStateExists();
 

@@ -13,11 +13,12 @@ namespace CleanStateMachine
         private bool _focusNameField;
         private bool _isDragging;
         private int _dragIndex = -1;
+        private int _pendingDeleteIndex = -1;
 
         public event System.Action VariablesChanged;
         public event System.Action RepaintRequested;
 
-        public void Draw(Rect rect, List<BlackboardVariable> variables)
+        public void Draw(Rect rect, List<BlackboardVariable> variables, bool reserveToggleSpace = true)
         {
             if (variables == null)
                 return;
@@ -25,7 +26,7 @@ namespace CleanStateMachine
             UITheme.DrawPanelBackground(rect);
 
             Rect headerRect = new Rect(rect.x, rect.y, rect.width, UITheme.HeaderHeight);
-            DrawHeader(headerRect, variables);
+            DrawHeader(headerRect, variables, reserveToggleSpace);
 
             Rect listRect = new Rect(
                 rect.x,
@@ -36,11 +37,11 @@ namespace CleanStateMachine
             DrawVariableList(listRect, variables);
         }
 
-        private void DrawHeader(Rect rect, List<BlackboardVariable> variables)
+        private void DrawHeader(Rect rect, List<BlackboardVariable> variables, bool reserveToggleSpace = true)
         {
             UITheme.DrawHeaderBackground(rect);
 
-            float toggleSize = 20f;
+            float toggleSize = reserveToggleSpace ? 20f : 0f;
             float addSize = 24f;
             float gap = 8f;
             float rightEdge = rect.x + rect.width;
@@ -159,16 +160,16 @@ namespace CleanStateMachine
                 }
             }
 
-            int deleteIndex = -1;
-
             for (int i = 0; i < variables.Count; i++)
             {
                 Rect rowRect = new Rect(0f, i * UITheme.RowHeight, viewRect.width, UITheme.RowHeight);
-                DrawVariableRow(rowRect, variables[i], i, variables, (idx) => deleteIndex = idx);
+                DrawVariableRow(rowRect, variables[i], i, variables, (idx) => _pendingDeleteIndex = idx);
             }
 
-            if (deleteIndex >= 0)
+            if (_pendingDeleteIndex >= 0)
             {
+                int deleteIndex = _pendingDeleteIndex;
+                _pendingDeleteIndex = -1;
                 variables.RemoveAt(deleteIndex);
                 VariablesChanged?.Invoke();
                 DefocusTextField();

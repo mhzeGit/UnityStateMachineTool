@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c9ff187ff1290df4ebe8ec3d6a1913d7, type: 3}
-  m_Name: 2_Behaviour
+  m_Name: Correct State 2_Behaviour
   m_EditorClassIdentifier: Assembly-CSharp::DebugLog_StateBehaviour
   message:
     UseBlackboard: 0
@@ -27,7 +27,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 653525ea9a60cc648bb9b7a9fefeee73, type: 3}
-  m_Name: 2->NO 2_Condition
+  m_Name: Correct State 2->WrongState_Condition
   m_EditorClassIdentifier: Assembly-CSharp::SimpleBool_ConditionBehaviours
   conditionBool:
     UseBlackboard: 1
@@ -49,7 +49,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 653525ea9a60cc648bb9b7a9fefeee73, type: 3}
-  m_Name: Entry->1_Condition
+  m_Name: Entry->Correct State 1_Condition
   m_EditorClassIdentifier: Assembly-CSharp::SimpleBool_ConditionBehaviours
   conditionBool:
     UseBlackboard: 0
@@ -71,7 +71,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c9ff187ff1290df4ebe8ec3d6a1913d7, type: 3}
-  m_Name: NO 2_Behaviour
+  m_Name: WrongState_Behaviour
   m_EditorClassIdentifier: Assembly-CSharp::DebugLog_StateBehaviour
   message:
     UseBlackboard: 1
@@ -98,53 +98,56 @@ MonoBehaviour:
       IsEntry: 1
       BehaviourType: 
       Behaviour: {fileID: 0}
-    - Name: 1
-      Position: {x: 235.8346, y: 75.600235}
-      Size: {x: 160, y: 40}
-      IsEntry: 0
-      BehaviourType: DebugLog_StateBehaviour
-      Behaviour: {fileID: 6409677120155523139}
-    - Name: 2
-      Position: {x: 336.47946, y: 245.90184}
-      Size: {x: 160, y: 40}
-      IsEntry: 0
-      BehaviourType: DebugLog_StateBehaviour
-      Behaviour: {fileID: -9205999975491014197}
-    - Name: NO 2
-      Position: {x: 510.66467, y: 80.15904}
+    - Name: WrongState
+      Position: {x: 485.26526, y: 23.809353}
       Size: {x: 160, y: 40}
       IsEntry: 0
       BehaviourType: DebugLog_StateBehaviour
       Behaviour: {fileID: -2306008434130728459}
+    - Name: Correct State 2
+      Position: {x: 375.68716, y: 219.24062}
+      Size: {x: 160, y: 40}
+      IsEntry: 0
+      BehaviourType: DebugLog_StateBehaviour
+      Behaviour: {fileID: -9205999975491014197}
+    - Name: Correct State 1
+      Position: {x: 231.18726, y: 15.185032}
+      Size: {x: 160, y: 40}
+      IsEntry: 0
+      BehaviourType: DebugLog_StateBehaviour
+      Behaviour: {fileID: 6409677120155523139}
     Connections:
     - FromIndex: 0
-      ToIndex: 1
+      ToIndex: 3
       ConditionType: SimpleBool_ConditionBehaviours
       Condition: {fileID: -6324071765435123549}
-    - FromIndex: 1
+    - FromIndex: 3
       ToIndex: 2
       ConditionType: SimpleBool_ConditionBehaviours
       Condition: {fileID: 8216924739884770493}
     - FromIndex: 2
-      ToIndex: 3
+      ToIndex: 1
       ConditionType: SimpleBool_ConditionBehaviours
       Condition: {fileID: -7696514207278436980}
-    - FromIndex: 3
-      ToIndex: 1
+    - FromIndex: 1
+      ToIndex: 3
       ConditionType: SimpleBool_ConditionBehaviours
       Condition: {fileID: 6912135157052429415}
     Groups: []
     BlackboardVariables:
-    - Name: State1or2
-      Type: 0
-      StringValue: False
     - Name: WrongState
       Type: 3
       StringValue: ITS ON A WRONG STATE!!!
-    PanOffset: {x: 400.0402, y: 120.36784}
-    Zoom: 1.1618376
+    - Name: State1or2
+      Type: 0
+      StringValue: False
+    - Name: New Variable
+      Type: 0
+      StringValue: False
+    PanOffset: {x: 181.12625, y: 418.13416}
+    Zoom: 0.6376304
     ShowBlackboard: 1
-    BlackboardWidth: 368
+    BlackboardWidth: 287
     DetailsWidth: 286
 --- !u!114 &6409677120155523139
 MonoBehaviour:
@@ -156,7 +159,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c9ff187ff1290df4ebe8ec3d6a1913d7, type: 3}
-  m_Name: 1_Behaviour
+  m_Name: Correct State 1_Behaviour
   m_EditorClassIdentifier: Assembly-CSharp::DebugLog_StateBehaviour
   message:
     UseBlackboard: 0
@@ -173,7 +176,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 653525ea9a60cc648bb9b7a9fefeee73, type: 3}
-  m_Name: NO 2->1_Condition
+  m_Name: WrongState->Correct State 1_Condition
   m_EditorClassIdentifier: Assembly-CSharp::SimpleBool_ConditionBehaviours
   conditionBool:
     UseBlackboard: 1
@@ -195,7 +198,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 653525ea9a60cc648bb9b7a9fefeee73, type: 3}
-  m_Name: 1->2_Condition
+  m_Name: Correct State 1->Correct State 2_Condition
   m_EditorClassIdentifier: Assembly-CSharp::SimpleBool_ConditionBehaviours
   conditionBool:
     UseBlackboard: 1
