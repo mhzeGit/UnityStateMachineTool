@@ -13,6 +13,7 @@ namespace CleanStateMachine
         public double ActivationTime { get; set; }
         public float PerpendicularOffset { get; set; }
         public MonoScript ConditionScript { get; set; }
+        public ConditionScript ConditionInstance { get; set; }
 
         private static readonly Color ConnectionColor = new Color(0.537f, 0.706f, 0.980f, 0.85f);
         private static readonly Color SelectedColor = new Color(0.537f, 0.706f, 0.980f, 1f);

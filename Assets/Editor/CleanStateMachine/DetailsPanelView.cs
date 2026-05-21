@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace CleanStateMachine
 {
@@ -123,7 +124,25 @@ namespace CleanStateMachine
                         "The selected script must inherit from StateBehaviour.", "OK");
                     newScript = state.BehaviourScript;
                 }
+                else
+                {
+                    if (newScript != state.BehaviourScript && state.BehaviourInstance != null)
+                    {
+                        Object.DestroyImmediate(state.BehaviourInstance, true);
+                        state.BehaviourInstance = null;
+                    }
+                }
                 state.BehaviourScript = newScript;
+                if (newScript != null)
+                {
+                    var type = newScript.GetClass();
+                    if (type != null)
+                    {
+                        state.BehaviourInstance = (StateBehaviour)ScriptableObject.CreateInstance(type);
+                        state.BehaviourInstance.name = $"{state.Name}_Behaviour";
+                        state.BehaviourInstance.hideFlags = HideFlags.HideInHierarchy;
+                    }
+                }
                 Changed?.Invoke();
             }
             y += UITheme.RowHeight + 4f;
@@ -204,7 +223,25 @@ namespace CleanStateMachine
                         "The selected script must inherit from ConditionScript.", "OK");
                     newScript = conn.ConditionScript;
                 }
+                else
+                {
+                    if (newScript != conn.ConditionScript && conn.ConditionInstance != null)
+                    {
+                        Object.DestroyImmediate(conn.ConditionInstance, true);
+                        conn.ConditionInstance = null;
+                    }
+                }
                 conn.ConditionScript = newScript;
+                if (newScript != null)
+                {
+                    var type = newScript.GetClass();
+                    if (type != null)
+                    {
+                        conn.ConditionInstance = (ConditionScript)ScriptableObject.CreateInstance(type);
+                        conn.ConditionInstance.name = $"{conn.From?.Name ?? "?"}->{conn.To?.Name ?? "?"}_Condition";
+                        conn.ConditionInstance.hideFlags = HideFlags.HideInHierarchy;
+                    }
+                }
                 Changed?.Invoke();
             }
             y += UITheme.RowHeight + 4f;

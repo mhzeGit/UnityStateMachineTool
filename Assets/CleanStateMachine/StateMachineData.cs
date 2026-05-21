@@ -12,6 +12,7 @@ namespace CleanStateMachine
         public Vector2 Size = new Vector2(160f, 40f);
         public bool IsEntry;
         public string BehaviourType;
+        public StateBehaviour Behaviour;
     }
 
     [Serializable]
@@ -20,6 +21,7 @@ namespace CleanStateMachine
         public int FromIndex;
         public int ToIndex;
         public string ConditionType;
+        public ConditionScript Condition;
     }
 
     [Serializable]

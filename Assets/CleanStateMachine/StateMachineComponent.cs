@@ -105,6 +105,13 @@ namespace CleanStateMachine
                 return null;
 
             var state = Data.States[stateIndex];
+
+            if (state.Behaviour != null)
+            {
+                _behaviourInstances[stateIndex] = state.Behaviour;
+                return state.Behaviour;
+            }
+
             if (string.IsNullOrEmpty(state.BehaviourType))
                 return null;
 
@@ -127,31 +134,30 @@ namespace CleanStateMachine
             {
                 var connection = Data.Connections[c];
                 if (connection.FromIndex != _currentStateIndex) continue;
-                if (string.IsNullOrEmpty(connection.ConditionType)) continue;
+                if (connection.Condition == null && string.IsNullOrEmpty(connection.ConditionType)) continue;
 
-                if (EvaluateCondition(connection.ConditionType))
+                ConditionScript condition = connection.Condition;
+                if (condition == null)
+                {
+                    if (!_conditionInstances.TryGetValue(connection.ConditionType, out condition))
+                    {
+                        var type = ResolveType(connection.ConditionType);
+                        if (type == null || !type.IsSubclassOf(typeof(ConditionScript)))
+                            continue;
+
+                        condition = (ConditionScript)ScriptableObject.CreateInstance(type);
+                        condition.name = $"{connection.ConditionType}_Condition";
+                        condition.hideFlags = HideFlags.HideAndDontSave;
+                        _conditionInstances[connection.ConditionType] = condition;
+                    }
+                }
+
+                if (condition.Evaluate(this))
                 {
                     TransitionToState(connection.ToIndex);
                     break;
                 }
             }
-        }
-
-        private bool EvaluateCondition(string conditionType)
-        {
-            if (!_conditionInstances.TryGetValue(conditionType, out var condition))
-            {
-                var type = ResolveType(conditionType);
-                if (type == null || !type.IsSubclassOf(typeof(ConditionScript)))
-                    return false;
-
-                condition = (ConditionScript)ScriptableObject.CreateInstance(type);
-                condition.name = $"{conditionType}_Condition";
-                condition.hideFlags = HideFlags.HideAndDontSave;
-                _conditionInstances[conditionType] = condition;
-            }
-
-            return condition.Evaluate(this);
         }
 
         private static Type ResolveType(string typeName)
@@ -196,16 +202,21 @@ namespace CleanStateMachine
 
         private void OnDestroy()
         {
+            DestroyRuntimeInstances();
+        }
+
+        private void DestroyRuntimeInstances()
+        {
             foreach (var instance in _behaviourInstances.Values)
             {
-                if (instance != null)
+                if (instance != null && instance.hideFlags == HideFlags.HideAndDontSave)
                     Destroy(instance);
             }
             _behaviourInstances.Clear();
 
             foreach (var instance in _conditionInstances.Values)
             {
-                if (instance != null)
+                if (instance != null && instance.hideFlags == HideFlags.HideAndDontSave)
                     Destroy(instance);
             }
             _conditionInstances.Clear();
@@ -357,20 +368,7 @@ namespace CleanStateMachine
 
         public void ResetStateMachine()
         {
-            foreach (var instance in _behaviourInstances.Values)
-            {
-                if (instance != null)
-                    Destroy(instance);
-            }
-            _behaviourInstances.Clear();
-
-            foreach (var instance in _conditionInstances.Values)
-            {
-                if (instance != null)
-                    Destroy(instance);
-            }
-            _conditionInstances.Clear();
-
+            DestroyRuntimeInstances();
             _initialized = false;
             _recentTransitions.Clear();
             Initialize();

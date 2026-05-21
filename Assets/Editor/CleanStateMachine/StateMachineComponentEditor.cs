@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
@@ -9,7 +10,10 @@ namespace CleanStateMachine
         private SerializedProperty _controllerProp;
         private StateMachineComponent _component;
         private bool _variablesFoldout = true;
+        private bool _behavioursFoldout = true;
+        private bool _conditionsFoldout = true;
         private Vector2 _scrollPos;
+        private Dictionary<Object, SerializedObject> _cachedSerialized = new();
 
         private void OnEnable()
         {
@@ -23,12 +27,17 @@ namespace CleanStateMachine
             EditorApplication.update -= OnEditorUpdate;
         }
 
+        private double _nextRepaintTime;
+
         private void OnEditorUpdate()
         {
-            if (_component != null && Application.isPlaying)
-            {
-                Repaint();
-            }
+            if (_component == null) return;
+
+            double now = EditorApplication.timeSinceStartup;
+            if (now < _nextRepaintTime) return;
+            _nextRepaintTime = now + 0.5;
+
+            Repaint();
         }
 
         public override void OnInspectorGUI()
@@ -38,17 +47,31 @@ namespace CleanStateMachine
             EditorGUILayout.PropertyField(_controllerProp);
             serializedObject.ApplyModifiedProperties();
 
-            if (_component.Controller == null)
+            var controller = _component.Controller;
+
+            if (controller == null)
             {
                 EditorGUILayout.HelpBox("Assign a State Machine Controller to begin.", MessageType.Info);
                 return;
             }
+
+            controller.RebuildBehaviourInstances(addSubAssets: false);
 
             DrawCurrentState();
 
             EditorGUILayout.Space(4);
 
             DrawVariablesSection();
+
+            EditorGUILayout.Space(4);
+
+            var data = controller.Data;
+            if (data != null)
+            {
+                DrawBehaviourSection(data);
+                EditorGUILayout.Space(4);
+                DrawConditionSection(data);
+            }
         }
 
         private void DrawCurrentState()
@@ -204,6 +227,116 @@ namespace CleanStateMachine
             {
                 EditorUtility.SetDirty(_component.Controller);
                 EditorUtility.SetDirty(_component);
+            }
+        }
+
+        private void DrawBehaviourSection(SerializableData data)
+        {
+            int behaviourCount = 0;
+            for (int i = 0; i < data.States.Count; i++)
+                if (!data.States[i].IsEntry && data.States[i].Behaviour != null)
+                    behaviourCount++;
+
+            _behavioursFoldout = EditorGUILayout.Foldout(_behavioursFoldout, $"State Behaviours ({behaviourCount})", true);
+            if (!_behavioursFoldout) return;
+
+            if (behaviourCount == 0)
+            {
+                EditorGUILayout.LabelField("Assign StateBehaviour scripts in the Graph Editor.", EditorStyles.miniLabel);
+                return;
+            }
+
+            EditorGUI.indentLevel++;
+
+            for (int i = 0; i < data.States.Count; i++)
+            {
+                var sd = data.States[i];
+                if (sd.IsEntry) continue;
+
+                if (sd.Behaviour != null)
+                {
+                    EditorGUILayout.LabelField(sd.Name, EditorStyles.boldLabel);
+                    EditorGUI.indentLevel++;
+                    DrawScriptableObjectFields(sd.Behaviour);
+                    EditorGUI.indentLevel--;
+                    EditorGUILayout.Space(2);
+                }
+            }
+
+            EditorGUI.indentLevel--;
+        }
+
+        private void DrawConditionSection(SerializableData data)
+        {
+            int conditionCount = 0;
+            for (int i = 0; i < data.Connections.Count; i++)
+                if (data.Connections[i].Condition != null)
+                    conditionCount++;
+
+            _conditionsFoldout = EditorGUILayout.Foldout(_conditionsFoldout, $"Transition Conditions ({conditionCount})", true);
+            if (!_conditionsFoldout) return;
+
+            if (conditionCount == 0)
+            {
+                EditorGUILayout.LabelField("Assign ConditionScript scripts in the Graph Editor.", EditorStyles.miniLabel);
+                return;
+            }
+
+            EditorGUI.indentLevel++;
+
+            for (int i = 0; i < data.Connections.Count; i++)
+            {
+                var cd = data.Connections[i];
+
+                if (cd.Condition != null)
+                {
+                    string fromName = "?";
+                    string toName = "?";
+                    if (cd.FromIndex >= 0 && cd.FromIndex < data.States.Count)
+                        fromName = data.States[cd.FromIndex].Name;
+                    if (cd.ToIndex >= 0 && cd.ToIndex < data.States.Count)
+                        toName = data.States[cd.ToIndex].Name;
+
+                    string label = $"{fromName} \u2192 {toName} Condition";
+                    EditorGUILayout.LabelField(label, EditorStyles.boldLabel);
+                    EditorGUI.indentLevel++;
+                    DrawScriptableObjectFields(cd.Condition);
+                    EditorGUI.indentLevel--;
+                    EditorGUILayout.Space(2);
+                }
+            }
+
+            EditorGUI.indentLevel--;
+        }
+
+        private void DrawScriptableObjectFields(ScriptableObject obj)
+        {
+            if (obj == null) return;
+
+            if (!_cachedSerialized.TryGetValue(obj, out var cached) || cached == null ||
+                cached.targetObject == null)
+            {
+                _cachedSerialized[obj] = new SerializedObject(obj);
+            }
+
+            var so = _cachedSerialized[obj];
+            so.Update();
+
+            SerializedProperty prop = so.GetIterator();
+            bool enterChildren = true;
+            while (prop.NextVisible(enterChildren))
+            {
+                enterChildren = false;
+                if (prop.name == "m_Script") continue;
+                EditorGUILayout.PropertyField(prop, true);
+            }
+
+            if (so.ApplyModifiedProperties())
+            {
+                var controller = _component.Controller;
+                EditorUtility.SetDirty(controller);
+                EditorUtility.SetDirty(obj);
+                controller.EnsureSubAssets();
             }
         }
 

@@ -5,7 +5,7 @@ namespace CleanStateMachine
 {
     public class GraphView
     {
-        private static readonly Color Bg = new Color(0.08f, 0.08f, 0.08f);
+        private static readonly Color Bg = new Color(0.12f, 0.12f, 0.12f);
         private static readonly Color GridMinor = new Color(0.14f, 0.14f, 0.14f);
         private static readonly Color GridMajor = new Color(0.20f, 0.20f, 0.20f);
         private const float GridS = 20f;

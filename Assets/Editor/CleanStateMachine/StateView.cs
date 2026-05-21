@@ -14,6 +14,7 @@ namespace CleanStateMachine
         public bool IsEditing { get; set; }
         public string EditingBuffer { get; set; }
         public MonoScript BehaviourScript { get; set; }
+        public StateBehaviour BehaviourInstance { get; set; }
         public bool IsActive { get; set; }
         public int DataIndex { get; set; } = -1;
 

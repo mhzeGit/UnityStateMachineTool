@@ -1248,6 +1248,7 @@ namespace CleanStateMachine
                     {
                         Size = sd.Size,
                         BehaviourScript = ScriptReferenceUtility.FindScriptByTypeName(sd.BehaviourType),
+                        BehaviourInstance = sd.Behaviour,
                         DataIndex = i
                     };
                     _states.Add(state);
@@ -1263,7 +1264,8 @@ namespace CleanStateMachine
                         var conn = new ConnectionView(
                             stateLookup[cd.FromIndex], stateLookup[cd.ToIndex])
                         {
-                            ConditionScript = ScriptReferenceUtility.FindScriptByTypeName(cd.ConditionType)
+                            ConditionScript = ScriptReferenceUtility.FindScriptByTypeName(cd.ConditionType),
+                            ConditionInstance = cd.Condition
                         };
                         _connections.Add(conn);
                     }
@@ -1310,23 +1312,35 @@ namespace CleanStateMachine
 
             foreach (var state in _states)
             {
+                if (state.BehaviourInstance != null)
+                    state.BehaviourInstance.name = $"{state.Name}_Behaviour";
+
                 data.States.Add(new StateData
                 {
                     Name = state.Name,
                     Position = state.Position,
                     Size = state.Size,
                     IsEntry = state.IsEntry,
-                    BehaviourType = ScriptReferenceUtility.GetTypeName(state.BehaviourScript)
+                    BehaviourType = ScriptReferenceUtility.GetTypeName(state.BehaviourScript),
+                    Behaviour = state.BehaviourInstance
                 });
             }
 
             foreach (var conn in _connections)
             {
+                if (conn.ConditionInstance != null)
+                {
+                    string fromName = conn.From?.Name ?? "?";
+                    string toName = conn.To?.Name ?? "?";
+                    conn.ConditionInstance.name = $"{fromName}->{toName}_Condition";
+                }
+
                 data.Connections.Add(new ConnectionData
                 {
                     FromIndex = stateToIndex[conn.From],
                     ToIndex = stateToIndex[conn.To],
-                    ConditionType = ScriptReferenceUtility.GetTypeName(conn.ConditionScript)
+                    ConditionType = ScriptReferenceUtility.GetTypeName(conn.ConditionScript),
+                    Condition = conn.ConditionInstance
                 });
             }
 
