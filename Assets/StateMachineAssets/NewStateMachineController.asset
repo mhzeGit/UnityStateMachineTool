@@ -18,90 +18,35 @@ MonoBehaviour:
       Position: {x: 50, y: 200}
       Size: {x: 160, y: 40}
       IsEntry: 1
-      StateClass:
-        Sections:
-        - SectionName: OnStateEnter
-          Events: []
-        - SectionName: OnStateUpdate
-          Events: []
-        - SectionName: OnStateExit
-          Events: []
-    - Name: 2
-      Position: {x: 544.4792, y: 188.90193}
-      Size: {x: 160, y: 40}
-      IsEntry: 0
-      StateClass:
-        Sections:
-        - SectionName: OnStateEnter
-          Events:
-          - Type: 0
-            DebugMessage: 2
-            WaitDuration: 0.5
-            UnityEventCallbacks: []
-            CustomText: 
-        - SectionName: OnStateUpdate
-          Events: []
-        - SectionName: OnStateExit
-          Events: []
+      BehaviourType: 
     - Name: NO 2
       Position: {x: 476.66473, y: -24.840832}
       Size: {x: 160, y: 40}
       IsEntry: 0
-      StateClass:
-        Sections:
-        - SectionName: OnStateEnter
-          Events: []
-        - SectionName: OnStateUpdate
-          Events:
-          - Type: 0
-            DebugMessage: HELLNA
-            WaitDuration: 0.5
-            UnityEventCallbacks: []
-            CustomText: 
-        - SectionName: OnStateExit
-          Events: []
+      BehaviourType: 
+    - Name: 2
+      Position: {x: 544.4792, y: 188.90193}
+      Size: {x: 160, y: 40}
+      IsEntry: 0
+      BehaviourType: NewStateBehaviour
     - Name: 1
       Position: {x: 288.17157, y: 144.22696}
       Size: {x: 160, y: 40}
       IsEntry: 0
-      StateClass:
-        Sections:
-        - SectionName: OnStateEnter
-          Events:
-          - Type: 0
-            DebugMessage: 1
-            WaitDuration: 0.5
-            UnityEventCallbacks: []
-            CustomText: 
-        - SectionName: OnStateUpdate
-          Events: []
-        - SectionName: OnStateExit
-          Events: []
+      BehaviourType: NewStateBehaviour
     Connections:
-    - FromIndex: 1
-      ToIndex: 2
-      Conditions:
-      - BlackboardVariableName: State02
-        Comparison: 0
-        CompareValue: false
     - FromIndex: 0
       ToIndex: 3
-      Conditions:
-      - BlackboardVariableName: State01
-        Comparison: 0
-        CompareValue: true
-    - FromIndex: 2
-      ToIndex: 3
-      Conditions:
-      - BlackboardVariableName: State01
-        Comparison: 0
-        CompareValue: false
+      ConditionType: SimpleBool_ConditionBehaviours
     - FromIndex: 3
+      ToIndex: 2
+      ConditionType: SimpleBool_ConditionBehaviours
+    - FromIndex: 2
       ToIndex: 1
-      Conditions:
-      - BlackboardVariableName: State02
-        Comparison: 0
-        CompareValue: true
+      ConditionType: SimpleBool_ConditionBehaviours
+    - FromIndex: 1
+      ToIndex: 3
+      ConditionType: SimpleBool_ConditionBehaviours
     Groups: []
     BlackboardVariables:
     - Name: State01
@@ -110,8 +55,8 @@ MonoBehaviour:
     - Name: State02
       Type: 0
       StringValue: 0
-    PanOffset: {x: -1340.3234, y: -312.39795}
-    Zoom: 3.8574293
+    PanOffset: {x: 85.591675, y: 166.51166}
+    Zoom: 1.0000011
     ShowBlackboard: 1
     BlackboardWidth: 256
-    DetailsWidth: 220
+    DetailsWidth: 257

@@ -3,8 +3,10 @@ using CleanStateMachine;
 
 public class NewStateBehaviour : StateBehaviour
 {
+    public string message = "Hello World";
     public override void OnStateEnter(StateMachineComponent stateMachine)
     {
+        Debug.Log(message);
         base.OnStateEnter(stateMachine);
     }
 
