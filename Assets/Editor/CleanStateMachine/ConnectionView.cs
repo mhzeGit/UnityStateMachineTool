@@ -9,16 +9,18 @@ namespace CleanStateMachine
         public StateView From { get; }
         public StateView To { get; }
         public bool IsSelected { get; set; }
+        public bool IsActive { get; set; }
+        public double ActivationTime { get; set; }
         public float PerpendicularOffset { get; set; }
         public List<TransitionCondition> Conditions { get; set; } = new List<TransitionCondition>();
 
-        private static readonly Color ConnectionColor = new Color(0.60f, 0.80f, 1.00f, 1.00f);
-        private static readonly Color SelectedColor = new Color(0.80f, 0.92f, 1.00f, 1.00f);
+        private static readonly Color ConnectionColor = new Color(0.537f, 0.706f, 0.980f, 0.85f);
+        private static readonly Color SelectedColor = new Color(0.537f, 0.706f, 0.980f, 1f);
         private const float HitTestThreshold = 10f;
         private const float ArrowGraphSize = 10f;
         private const float ArrowGraphWidth = 5f;
-        private const float BaseWidth = 1.5f;
-        private const float SelectedBaseWidth = 2f;
+        private const float BaseWidth = 2f;
+        private const float SelectedBaseWidth = 3f;
 
         public ConnectionView(StateView from, StateView to)
         {
@@ -126,11 +128,15 @@ namespace CleanStateMachine
             Vector3 startPos = (Vector3)(From.GetCenter() * zoom + panOffset + offsetVec);
             Vector3 endPos = (Vector3)(To.GetCenter() * zoom + panOffset + offsetVec);
 
-            Color color = IsSelected ? SelectedColor : ConnectionColor;
+            bool isActive = IsActive;
+            Color color = IsSelected ? SelectedColor : (isActive ? UITheme.ActiveConnection : ConnectionColor);
             float width = Mathf.Max(1f, (IsSelected ? SelectedBaseWidth : BaseWidth) * zoom);
 
             DrawLine(startPos, endPos, color, width);
             DrawMidArrowhead(startPos, endPos, color, zoom);
+
+            if (isActive)
+                DrawActiveWave(startPos, endPos, zoom);
         }
 
         private static void DrawLine(Vector3 start, Vector3 end, Color color, float width)
@@ -164,6 +170,67 @@ namespace CleanStateMachine
             Handles.color = color;
             Handles.DrawAAConvexPolygon(mid, basePt + perp * arrowWidth, basePt - perp * arrowWidth);
             Handles.color = prev;
+        }
+
+        private void DrawActiveWave(Vector3 start, Vector3 end, float zoom)
+        {
+            double elapsed = Time.realtimeSinceStartup - ActivationTime;
+            float fade = Mathf.Clamp01(1f - (float)(elapsed / 1.8));
+            if (fade <= 0.01f)
+            {
+                IsActive = false;
+                return;
+            }
+            fade = fade * fade;
+
+            Vector3 dir = (end - start).normalized;
+            Vector3 perp = new Vector3(-dir.y, dir.x, 0f);
+            float totalLen = Vector3.Distance(start, end);
+            if (totalLen < 0.01f) return;
+
+            float speed = 1.5f;
+            float wavePos = (Time.realtimeSinceStartup * speed) % 1.0f;
+            float centerDist = wavePos * totalLen;
+
+            float waveHalfLen = Mathf.Max(10f, 20f * zoom);
+            float maxWidth = (3f + 2f * zoom);
+
+            Color prevColor = Handles.color;
+            int steps = 12;
+            for (int i = 0; i < steps; i++)
+            {
+                float t = (float)i / (steps - 1);
+                float distFromCenter = (t - 0.5f) * 2f * waveHalfLen;
+                float d = centerDist + distFromCenter;
+                if (d < 0f || d > totalLen) continue;
+
+                float norm = distFromCenter / waveHalfLen;
+                float alpha = Mathf.Exp(-norm * norm * 3f);
+
+                float w = maxWidth * (0.5f + 0.5f * alpha);
+                Vector3 p = start + dir * d;
+
+                Color waveColor = UITheme.ActiveConnectionWave;
+                waveColor.a *= alpha * fade * 0.7f;
+                Handles.color = waveColor;
+                Handles.DrawAAConvexPolygon(
+                    p + perp * w * 0.5f,
+                    p - perp * w * 0.5f,
+                    p + dir * 1.5f + perp * w * 0.5f,
+                    p + dir * 1.5f - perp * w * 0.5f
+                );
+            }
+
+            if (fade < 0.5f)
+            {
+                Color color = UITheme.ActiveConnection;
+                color.a *= fade * 2f;
+                float width = Mathf.Max(1f, 2f * zoom);
+                DrawLine(start, end, color, width);
+                DrawMidArrowhead(start, end, color, zoom);
+            }
+
+            Handles.color = prevColor;
         }
     }
 }

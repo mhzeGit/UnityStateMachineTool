@@ -5,9 +5,9 @@ namespace CleanStateMachine
 {
     public class GraphView
     {
-        private static readonly Color Bg = new Color(0.040f, 0.040f, 0.040f);
-        private static readonly Color GridMinor = new Color(0.080f, 0.080f, 0.080f);
-        private static readonly Color GridMajor = new Color(0.10f, 0.10f, 0.10f);
+        private static readonly Color Bg = new Color(0.08f, 0.08f, 0.08f);
+        private static readonly Color GridMinor = new Color(0.14f, 0.14f, 0.14f);
+        private static readonly Color GridMajor = new Color(0.20f, 0.20f, 0.20f);
         private const float GridS = 20f;
         private const float GridL = 100f;
 
@@ -44,6 +44,5 @@ namespace CleanStateMachine
             for (float y = rect.y + oy; y < rect.y + rect.height; y += sGridL)
                 EditorGUI.DrawRect(new Rect(rect.x, y, rect.width, thickness), GridMajor);
         }
-
     }
 }

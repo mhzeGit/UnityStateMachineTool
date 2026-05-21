@@ -51,8 +51,8 @@ namespace CleanStateMachine
 
             var rect = new Rect(xMin, yMin, xMax - xMin, yMax - yMin);
 
-            Color fill = new Color(0.24f, 0.48f, 0.90f, 0.15f);
-            Color border = new Color(0.24f, 0.48f, 0.90f, 0.9f);
+            Color fill = new Color(0.60f, 0.60f, 0.60f, 0.08f);
+            Color border = new Color(0.60f, 0.60f, 0.60f, 0.5f);
 
             EditorGUI.DrawRect(rect, fill);
 

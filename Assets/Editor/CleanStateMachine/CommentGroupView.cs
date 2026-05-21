@@ -19,11 +19,12 @@ namespace CleanStateMachine
         private const float PadBot = 15f;
         private const float CRadius = 12f;
 
-        private static readonly Color BgCol = new Color(0.12f, 0.14f, 0.16f, 0.55f);
-        private static readonly Color BorderCol = new Color(0.35f, 0.50f, 0.70f, 0.60f);
-        private static readonly Color SelBorderCol = new Color(0.50f, 0.75f, 1.00f, 1.00f);
-        private static readonly Color HeaderCol = new Color(0.15f, 0.22f, 0.32f, 0.50f);
-        private static readonly Color TextCol = new Color(0.75f, 0.85f, 1.00f);
+        // Grayscale group colors
+        private static readonly Color BgCol = new Color(0.18f, 0.18f, 0.18f, 0.25f);
+        private static readonly Color BorderCol = new Color(0.40f, 0.40f, 0.40f, 0.35f);
+        private static readonly Color SelBorderCol = new Color(0.70f, 0.70f, 0.70f, 0.80f);
+        private static readonly Color HeaderCol = new Color(0.25f, 0.25f, 0.25f, 0.50f);
+        private static readonly Color TextCol = new Color(0.80f, 0.80f, 0.80f);
 
         private static Texture2D _fillTex;
         private static int _fillRadius;
@@ -148,7 +149,7 @@ namespace CleanStateMachine
                     alignment = TextAnchor.MiddleLeft,
                     normal = { textColor = TextCol },
                     fontStyle = FontStyle.Bold,
-                    padding = new RectOffset(6, 4, 0, 0)
+                    padding = new RectOffset(8, 4, 0, 0)
                 };
             }
 

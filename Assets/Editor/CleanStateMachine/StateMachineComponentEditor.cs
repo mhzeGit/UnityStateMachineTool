@@ -82,18 +82,23 @@ namespace CleanStateMachine
                 ? _component.RuntimeVariables
                 : _component.Controller.Data.BlackboardVariables;
 
-            if (variables == null || variables.Count == 0)
+            int count = variables?.Count ?? 0;
+
+            if (count == 0)
+                _variablesFoldout = false;
+
+            _variablesFoldout = EditorGUILayout.Foldout(_variablesFoldout, $"Blackboard Variables ({count})", true);
+            if (!_variablesFoldout) return;
+
+            if (count == 0)
             {
                 EditorGUILayout.LabelField("No blackboard variables defined.", EditorStyles.miniLabel);
                 return;
             }
 
-            _variablesFoldout = EditorGUILayout.Foldout(_variablesFoldout, $"Blackboard Variables ({variables.Count})", true);
-            if (!_variablesFoldout) return;
-
             _scrollPos = EditorGUILayout.BeginScrollView(_scrollPos, GUILayout.MaxHeight(250));
 
-            for (int i = 0; i < variables.Count; i++)
+            for (int i = 0; i < count; i++)
             {
                 DrawVariableRow(variables[i]);
             }

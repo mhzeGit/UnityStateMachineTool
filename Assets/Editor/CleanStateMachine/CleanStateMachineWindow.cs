@@ -76,6 +76,12 @@ namespace CleanStateMachine
         private long _lastClickTimestamp;
         private StateView _lastDoubleClickCandidate;
 
+        private StateMachineComponent _trackedComponent;
+        private int _activeStateDataIndex = -1;
+        private int _previousStateDataIndex = -1;
+        private int _lastTransitionConnectionIndex = -1;
+        private readonly HashSet<int> _activeConnectionIndices = new HashSet<int>();
+
         private static readonly Vector2 EntryStatePosition = new Vector2(50f, 200f);
 
         private void OnEnable()
@@ -95,6 +101,8 @@ namespace CleanStateMachine
 
             _blackboardView.VariablesChanged += OnBlackboardVariablesChanged;
             _detailsView.Changed += OnDetailsChanged;
+
+            EditorApplication.update += OnEditorUpdate;
 
             if (_controller != null)
                 LoadFromController();
@@ -123,6 +131,8 @@ namespace CleanStateMachine
             _blackboardView.VariablesChanged -= OnBlackboardVariablesChanged;
             _detailsView.Changed -= OnDetailsChanged;
 
+            EditorApplication.update -= OnEditorUpdate;
+
             if (_controller != null && _hasUnsavedChanges && !_isLoading)
                 SaveToController();
         }
@@ -147,6 +157,9 @@ namespace CleanStateMachine
 
             ComputeLayout(contentRect, out Rect graphRect, out Rect leftRect, out Rect rightRect,
                 out Rect leftSplitterRect, out Rect rightSplitterRect);
+
+            HandleSplitter(leftSplitterRect, contentRect, _showBlackboard, ref _isDraggingLeftSplitter, isLeft: true);
+            HandleSplitter(rightSplitterRect, contentRect, _selectionController.Count > 0, ref _isDraggingRightSplitter, isLeft: false);
 
             _panController.HandleInput(graphRect, ref _panOffset, ref _zoom);
 
@@ -245,9 +258,6 @@ namespace CleanStateMachine
             if (_selectionController.Count > 0)
                 _detailsView.Draw(rightRect, _selectionController.Selected, _states, _connections, _blackboardVariables);
 
-            HandleSplitter(leftSplitterRect, contentRect, _showBlackboard, ref _isDraggingLeftSplitter, isLeft: true);
-            HandleSplitter(rightSplitterRect, contentRect, _selectionController.Count > 0, ref _isDraggingRightSplitter, isLeft: false);
-
             if (_panController.IsPanning || _dragController.IsActive || _selectionBox.IsActive || _connectionController.IsConnecting)
                 Repaint();
         }
@@ -260,8 +270,12 @@ namespace CleanStateMachine
             float splitter = UITheme.SplitterWidth;
 
             float minGraph = 200f;
-            float leftMax = contentRect.width - rightW - splitter * 2f - minGraph;
-            float rightMax = contentRect.width - leftW - splitter * 2f - minGraph;
+            float leftMax = contentRect.width - rightW
+                - (_selectionController.Count > 0 ? splitter : 0f)
+                - splitter - minGraph;
+            float rightMax = contentRect.width - leftW
+                - (_showBlackboard ? splitter : 0f)
+                - splitter - minGraph;
 
             if (_showBlackboard && _blackboardWidth > leftMax)
                 _blackboardWidth = Mathf.Max(UITheme.MinPanelWidth, leftMax);
@@ -303,16 +317,16 @@ namespace CleanStateMachine
             );
 
             bool hover = toggleRect.Contains(Event.current.mousePosition);
-            EditorGUI.DrawRect(toggleRect, hover ? UITheme.ButtonHover : UITheme.PanelHeaderBg);
+            UITheme.DrawSmallButton(toggleRect, hover);
 
             var style = new GUIStyle
             {
                 alignment = TextAnchor.MiddleCenter,
                 fontSize = 12,
                 fontStyle = FontStyle.Bold,
-                normal = { textColor = hover ? Color.white : UITheme.TextSecondary }
+                normal = { textColor = hover ? UITheme.TextColor : UITheme.IconColor }
             };
-            GUI.Label(toggleRect, "<", style);
+            GUI.Label(toggleRect, "◀", style);
 
             if (Event.current.type == EventType.MouseDown && Event.current.button == 0 && toggleRect.Contains(Event.current.mousePosition))
             {
@@ -325,7 +339,7 @@ namespace CleanStateMachine
         private static void DrawCollapsedPanel(Rect rect, string label, ref bool showPanel)
         {
             EditorGUI.DrawRect(rect, UITheme.PanelHeaderBg);
-            EditorGUI.DrawRect(new Rect(rect.x + rect.width - 1f, rect.y, 1f, rect.height), UITheme.PanelBorder);
+            EditorGUI.DrawRect(new Rect(rect.x + rect.width - 1f, rect.y, 1f, rect.height), UITheme.RowBorder);
 
             float labelH = 22f;
             Rect labelRect = new Rect(rect.x, rect.y + 4f, rect.width, labelH);
@@ -335,7 +349,7 @@ namespace CleanStateMachine
                 alignment = TextAnchor.MiddleCenter,
                 fontSize = 12,
                 fontStyle = FontStyle.Bold,
-                normal = { textColor = hover ? Color.white : UITheme.TextSecondary }
+                normal = { textColor = hover ? UITheme.TextColor : UITheme.IconColor }
             };
             GUI.Label(labelRect, label, style);
 
@@ -350,7 +364,10 @@ namespace CleanStateMachine
         private void HandleSplitter(Rect splitterRect, Rect contentRect, bool visible, ref bool isDragging, bool isLeft)
         {
             if (!visible || splitterRect.width <= 0f)
+            {
+                isDragging = false;
                 return;
+            }
 
             float hotZoneHalf = 5f;
             float centerX = splitterRect.x + splitterRect.width * 0.5f;
@@ -359,15 +376,26 @@ namespace CleanStateMachine
             bool hover = hotRect.Contains(Event.current.mousePosition);
             Color splitterColor = isDragging ? UITheme.SplitterActive : (hover ? UITheme.SplitterHover : UITheme.SplitterBg);
             EditorGUI.DrawRect(splitterRect, splitterColor);
-            EditorGUIUtility.AddCursorRect(hotRect, MouseCursor.ResizeHorizontal);
+
+            if (isDragging)
+                EditorGUIUtility.AddCursorRect(new Rect(0f, 0f, contentRect.width, contentRect.height), MouseCursor.SplitResizeLeftRight);
+            EditorGUIUtility.AddCursorRect(hotRect, MouseCursor.SplitResizeLeftRight);
 
             var e = Event.current;
             switch (e.type)
             {
-                case EventType.MouseDown when e.button == 0 && hotRect.Contains(e.mousePosition):
-                    isDragging = true;
-                    e.Use();
+                case EventType.MouseDown when e.button == 0:
+                {
+                    if (isDragging)
+                        isDragging = false;
+
+                    if (hotRect.Contains(e.mousePosition))
+                    {
+                        isDragging = true;
+                        e.Use();
+                    }
                     break;
+                }
                 case EventType.MouseDrag when isDragging:
                 {
                     float minW = UITheme.MinPanelWidth;
@@ -1139,9 +1167,9 @@ namespace CleanStateMachine
         {
             Rect toolbarRect = new Rect(0f, 0f, position.width, ToolbarHeight);
             EditorGUI.DrawRect(toolbarRect, UITheme.PanelHeaderBg);
-            EditorGUI.DrawRect(new Rect(0f, ToolbarHeight - 1f, position.width, 1f), UITheme.PanelBorder);
+            EditorGUI.DrawRect(new Rect(0f, ToolbarHeight - 1f, position.width, 1f), UITheme.RowBorder);
 
-            float x = 4f;
+            float x = 6f;
             float y = 2f;
             float buttonHeight = ToolbarHeight - 4f;
 
@@ -1150,6 +1178,7 @@ namespace CleanStateMachine
 
             GUI.enabled = canSave;
             Rect saveRect = new Rect(x, y, 50f, buttonHeight);
+            EditorGUI.DrawRect(saveRect, UITheme.ButtonColor);
             if (GUI.Button(saveRect, "Save"))
             {
                 SaveToController();
@@ -1158,15 +1187,17 @@ namespace CleanStateMachine
             }
             GUI.enabled = true;
 
-            x += 54f;
+            x += 56f;
             Rect saveAsRect = new Rect(x, y, 70f, buttonHeight);
+            EditorGUI.DrawRect(saveAsRect, UITheme.ButtonColor);
             if (GUI.Button(saveAsRect, "Save As..."))
             {
                 SaveAs();
             }
 
-            x += 74f;
+            x += 76f;
             Rect newRect = new Rect(x, y, 50f, buttonHeight);
+            EditorGUI.DrawRect(newRect, UITheme.ButtonColor);
             if (GUI.Button(newRect, "New"))
             {
                 NewFile();
@@ -1175,13 +1206,13 @@ namespace CleanStateMachine
             string nameText = hasController ? _controller.name : "No Controller";
             if (_hasUnsavedChanges) nameText += " *";
 
-            float labelX = x + 54f;
+            float labelX = x + 56f;
             var labelStyle = new GUIStyle(EditorStyles.boldLabel)
             {
                 alignment = TextAnchor.MiddleRight,
                 normal = { textColor = UITheme.TextColor }
             };
-            Rect labelRect = new Rect(labelX, y, toolbarRect.width - labelX - 4f, buttonHeight);
+            Rect labelRect = new Rect(labelX, y, toolbarRect.width - labelX - 6f, buttonHeight);
             GUI.Label(labelRect, nameText, labelStyle);
 
             var e = Event.current;
@@ -1278,6 +1309,8 @@ namespace CleanStateMachine
             _groups.Clear();
             _blackboardVariables.Clear();
             _undoRedoSystem = new UndoRedoSystem();
+            ClearActiveStates();
+            _trackedComponent = null;
 
             if (_controller != null)
             {
@@ -1447,6 +1480,7 @@ namespace CleanStateMachine
             _groups.Clear();
             _blackboardVariables.Clear();
             _undoRedoSystem = new UndoRedoSystem();
+            ClearActiveStates();
             _panOffset = Vector2.zero;
             _zoom = 1f;
             _showBlackboard = true;
@@ -1457,6 +1491,148 @@ namespace CleanStateMachine
 
             MarkSaved();
             Repaint();
+        }
+
+        private void OnEditorUpdate()
+        {
+            if (!Application.isPlaying)
+            {
+                if (_activeStateDataIndex >= 0)
+                {
+                    ClearActiveStates();
+                    Repaint();
+                }
+                return;
+            }
+
+            UpdateTrackedComponent();
+
+            if (_trackedComponent != null)
+            {
+                int newActiveIndex = _trackedComponent.CurrentStateIndex;
+
+                if (newActiveIndex != _activeStateDataIndex)
+                {
+                    _previousStateDataIndex = _activeStateDataIndex;
+                    _activeStateDataIndex = newActiveIndex;
+
+                    for (int i = 0; i < _states.Count; i++)
+                        _states[i].IsActive = (i == _activeStateDataIndex);
+
+                    ActivateTransitionConnection(_previousStateDataIndex, newActiveIndex);
+
+                    Repaint();
+                }
+                else
+                {
+                    for (int i = 0; i < _connections.Count; i++)
+                    {
+                        if (_connections[i].IsActive && i != _lastTransitionConnectionIndex)
+                            _connections[i].IsActive = false;
+                    }
+                }
+
+                Repaint();
+            }
+            else if (_activeStateDataIndex >= 0)
+            {
+                ClearActiveStates();
+                Repaint();
+            }
+        }
+
+        private void ActivateTransitionConnection(int fromIndex, int toIndex)
+        {
+            if (_trackedComponent == null) return;
+            var data = _trackedComponent.Data;
+            if (data == null) return;
+
+            _lastTransitionConnectionIndex = -1;
+            for (int i = 0; i < data.Connections.Count; i++)
+            {
+                if (data.Connections[i].FromIndex == fromIndex &&
+                    data.Connections[i].ToIndex == toIndex)
+                {
+                    _lastTransitionConnectionIndex = i;
+                    break;
+                }
+            }
+
+            for (int i = 0; i < _connections.Count; i++)
+            {
+                bool isActive = (i == _lastTransitionConnectionIndex);
+                _connections[i].IsActive = isActive;
+                if (isActive)
+                    _connections[i].ActivationTime = Time.realtimeSinceStartup;
+            }
+        }
+
+        private void UpdateTrackedComponent()
+        {
+            if (!Application.isPlaying)
+            {
+                _trackedComponent = null;
+                return;
+            }
+
+            if (_controller == null)
+            {
+                _trackedComponent = null;
+                return;
+            }
+
+            GameObject selected = Selection.activeGameObject;
+            if (selected == null)
+            {
+                _trackedComponent = null;
+                return;
+            }
+
+            var component = selected.GetComponent<StateMachineComponent>();
+            if (component != null && component.Controller == _controller)
+            {
+                _trackedComponent = component;
+            }
+            else
+            {
+                _trackedComponent = null;
+            }
+        }
+
+        private void UpdateActiveConnections()
+        {
+            _activeConnectionIndices.Clear();
+
+            if (_trackedComponent == null || _activeStateDataIndex < 0)
+            {
+                for (int i = 0; i < _connections.Count; i++)
+                    _connections[i].IsActive = false;
+                return;
+            }
+
+            var data = _trackedComponent.Data;
+            if (data == null) return;
+
+            for (int i = 0; i < data.Connections.Count; i++)
+            {
+                if (data.Connections[i].FromIndex == _activeStateDataIndex)
+                    _activeConnectionIndices.Add(i);
+            }
+
+            for (int i = 0; i < _connections.Count; i++)
+                _connections[i].IsActive = _activeConnectionIndices.Contains(i);
+        }
+
+        private void ClearActiveStates()
+        {
+            _activeStateDataIndex = -1;
+            _previousStateDataIndex = -1;
+            _lastTransitionConnectionIndex = -1;
+            _activeConnectionIndices.Clear();
+            for (int i = 0; i < _states.Count; i++)
+                _states[i].IsActive = false;
+            for (int i = 0; i < _connections.Count; i++)
+                _connections[i].IsActive = false;
         }
     }
 }

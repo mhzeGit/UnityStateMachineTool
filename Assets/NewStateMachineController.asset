@@ -27,7 +27,7 @@ MonoBehaviour:
         - SectionName: OnStateExit
           Events: []
     - Name: 1
-      Position: {x: 224.97595, y: 100.0766}
+      Position: {x: 295.75262, y: 103.90237}
       Size: {x: 160, y: 40}
       IsEntry: 0
       StateClass:
@@ -44,7 +44,7 @@ MonoBehaviour:
         - SectionName: OnStateExit
           Events: []
     - Name: 2
-      Position: {x: 403.10974, y: 177.8465}
+      Position: {x: 515.3323, y: 163.8187}
       Size: {x: 160, y: 40}
       IsEntry: 0
       StateClass:
@@ -60,19 +60,48 @@ MonoBehaviour:
           Events: []
         - SectionName: OnStateExit
           Events: []
+    - Name: NO 2
+      Position: {x: 523.13806, y: -6.251502}
+      Size: {x: 160, y: 40}
+      IsEntry: 0
+      StateClass:
+        Sections:
+        - SectionName: OnStateEnter
+          Events: []
+        - SectionName: OnStateUpdate
+          Events:
+          - Type: 0
+            DebugMessage: HELLNA
+            WaitDuration: 0.5
+            UnityEventCallbacks: []
+            CustomText: 
+        - SectionName: OnStateExit
+          Events: []
     Connections:
-    - FromIndex: 0
-      ToIndex: 1
-      Conditions:
-      - BlackboardVariableName: State01
-        Comparison: 0
-        CompareValue: true
     - FromIndex: 1
       ToIndex: 2
       Conditions:
       - BlackboardVariableName: State02
         Comparison: 0
         CompareValue: true
+    - FromIndex: 0
+      ToIndex: 1
+      Conditions:
+      - BlackboardVariableName: State01
+        Comparison: 0
+        CompareValue: true
+    - FromIndex: 2
+      ToIndex: 3
+      Conditions:
+      - BlackboardVariableName: State02
+        Comparison: 0
+        CompareValue: false
+    - FromIndex: 3
+      ToIndex: 1
+      Conditions:
+      - BlackboardVariableName: State01
+        Comparison: 0
+        CompareValue: false
     Groups: []
     BlackboardVariables:
     - Name: State01
@@ -81,8 +110,8 @@ MonoBehaviour:
     - Name: State02
       Type: 0
       StringValue: 0
-    PanOffset: {x: 296.0149, y: 231.89734}
-    Zoom: 0.7408187
+    PanOffset: {x: 478.09058, y: 302.43805}
+    Zoom: 1.5683132
     ShowBlackboard: 1
     BlackboardWidth: 220
-    DetailsWidth: 220
+    DetailsWidth: 600

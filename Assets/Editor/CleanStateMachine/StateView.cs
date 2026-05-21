@@ -13,12 +13,14 @@ namespace CleanStateMachine
         public bool IsEditing { get; set; }
         public string EditingBuffer { get; set; }
         public StateClassData StateClass { get; set; }
+        public bool IsActive { get; set; }
 
         private static GUIStyle _fillStyle;
         private static GUIStyle _borderStyle;
         private static GUIStyle _shadowStyle;
         private static GUIStyle _selectionStyle;
         private static GUIStyle _editStyle;
+        private static GUIStyle _glowStyle;
 
         private static Texture2D _cachedFillTexture;
         private static int _cachedFillRadius;
@@ -37,22 +39,29 @@ namespace CleanStateMachine
         private static int _cachedEntryBorderRadius;
         private static int _cachedEntryBorderWidth;
 
-        private static readonly Color FillColor = new Color(0.18f, 0.18f, 0.20f);
-        private static readonly Color PermanentBorderColor = new Color(0.28f, 0.28f, 0.31f);
-        private static readonly Color ShadowColor = new Color(0f, 0f, 0f, 0.35f);
-        private static readonly Color SelectionColor = Color.yellow;
+        private static Texture2D _cachedGlowTexture;
+        private static int _cachedGlowInnerRadius;
 
-        private static readonly Color EntryFillColor = new Color(0.15f, 0.50f, 0.15f);
-        private static readonly Color EntryBorderColor = new Color(0.25f, 0.65f, 0.25f);
+        // Grayscale node fill; color reserved for functional indicators (entry, selection)
+        private static readonly Color FillColor = new Color(0.26f, 0.26f, 0.26f);
+        private static readonly Color PermanentBorderColor = new Color(0.34f, 0.34f, 0.34f);
+        private static readonly Color ShadowColor = new Color(0f, 0f, 0f, 0.30f);
+        private static readonly Color SelectionColor = new Color(0.537f, 0.706f, 0.980f);
+
+        private static readonly Color EntryFillColor = new Color(0.302f, 0.502f, 0.302f);
+        private static readonly Color EntryBorderColor = new Color(0.651f, 0.890f, 0.631f);
 
         private const float DefaultWidth = 160f;
         private const float DefaultHeight = 40f;
         private const int BaseCornerRadius = 8;
-        private const float PermanentBorderWidth = 1f;
-        private const float SelectionBorderWidth = 1f;
+        private const float PermanentBorderWidth = 1.5f;
+        private const float SelectionBorderWidth = 2f;
         private const float ShadowOffsetPx = 4f;
         private const float ShadowExpandPx = 6f;
         private const int ShadowBlurKernel = 3;
+        private const float GlowExpandPx = 12f;
+        private const float GlowPulseSpeed = 2.5f;
+        private const int GlowBlurKernel = 4;
 
         public StateView(Vector2 position, string name = "State", bool isEntry = false)
         {
@@ -162,6 +171,9 @@ namespace CleanStateMachine
             _shadowStyle.border = shadowBorder;
             GUI.Box(shadowRect, "", _shadowStyle);
 
+            if (IsActive)
+                DrawActiveGlow(zoom, panOffset, rect, scaledRadius);
+
             _fillStyle.normal.background = IsEntry ? _cachedEntryFillTexture : _cachedFillTexture;
             _fillStyle.border = fillBorder;
             _fillStyle.fontSize = Mathf.RoundToInt(12 * zoom);
@@ -224,6 +236,62 @@ namespace CleanStateMachine
             _selectionStyle.normal.background = _cachedSelectionTexture;
             _selectionStyle.border = new RectOffset(scaledRadius, scaledRadius, scaledRadius, scaledRadius);
             GUI.Box(rect, "", _selectionStyle);
+        }
+
+        private void DrawActiveGlow(float zoom, Vector2 panOffset, Rect nodeRect, int scaledRadius)
+        {
+            if (_glowStyle == null)
+                _glowStyle = new GUIStyle { padding = new RectOffset(0, 0, 0, 0) };
+
+            float pulse = (Mathf.Sin((float)(Time.realtimeSinceStartup * GlowPulseSpeed)) + 1f) * 0.5f;
+
+            float minExpand = 8f;
+            float maxExpand = 16f;
+            float expand = (minExpand + pulse * (maxExpand - minExpand)) * zoom;
+
+            int expandInt = Mathf.Max(1, Mathf.RoundToInt(expand));
+            EnsureGlowTexture(scaledRadius, expandInt);
+
+            int glowRadius = scaledRadius + expandInt;
+            var glowBorder = new RectOffset(glowRadius, glowRadius, glowRadius, glowRadius);
+
+            var glowRect = new Rect(
+                nodeRect.x - expand,
+                nodeRect.y - expand,
+                nodeRect.width + expand * 2f,
+                nodeRect.height + expand * 2f
+            );
+
+            float minAlpha = 0.35f;
+            float maxAlpha = 0.85f;
+            float alpha = minAlpha + pulse * (maxAlpha - minAlpha);
+
+            Color glowColor = UITheme.ActiveStateGlow;
+            glowColor.a *= alpha;
+
+            _glowStyle.normal.background = _cachedGlowTexture;
+            _glowStyle.border = glowBorder;
+            GUI.color = glowColor;
+            GUI.Box(glowRect, "", _glowStyle);
+            GUI.color = Color.white;
+        }
+
+        private static void EnsureGlowTexture(int innerRadius, int expand)
+        {
+            if (_cachedGlowTexture != null && _cachedGlowInnerRadius == innerRadius)
+                return;
+
+            if (_cachedGlowTexture != null)
+            {
+                Object.DestroyImmediate(_cachedGlowTexture);
+                _cachedGlowTexture = null;
+            }
+
+            int radius = innerRadius + expand;
+            int texSize = radius * 2 + 8;
+            _cachedGlowTexture = GenerateGlowTexture(texSize, texSize, radius, Color.white, GlowBlurKernel);
+            _cachedGlowTexture.hideFlags = HideFlags.HideAndDontSave;
+            _cachedGlowInnerRadius = innerRadius;
         }
 
         private static void EnsureFillTexture(int cornerRadius)
@@ -407,6 +475,62 @@ namespace CleanStateMachine
             return tex;
         }
 
+        private static Texture2D GenerateGlowTexture(int width, int height, int radius, Color glowColor, int blurKernel)
+        {
+            var tex = new Texture2D(width, height, TextureFormat.RGBA32, false);
+            tex.wrapMode = TextureWrapMode.Clamp;
+            tex.filterMode = FilterMode.Bilinear;
+
+            Color[] src = new Color[width * height];
+
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    float alpha = GetRoundedRectCoverage(x, y, width, height, radius);
+                    src[y * width + x] = new Color(glowColor.r, glowColor.g, glowColor.b, glowColor.a * alpha);
+                }
+            }
+
+            if (blurKernel >= 3)
+            {
+                Color[] blurred = new Color[src.Length];
+                int half = blurKernel / 2;
+                float inv = 1f / (blurKernel * blurKernel);
+
+                for (int y = 0; y < height; y++)
+                {
+                    for (int x = 0; x < width; x++)
+                    {
+                        float r = 0f, g = 0f, b = 0f, a = 0f;
+                        for (int ky = 0; ky < blurKernel; ky++)
+                        {
+                            for (int kx = 0; kx < blurKernel; kx++)
+                            {
+                                int sx = Mathf.Clamp(x + kx - half, 0, width - 1);
+                                int sy = Mathf.Clamp(y + ky - half, 0, height - 1);
+                                Color c = src[sy * width + sx];
+                                r += c.r;
+                                g += c.g;
+                                b += c.b;
+                                a += c.a;
+                            }
+                        }
+                        blurred[y * width + x] = new Color(r * inv, g * inv, b * inv, a * inv);
+                    }
+                }
+
+                tex.SetPixels(blurred);
+            }
+            else
+            {
+                tex.SetPixels(src);
+            }
+
+            tex.Apply();
+            return tex;
+        }
+
         private static Texture2D GenerateBorderTexture(int width, int height, int radius, int borderWidth, Color borderColor)
         {
             var tex = new Texture2D(width, height, TextureFormat.RGBA32, false);
@@ -535,87 +659,6 @@ namespace CleanStateMachine
                 float dy = fy - (bottom - ri);
                 return dx * dx + dy * dy <= ri * ri;
             }
-            return true;
-        }
-
-        private static bool IsInsideFilledRoundedRect(int x, int y, int w, int h, int r)
-        {
-            if (r <= 0)
-                return true;
-
-            if (x < r && y < r)
-            {
-                float dx = r - x - 0.5f;
-                float dy = r - y - 0.5f;
-                return dx * dx + dy * dy <= r * r;
-            }
-
-            if (x >= w - r && y < r)
-            {
-                float dx = x - (w - r) + 0.5f;
-                float dy = r - y - 0.5f;
-                return dx * dx + dy * dy <= r * r;
-            }
-
-            if (x < r && y >= h - r)
-            {
-                float dx = r - x - 0.5f;
-                float dy = y - (h - r) + 0.5f;
-                return dx * dx + dy * dy <= r * r;
-            }
-
-            if (x >= w - r && y >= h - r)
-            {
-                float dx = x - (w - r) + 0.5f;
-                float dy = y - (h - r) + 0.5f;
-                return dx * dx + dy * dy <= r * r;
-            }
-
-            return true;
-        }
-
-        private static bool IsInsideFilledRoundedRectInset(int x, int y, int w, int h, int r, int inset)
-        {
-            int left = inset;
-            int right = w - inset;
-            int top = inset;
-            int bottom = h - inset;
-
-            if (x < left || x >= right || y < top || y >= bottom)
-                return false;
-
-            int ri = r - inset;
-            if (ri <= 0)
-                return true;
-
-            if (x < left + ri && y < top + ri)
-            {
-                float dx = (left + ri) - x - 0.5f;
-                float dy = (top + ri) - y - 0.5f;
-                return dx * dx + dy * dy <= ri * ri;
-            }
-
-            if (x >= right - ri && y < top + ri)
-            {
-                float dx = x - (right - ri) + 0.5f;
-                float dy = (top + ri) - y - 0.5f;
-                return dx * dx + dy * dy <= ri * ri;
-            }
-
-            if (x < left + ri && y >= bottom - ri)
-            {
-                float dx = (left + ri) - x - 0.5f;
-                float dy = y - (bottom - ri) + 0.5f;
-                return dx * dx + dy * dy <= ri * ri;
-            }
-
-            if (x >= right - ri && y >= bottom - ri)
-            {
-                float dx = x - (right - ri) + 0.5f;
-                float dy = y - (bottom - ri) + 0.5f;
-                return dx * dx + dy * dy <= ri * ri;
-            }
-
             return true;
         }
     }

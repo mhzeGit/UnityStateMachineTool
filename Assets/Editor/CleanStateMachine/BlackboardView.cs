@@ -18,7 +18,7 @@ namespace CleanStateMachine
 
             var e = Event.current;
 
-            UITheme.DrawPanelBackground(rect);
+            EditorGUI.DrawRect(rect, UITheme.PanelBg);
 
             Rect headerRect = new Rect(rect.x, rect.y, rect.width, UITheme.HeaderHeight);
             DrawHeader(headerRect, variables);
@@ -37,10 +37,10 @@ namespace CleanStateMachine
 
         private void DrawHeader(Rect rect, List<BlackboardVariable> variables)
         {
-            EditorGUI.DrawRect(rect, UITheme.PanelHeaderBg);
+            UITheme.DrawHeaderBackground(rect);
 
             float toggleSize = 20f;
-            float addSize = rect.height - 6f;
+            float addSize = 22f;
             float gap = 6f;
             float rightEdge = rect.x + rect.width;
 
@@ -53,6 +53,9 @@ namespace CleanStateMachine
 
             Rect labelRect = new Rect(rect.x, rect.y, addRect.x - rect.x - 4f, rect.height);
             GUI.Label(labelRect, "Blackboard", UITheme.HeaderStyle);
+
+            bool hover = addRect.Contains(Event.current.mousePosition);
+            UITheme.DrawSmallButton(addRect, hover);
 
             if (GUI.Button(addRect, "+", UITheme.CloseButtonStyle))
             {
@@ -100,7 +103,7 @@ namespace CleanStateMachine
             }
 
             if (e.type == EventType.MouseDown && rect.Contains(e.mousePosition))
-                GUIUtility.keyboardControl = 0;
+                DefocusTextField();
 
             float totalHeight = variables.Count * UITheme.RowHeight;
             Rect viewRect = new Rect(0f, 0f, rect.width - 14f, totalHeight);
@@ -110,69 +113,52 @@ namespace CleanStateMachine
             for (int i = 0; i < variables.Count; i++)
             {
                 Rect rowRect = new Rect(0f, i * UITheme.RowHeight, viewRect.width, UITheme.RowHeight);
-                DrawVariableRow(rowRect, variables[i]);
+                DrawVariableRow(rowRect, variables[i], i);
             }
 
             if (e.type == EventType.KeyDown &&
                 (e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter))
-            {
-                GUIUtility.keyboardControl = 0;
-                e.Use();
-            }
+                DefocusTextField();
 
             GUI.EndScrollView();
         }
 
-        private void DrawVariableRow(Rect rect, BlackboardVariable variable)
+        private static void DefocusTextField()
         {
-            EditorGUI.DrawRect(rect, UITheme.RowEven);
-            EditorGUI.DrawRect(new Rect(rect.x, rect.y, rect.width, 1f), UITheme.RowBorder);
-            EditorGUI.DrawRect(new Rect(rect.x, rect.yMax - 1f, rect.width, 1f), UITheme.RowBorder);
+            GUIUtility.keyboardControl = 0;
+            GUIUtility.hotControl = 0;
+            EditorGUIUtility.editingTextField = false;
+            GUI.FocusControl("");
+        }
 
-            float x = rect.x + 4f;
-            float fieldHeight = rect.height - 4f;
-            float fieldY = rect.y + 2f;
+        private void DrawVariableRow(Rect rect, BlackboardVariable variable, int index)
+        {
+            Color rowBg = index % 2 == 0 ? UITheme.RowEven : UITheme.RowOdd;
+            EditorGUI.DrawRect(rect, rowBg);
 
-            string typeLabel = GetTypeShortName(variable.Type);
-            float badgeWidth = 8f + UITheme.TypeBadgeStyle.CalcSize(new GUIContent(typeLabel)).x;
-            Rect badgeRect = new Rect(x, fieldY, badgeWidth, fieldHeight);
-            EditorGUI.DrawRect(badgeRect, UITheme.TypeBadgeBg);
-            GUI.Label(badgeRect, typeLabel, UITheme.TypeBadgeStyle);
-            x += badgeWidth + 4f;
+            float pad = 6f;
+            float innerW = rect.width - pad * 2;
+            float fieldH = rect.height - pad;
+            float fieldY = rect.y + pad * 0.5f;
 
-            float fieldAreaWidth = rect.xMax - 4f - x;
-            Rect fieldBgRect = new Rect(x, fieldY, fieldAreaWidth, fieldHeight);
-            EditorGUI.DrawRect(fieldBgRect, UITheme.RowFieldBg);
+            Rect fieldBg = new Rect(rect.x + pad, fieldY, innerW, fieldH);
+            EditorGUI.DrawRect(fieldBg, UITheme.FieldBg);
 
-            float gap = 2f;
-            float nameWidth = (fieldAreaWidth - gap) * 0.35f;
-            float valueWidth = fieldAreaWidth - gap - nameWidth;
+            float gap = 3f;
+            float nameW = (innerW - gap) * 0.35f;
+            float valueW = innerW - gap - nameW;
 
-            Rect nameRect = new Rect(x, fieldY, nameWidth, fieldHeight);
+            Rect nameRect = new Rect(rect.x + pad + 2f, fieldY, nameW - 2f, fieldH);
             EditorGUI.BeginChangeCheck();
-            string newName = GUI.TextField(nameRect, variable.Name, UITheme.RowFieldStyle);
+            string newName = EditorGUI.TextField(nameRect, variable.Name, UITheme.RowFieldStyle);
             if (EditorGUI.EndChangeCheck())
             {
                 variable.Name = newName;
                 VariablesChanged?.Invoke();
             }
 
-            Rect valueRect = new Rect(x + nameWidth + gap, fieldY, valueWidth, fieldHeight);
+            Rect valueRect = new Rect(rect.x + pad + nameW + gap + 2f, fieldY, valueW - 2f, fieldH);
             DrawValueField(valueRect, variable);
-        }
-
-        private static string GetTypeShortName(BlackboardVariableType type)
-        {
-            return type switch
-            {
-                BlackboardVariableType.Bool => "bool",
-                BlackboardVariableType.Int => "int",
-                BlackboardVariableType.Float => "float",
-                BlackboardVariableType.String => "string",
-                BlackboardVariableType.Vector2 => "Vector2",
-                BlackboardVariableType.Vector3 => "Vector3",
-                _ => type.ToString()
-            };
         }
 
         private static void ResetValueForType(BlackboardVariable v)
@@ -235,7 +221,7 @@ namespace CleanStateMachine
                 }
                 case BlackboardVariableType.String:
                 {
-                    string result = GUI.TextField(rect, variable.StringValue, UITheme.RowFieldStyle);
+                    string result = EditorGUI.TextField(rect, variable.StringValue, UITheme.RowFieldStyle);
                     if (result != variable.StringValue)
                     {
                         variable.StringValue = result;
