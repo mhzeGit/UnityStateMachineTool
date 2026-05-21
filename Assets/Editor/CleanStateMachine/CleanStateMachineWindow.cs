@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics;
 using UnityEditor;
 using UnityEngine;
@@ -78,9 +78,6 @@ namespace CleanStateMachine
 
         private StateMachineComponent _trackedComponent;
         private int _activeStateDataIndex = -1;
-        private int _previousStateDataIndex = -1;
-        private int _lastTransitionConnectionIndex = -1;
-        private readonly HashSet<int> _activeConnectionIndices = new HashSet<int>();
 
         private static readonly Vector2 EntryStatePosition = new Vector2(50f, 200f);
 
@@ -326,7 +323,7 @@ namespace CleanStateMachine
                 fontStyle = FontStyle.Bold,
                 normal = { textColor = hover ? UITheme.TextColor : UITheme.IconColor }
             };
-            GUI.Label(toggleRect, "◀", style);
+            GUI.Label(toggleRect, "â—€", style);
 
             if (Event.current.type == EventType.MouseDown && Event.current.button == 0 && toggleRect.Contains(Event.current.mousePosition))
             {
@@ -1513,23 +1510,33 @@ namespace CleanStateMachine
 
                 if (newActiveIndex != _activeStateDataIndex)
                 {
-                    _previousStateDataIndex = _activeStateDataIndex;
                     _activeStateDataIndex = newActiveIndex;
 
                     for (int i = 0; i < _states.Count; i++)
                         _states[i].IsActive = (i == _activeStateDataIndex);
 
-                    ActivateTransitionConnection(_previousStateDataIndex, newActiveIndex);
-
                     Repaint();
                 }
-                else
+
+                var transitions = _trackedComponent.RecentTransitions;
+                if (transitions.Count > 0)
                 {
-                    for (int i = 0; i < _connections.Count; i++)
+                    var data = _trackedComponent.Data;
+                    for (int t = 0; t < transitions.Count; t++)
                     {
-                        if (_connections[i].IsActive && i != _lastTransitionConnectionIndex)
-                            _connections[i].IsActive = false;
+                        var record = transitions[t];
+                        for (int c = 0; c < data.Connections.Count && c < _connections.Count; c++)
+                        {
+                            if (data.Connections[c].FromIndex == record.FromIndex &&
+                                data.Connections[c].ToIndex == record.ToIndex)
+                            {
+                                _connections[c].IsActive = true;
+                                _connections[c].ActivationTime = Time.realtimeSinceStartup;
+                            }
+                        }
                     }
+                    transitions.Clear();
+                    Repaint();
                 }
 
                 Repaint();
@@ -1538,32 +1545,6 @@ namespace CleanStateMachine
             {
                 ClearActiveStates();
                 Repaint();
-            }
-        }
-
-        private void ActivateTransitionConnection(int fromIndex, int toIndex)
-        {
-            if (_trackedComponent == null) return;
-            var data = _trackedComponent.Data;
-            if (data == null) return;
-
-            _lastTransitionConnectionIndex = -1;
-            for (int i = 0; i < data.Connections.Count; i++)
-            {
-                if (data.Connections[i].FromIndex == fromIndex &&
-                    data.Connections[i].ToIndex == toIndex)
-                {
-                    _lastTransitionConnectionIndex = i;
-                    break;
-                }
-            }
-
-            for (int i = 0; i < _connections.Count; i++)
-            {
-                bool isActive = (i == _lastTransitionConnectionIndex);
-                _connections[i].IsActive = isActive;
-                if (isActive)
-                    _connections[i].ActivationTime = Time.realtimeSinceStartup;
             }
         }
 
@@ -1599,36 +1580,9 @@ namespace CleanStateMachine
             }
         }
 
-        private void UpdateActiveConnections()
-        {
-            _activeConnectionIndices.Clear();
-
-            if (_trackedComponent == null || _activeStateDataIndex < 0)
-            {
-                for (int i = 0; i < _connections.Count; i++)
-                    _connections[i].IsActive = false;
-                return;
-            }
-
-            var data = _trackedComponent.Data;
-            if (data == null) return;
-
-            for (int i = 0; i < data.Connections.Count; i++)
-            {
-                if (data.Connections[i].FromIndex == _activeStateDataIndex)
-                    _activeConnectionIndices.Add(i);
-            }
-
-            for (int i = 0; i < _connections.Count; i++)
-                _connections[i].IsActive = _activeConnectionIndices.Contains(i);
-        }
-
         private void ClearActiveStates()
         {
             _activeStateDataIndex = -1;
-            _previousStateDataIndex = -1;
-            _lastTransitionConnectionIndex = -1;
-            _activeConnectionIndices.Clear();
             for (int i = 0; i < _states.Count; i++)
                 _states[i].IsActive = false;
             for (int i = 0; i < _connections.Count; i++)

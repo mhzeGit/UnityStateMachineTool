@@ -13,6 +13,7 @@ namespace CleanStateMachine
         private string _currentStateName = "None";
         private bool _initialized = false;
         private float _waitTimer = 0f;
+        private List<TransitionRecord> _recentTransitions = new List<TransitionRecord>();
 
         public StateMachineController Controller
         {
@@ -25,6 +26,7 @@ namespace CleanStateMachine
         public string CurrentStateName => _currentStateName;
         public int CurrentStateIndex => _currentStateIndex;
         public List<BlackboardVariable> RuntimeVariables => _runtimeVariables;
+        public List<TransitionRecord> RecentTransitions => _recentTransitions;
 
         private void Awake()
         {
@@ -170,11 +172,19 @@ namespace CleanStateMachine
         {
             if (toIndex < 0 || toIndex >= Data.States.Count) return;
 
+            int fromIndex = _currentStateIndex;
+
             ExecuteSection("OnStateExit");
 
             _currentStateIndex = toIndex;
             _currentStateName = Data.States[toIndex].Name;
             _waitTimer = 0f;
+
+            _recentTransitions.Add(new TransitionRecord
+            {
+                FromIndex = fromIndex,
+                ToIndex = toIndex
+            });
 
             ExecuteSection("OnStateEnter");
         }
@@ -390,7 +400,15 @@ namespace CleanStateMachine
         {
             _initialized = false;
             _waitTimer = 0f;
+            _recentTransitions.Clear();
             Initialize();
+        }
+
+        [System.Serializable]
+        public class TransitionRecord
+        {
+            public int FromIndex;
+            public int ToIndex;
         }
     }
 }

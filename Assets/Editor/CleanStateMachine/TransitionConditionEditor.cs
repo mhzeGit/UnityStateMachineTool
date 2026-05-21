@@ -23,13 +23,11 @@ namespace CleanStateMachine
             float y = 0f;
             float w = viewRect.width;
 
-            DrawSectionHeader(ref y, w, "CONDITIONS");
-
             DrawAddButton(ref y, w, conditions);
 
             if (conditions.Count == 0)
             {
-                Rect emptyRect = new Rect(UITheme.Padding * 3f, y, w - UITheme.Padding * 6f, UITheme.RowHeight);
+                Rect emptyRect = new Rect(UITheme.Padding * 4f, y, w - UITheme.Padding * 8f, UITheme.RowHeight);
                 var emptyStyle = new GUIStyle(UITheme.SecondaryStyle)
                 {
                     normal = { textColor = UITheme.TextMuted },
@@ -51,10 +49,10 @@ namespace CleanStateMachine
 
         private void DrawAddButton(ref float y, float width, List<TransitionCondition> conditions)
         {
-            Rect addRect = new Rect(0f, y, width, UITheme.RowHeight);
+            Rect addRect = new Rect(4f, y, width - 8f, UITheme.RowHeight);
             EditorGUI.DrawRect(addRect, UITheme.RowOdd);
 
-            Rect btnRect = new Rect(addRect.x + UITheme.Padding * 2f, addRect.y + 3f, 20f, addRect.height - 6f);
+            Rect btnRect = new Rect(addRect.x + 6f, addRect.y + 3f, 20f, addRect.height - 6f);
             bool btnHover = btnRect.Contains(Event.current.mousePosition);
             UITheme.DrawSmallButton(btnRect, btnHover);
 
@@ -72,37 +70,50 @@ namespace CleanStateMachine
                 Changed?.Invoke();
             }
 
-            Rect labelRect = new Rect(btnRect.xMax + 6f, addRect.y, width - btnRect.xMax - 12f, addRect.height);
+            Rect labelRect = new Rect(btnRect.xMax + 6f, addRect.y, width - btnRect.xMax - 16f, addRect.height);
             GUI.Label(labelRect, "Add Condition", new GUIStyle(UITheme.SecondaryStyle)
             {
                 normal = { textColor = UITheme.TextSecondary },
                 fontSize = 10
             });
 
-            y += UITheme.RowHeight;
+            y += UITheme.RowHeight + 4f;
         }
 
         private void DrawConditionRow(ref float y, float width, List<TransitionCondition> conditions,
             int index, TransitionCondition condition, List<BlackboardVariable> blackboardVariables,
             bool isExpanded)
         {
+            float indent = 8f;
+            float rowW = width - indent * 2f;
             float rowHeight = isExpanded ? GetExpandedHeight() : UITheme.RowHeight;
-            Rect rowRect = new Rect(0f, y, width, rowHeight);
-            Color rowBg = ((int)(y / UITheme.RowHeight)) % 2 == 0 ? UITheme.RowEven : UITheme.RowOdd;
-            EditorGUI.DrawRect(rowRect, rowBg);
+
+            Rect rowRect = new Rect(indent, y, rowW, rowHeight);
+            EditorGUI.DrawRect(rowRect, index % 2 == 0 ? UITheme.RowEven : UITheme.RowOdd);
 
             if (isExpanded)
             {
-                Color accentColor = UITheme.Accent;
-                accentColor.a = 0.06f;
-                EditorGUI.DrawRect(rowRect, accentColor);
+                EditorGUI.DrawRect(rowRect, new Color(1f, 1f, 1f, 0.03f));
             }
 
-            Rect expandRect = new Rect(rowRect.x + UITheme.Padding * 2f, rowRect.y,
-                rowRect.width - UITheme.Padding * 7f - 24f, UITheme.RowHeight);
-            string arrow = isExpanded ? " ▲" : " ▼";
+            // Condition type badge
+            Rect badgeRect = new Rect(indent + 4f, rowRect.y + 4f, 72f, UITheme.RowHeight - 8f);
+            EditorGUI.DrawRect(badgeRect, UITheme.TypeBadgeBg);
+            var badgeStyle = new GUIStyle(UITheme.TypeBadgeStyle) { fontSize = 7 };
+            string condLabel = string.IsNullOrEmpty(condition.BlackboardVariableName) ? "IF" : "IF";
+            GUI.Label(badgeRect, condLabel, badgeStyle);
 
-            if (GUI.Button(expandRect, GetConditionSummary(condition) + arrow, UITheme.SecondaryStyle))
+            // Summary / expand
+            Rect expandRect = new Rect(indent + 80f, rowRect.y,
+                rowW - 104f, UITheme.RowHeight);
+            string arrow = isExpanded ? " ▲" : " ▼";
+            var summaryStyle = new GUIStyle(UITheme.SecondaryStyle)
+            {
+                clipping = TextClipping.Clip,
+                padding = new RectOffset(4, 0, 0, 0)
+            };
+
+            if (GUI.Button(expandRect, GetConditionSummary(condition) + arrow, summaryStyle))
             {
                 if (isExpanded)
                     _expandedConditions.Remove(index);
@@ -110,7 +121,8 @@ namespace CleanStateMachine
                     _expandedConditions.Add(index);
             }
 
-            Rect deleteRect = new Rect(rowRect.xMax - 22f, rowRect.y + 3f, 16f, UITheme.RowHeight - 6f);
+            // Delete
+            Rect deleteRect = new Rect(indent + rowW - 22f, rowRect.y + 3f, 18f, UITheme.RowHeight - 6f);
             if (GUI.Button(deleteRect, "✕", UITheme.DeleteButtonStyle))
             {
                 conditions.RemoveAt(index);
@@ -122,27 +134,26 @@ namespace CleanStateMachine
 
             if (isExpanded)
             {
-                DrawConditionFields(ref y, width, condition, blackboardVariables);
+                DrawConditionFields(ref y, width, indent + 8f, condition, blackboardVariables);
             }
         }
 
-        private void DrawConditionFields(ref float y, float width, TransitionCondition condition,
-            List<BlackboardVariable> blackboardVariables)
+        private void DrawConditionFields(ref float y, float width, float margin,
+            TransitionCondition condition, List<BlackboardVariable> blackboardVariables)
         {
-            float indent = UITheme.Padding * 4f;
-            float fieldWidth = width - indent - UITheme.Padding * 2f;
+            float fieldWidth = width - margin - 12f;
 
-            DrawVariableSelector(ref y, width, indent, fieldWidth, condition, blackboardVariables);
+            DrawVariableSelector(ref y, margin, fieldWidth, condition, blackboardVariables);
 
             BlackboardVariable variable = FindVariable(condition.BlackboardVariableName, blackboardVariables);
             if (variable != null)
             {
-                DrawComparisonSelector(ref y, width, indent, fieldWidth, condition, variable);
-                DrawValueField(ref y, width, indent, fieldWidth, condition, variable);
+                DrawComparisonSelector(ref y, margin, fieldWidth, condition, variable);
+                DrawValueField(ref y, margin, fieldWidth, condition, variable);
             }
             else
             {
-                Rect msgRect = new Rect(indent, y, fieldWidth, UITheme.RowHeight);
+                Rect msgRect = new Rect(margin + 4f, y, fieldWidth, UITheme.RowHeight);
                 var msgStyle = new GUIStyle(UITheme.LabelStyle)
                 {
                     normal = { textColor = UITheme.Warning }
@@ -154,14 +165,14 @@ namespace CleanStateMachine
             y += 4f;
         }
 
-        private void DrawVariableSelector(ref float y, float width, float indent, float fieldWidth,
+        private void DrawVariableSelector(ref float y, float margin, float fieldWidth,
             TransitionCondition condition, List<BlackboardVariable> blackboardVariables)
         {
-            Rect labelRect = new Rect(indent, y, 80f, UITheme.RowHeight);
+            Rect labelRect = new Rect(margin, y, 76f, UITheme.RowHeight);
             GUI.Label(labelRect, "Variable", UITheme.LabelStyle);
 
-            Rect selectorRect = new Rect(indent + 84f, y + 2f,
-                fieldWidth - 84f, UITheme.RowHeight - 4f);
+            Rect selectorRect = new Rect(margin + 80f, y + 2f,
+                fieldWidth - 80f, UITheme.RowHeight - 4f);
 
             string currentName = condition.BlackboardVariableName ?? "";
             int selectedIndex = -1;
@@ -193,14 +204,14 @@ namespace CleanStateMachine
             y += UITheme.RowHeight;
         }
 
-        private void DrawComparisonSelector(ref float y, float width, float indent, float fieldWidth,
+        private void DrawComparisonSelector(ref float y, float margin, float fieldWidth,
             TransitionCondition condition, BlackboardVariable variable)
         {
-            Rect labelRect = new Rect(indent, y, 80f, UITheme.RowHeight);
+            Rect labelRect = new Rect(margin, y, 76f, UITheme.RowHeight);
             GUI.Label(labelRect, "Compare", UITheme.LabelStyle);
 
-            Rect selectorRect = new Rect(indent + 84f, y + 2f,
-                fieldWidth - 84f, UITheme.RowHeight - 4f);
+            Rect selectorRect = new Rect(margin + 80f, y + 2f,
+                fieldWidth - 80f, UITheme.RowHeight - 4f);
 
             List<ConditionComparison> validComparisons = GetValidComparisons(variable.Type);
 
@@ -227,14 +238,14 @@ namespace CleanStateMachine
             y += UITheme.RowHeight;
         }
 
-        private void DrawValueField(ref float y, float width, float indent, float fieldWidth,
+        private void DrawValueField(ref float y, float margin, float fieldWidth,
             TransitionCondition condition, BlackboardVariable variable)
         {
-            Rect labelRect = new Rect(indent, y, 80f, UITheme.RowHeight);
+            Rect labelRect = new Rect(margin, y, 76f, UITheme.RowHeight);
             GUI.Label(labelRect, "Value", UITheme.LabelStyle);
 
-            Rect fieldRect = new Rect(indent + 84f, y + 2f,
-                fieldWidth - 84f, UITheme.RowHeight - 4f);
+            Rect fieldRect = new Rect(margin + 80f, y + 2f,
+                fieldWidth - 80f, UITheme.RowHeight - 4f);
 
             string currentValue = condition.CompareValue ?? "";
 
@@ -382,9 +393,9 @@ namespace CleanStateMachine
             string value = condition.CompareValue;
 
             if (!string.IsNullOrEmpty(value))
-                return $"  {varName} {comp} {value}";
+                return $" {varName} {comp} {value}";
             else
-                return $"  {varName} {comp}";
+                return $" {varName} {comp}";
         }
 
         private static float GetExpandedHeight()
@@ -394,7 +405,7 @@ namespace CleanStateMachine
 
         private float ComputeTotalHeight(List<TransitionCondition> conditions)
         {
-            float h = UITheme.RowHeight * 2f;
+            float h = UITheme.RowHeight + 4f;
 
             if (conditions.Count == 0)
                 h += UITheme.RowHeight;
@@ -405,16 +416,7 @@ namespace CleanStateMachine
                     h += _expandedConditions.Contains(i) ? GetExpandedHeight() : UITheme.RowHeight;
                 }
             }
-            return h + 20f;
-        }
-
-        private static void DrawSectionHeader(ref float y, float width, string label)
-        {
-            Rect rect = new Rect(0f, y, width, UITheme.RowHeight);
-            EditorGUI.DrawRect(rect, UITheme.PanelHeaderBg);
-            GUI.Label(rect, label, UITheme.SectionStyle);
-            UITheme.DrawSectionDivider(y + UITheme.RowHeight - 1f, width);
-            y += UITheme.RowHeight + 4f;
+            return h + 12f;
         }
     }
 }
