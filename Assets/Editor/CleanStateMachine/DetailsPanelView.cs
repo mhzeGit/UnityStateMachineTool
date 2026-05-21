@@ -105,40 +105,26 @@ namespace CleanStateMachine
             DrawInfoRow(ref y, iw, "Size", $"({state.Size.x:F0} x {state.Size.y:F0})");
             DrawInfoRow(ref y, iw, "Connections", CountStateConnections(state, connections).ToString());
 
-            y += 12f;
+            y += 8f;
             UITheme.DrawSectionDivider(y, iw);
-            y += 12f;
+            y += 10f;
 
-            Rect scriptTitleRect = new Rect(8f, y, iw - 16f, 24f);
+            Rect scriptTitleRect = new Rect(8f, y, iw - 16f, 22f);
             GUI.Label(scriptTitleRect, "State Behaviour", UITheme.LargeTitleStyle);
             y += 28f;
 
-            Rect labelRect = new Rect(12f, y, 80f, UITheme.RowHeight);
-            GUI.Label(labelRect, "Script", UITheme.LabelStyle);
-
-            Rect fieldRect = new Rect(96f, y + 4f, iw - 112f, UITheme.RowHeight - 8f);
-            var newScript = (MonoScript)EditorGUI.ObjectField(fieldRect, state.BehaviourScript, typeof(MonoScript), false);
-
-            if (newScript != state.BehaviourScript)
+            DrawScriptRow(ref y, iw, state.BehaviourScript, IsValidStateBehaviour, (prev, next) =>
             {
-                if (newScript != null && !IsValidStateBehaviour(newScript))
+                if (next == prev) return;
+                if (state.BehaviourInstance != null)
                 {
-                    EditorUtility.DisplayDialog("Invalid Script",
-                        "The selected script must inherit from StateBehaviour.", "OK");
-                    newScript = state.BehaviourScript;
+                    Object.DestroyImmediate(state.BehaviourInstance, true);
+                    state.BehaviourInstance = null;
                 }
-                else
+                state.BehaviourScript = next;
+                if (next != null)
                 {
-                    if (newScript != state.BehaviourScript && state.BehaviourInstance != null)
-                    {
-                        Object.DestroyImmediate(state.BehaviourInstance, true);
-                        state.BehaviourInstance = null;
-                    }
-                }
-                state.BehaviourScript = newScript;
-                if (newScript != null)
-                {
-                    var type = newScript.GetClass();
+                    var type = next.GetClass();
                     if (type != null)
                     {
                         state.BehaviourInstance = (StateBehaviour)ScriptableObject.CreateInstance(type);
@@ -147,46 +133,11 @@ namespace CleanStateMachine
                     }
                 }
                 Changed?.Invoke();
-            }
-            y += UITheme.RowHeight + 4f;
+            });
 
-            if (state.BehaviourScript != null)
+            if (state.BehaviourInstance != null)
             {
-                Rect typeRect = new Rect(12f, y, iw - 24f, UITheme.RowHeight);
-                var typeStyle = new GUIStyle(UITheme.SecondaryStyle)
-                {
-                    normal = { textColor = UITheme.TextMuted },
-                    fontSize = 11,
-                    fontStyle = FontStyle.Italic
-                };
-                var scriptType = state.BehaviourScript.GetClass();
-                string typeName = scriptType != null ? scriptType.Name : state.BehaviourScript.name;
-                GUI.Label(typeRect, typeName, typeStyle);
-                y += UITheme.RowHeight;
-
-                Rect openBtnRect = new Rect(12f, y, 100f, 24f);
-                if (GUI.Button(openBtnRect, "Open Script"))
-                {
-                    AssetDatabase.OpenAsset(state.BehaviourScript);
-                }
-                y += 32f;
-
-                if (state.BehaviourInstance != null)
-                {
-                    DrawScriptableObjectProperties(ref y, iw, state.BehaviourInstance, blackboardVariables);
-                }
-            }
-            else
-            {
-                Rect hintRect = new Rect(12f, y, iw - 24f, UITheme.RowHeight);
-                var hintStyle = new GUIStyle(UITheme.SecondaryStyle)
-                {
-                    normal = { textColor = UITheme.TextMuted },
-                    fontSize = 11,
-                    fontStyle = FontStyle.Italic
-                };
-                GUI.Label(hintRect, "Assign a StateBehaviour script to define state logic", hintStyle);
-                y += UITheme.RowHeight;
+                DrawScriptableObjectProperties(ref y, iw, state.BehaviourInstance, blackboardVariables);
             }
 
             GUI.EndScrollView();
@@ -211,40 +162,26 @@ namespace CleanStateMachine
             DrawInfoRow(ref y, iw, "From", conn.From?.Name ?? "—");
             DrawInfoRow(ref y, iw, "To", conn.To?.Name ?? "—");
 
-            y += 12f;
+            y += 8f;
             UITheme.DrawSectionDivider(y, iw);
-            y += 12f;
+            y += 10f;
 
-            Rect condTitleRect = new Rect(8f, y, iw - 16f, 24f);
+            Rect condTitleRect = new Rect(8f, y, iw - 16f, 22f);
             GUI.Label(condTitleRect, "Transition Condition", UITheme.LargeTitleStyle);
             y += 28f;
 
-            Rect labelRect = new Rect(12f, y, 80f, UITheme.RowHeight);
-            GUI.Label(labelRect, "Condition", UITheme.LabelStyle);
-
-            Rect fieldRect = new Rect(96f, y + 4f, iw - 112f, UITheme.RowHeight - 8f);
-            var newScript = (MonoScript)EditorGUI.ObjectField(fieldRect, conn.ConditionScript, typeof(MonoScript), false);
-
-            if (newScript != conn.ConditionScript)
+            DrawScriptRow(ref y, iw, conn.ConditionScript, IsValidConditionScript, (prev, next) =>
             {
-                if (newScript != null && !IsValidConditionScript(newScript))
+                if (next == prev) return;
+                if (conn.ConditionInstance != null)
                 {
-                    EditorUtility.DisplayDialog("Invalid Script",
-                        "The selected script must inherit from ConditionScript.", "OK");
-                    newScript = conn.ConditionScript;
+                    Object.DestroyImmediate(conn.ConditionInstance, true);
+                    conn.ConditionInstance = null;
                 }
-                else
+                conn.ConditionScript = next;
+                if (next != null)
                 {
-                    if (newScript != conn.ConditionScript && conn.ConditionInstance != null)
-                    {
-                        Object.DestroyImmediate(conn.ConditionInstance, true);
-                        conn.ConditionInstance = null;
-                    }
-                }
-                conn.ConditionScript = newScript;
-                if (newScript != null)
-                {
-                    var type = newScript.GetClass();
+                    var type = next.GetClass();
                     if (type != null)
                     {
                         conn.ConditionInstance = (ConditionScript)ScriptableObject.CreateInstance(type);
@@ -253,46 +190,11 @@ namespace CleanStateMachine
                     }
                 }
                 Changed?.Invoke();
-            }
-            y += UITheme.RowHeight + 4f;
+            });
 
-            if (conn.ConditionScript != null)
+            if (conn.ConditionInstance != null)
             {
-                Rect typeRect = new Rect(12f, y, iw - 24f, UITheme.RowHeight);
-                var typeStyle = new GUIStyle(UITheme.SecondaryStyle)
-                {
-                    normal = { textColor = UITheme.TextMuted },
-                    fontSize = 11,
-                    fontStyle = FontStyle.Italic
-                };
-                var scriptType = conn.ConditionScript.GetClass();
-                string typeName = scriptType != null ? scriptType.Name : conn.ConditionScript.name;
-                GUI.Label(typeRect, typeName, typeStyle);
-                y += UITheme.RowHeight;
-
-                Rect openBtnRect = new Rect(12f, y, 100f, 24f);
-                if (GUI.Button(openBtnRect, "Open Script"))
-                {
-                    AssetDatabase.OpenAsset(conn.ConditionScript);
-                }
-                y += 32f;
-
-                if (conn.ConditionInstance != null)
-                {
-                    DrawScriptableObjectProperties(ref y, iw, conn.ConditionInstance, blackboardVariables);
-                }
-            }
-            else
-            {
-                Rect hintRect = new Rect(12f, y, iw - 24f, UITheme.RowHeight);
-                var hintStyle = new GUIStyle(UITheme.SecondaryStyle)
-                {
-                    normal = { textColor = UITheme.TextMuted },
-                    fontSize = 11,
-                    fontStyle = FontStyle.Italic
-                };
-                GUI.Label(hintRect, "Assign a ConditionScript to control this transition", hintStyle);
-                y += UITheme.RowHeight;
+                DrawScriptableObjectProperties(ref y, iw, conn.ConditionInstance, blackboardVariables);
             }
 
             GUI.EndScrollView();
@@ -436,16 +338,75 @@ namespace CleanStateMachine
         private static void DrawInfoRow(ref float y, float width, string label, string value)
         {
             Rect rect = new Rect(0f, y, width, UITheme.RowHeight);
-            EditorGUI.DrawRect(rect, UITheme.RowEven);
+            EditorGUI.DrawRect(rect, UITheme.RowBg);
+            EditorGUI.DrawRect(new Rect(rect.x, rect.yMax - 1f, rect.width, 1f), UITheme.RowBoundary);
 
-            float labelWidth = 100f;
-            Rect labelRect = new Rect(12f, rect.y, labelWidth, rect.height);
-            Rect valueRect = new Rect(12f + labelWidth, rect.y, width - labelWidth - 24f, rect.height);
+            float labelWidth = 72f;
+            Rect labelRect = new Rect(8f, rect.y + 1f, labelWidth, rect.height - 2f);
+            Rect valueRect = new Rect(8f + labelWidth, rect.y, width - labelWidth - 16f, rect.height);
 
-            GUI.Label(labelRect, label, UITheme.LabelStyle);
+            GUI.Label(labelRect, label, UITheme.VariableLabelStyle);
             GUI.Label(valueRect, value, UITheme.SecondaryStyle);
 
             y += UITheme.RowHeight;
+        }
+
+        private static void DrawScriptRow(ref float y, float width, MonoScript script,
+            Func<MonoScript, bool> isValid, Action<MonoScript, MonoScript> onAssign)
+        {
+            Rect rowRect = new Rect(0f, y, width, UITheme.RowHeight);
+            EditorGUI.DrawRect(rowRect, UITheme.RowBg);
+            EditorGUI.DrawRect(new Rect(rowRect.x, rowRect.yMax - 1f, rowRect.width, 1f), UITheme.RowBoundary);
+
+            Rect labelRect = new Rect(8f, y + 1f, 72f, UITheme.RowHeight - 2f);
+            GUI.Label(labelRect, "Script", UITheme.VariableLabelStyle);
+
+            Rect fieldRect = new Rect(84f, y + 3f, width - 96f - 70f, UITheme.RowHeight - 6f);
+            var newScript = (MonoScript)EditorGUI.ObjectField(fieldRect, script, typeof(MonoScript), false);
+
+            if (newScript != script)
+            {
+                if (newScript != null && !isValid(newScript))
+                {
+                    EditorUtility.DisplayDialog("Invalid Script",
+                        "The selected script must inherit from the required base class.", "OK");
+                    newScript = script;
+                }
+                onAssign(script, newScript);
+            }
+
+            if (script != null)
+            {
+                Rect openRect = new Rect(fieldRect.xMax + 4f, y + 4f, 62f, UITheme.RowHeight - 8f);
+                if (GUI.Button(openRect, "Open", EditorStyles.miniButton))
+                {
+                    AssetDatabase.OpenAsset(script);
+                }
+
+                var scriptType = script.GetClass();
+                string typeName = scriptType != null ? scriptType.Name : script.name;
+                Rect typeRect = new Rect(8f, y + UITheme.RowHeight + 2f, width - 16f, 18f);
+                var typeStyle = new GUIStyle(UITheme.SecondaryStyle)
+                {
+                    normal = { textColor = UITheme.TextMuted },
+                    fontSize = 10,
+                    fontStyle = FontStyle.Italic
+                };
+                GUI.Label(typeRect, typeName, typeStyle);
+                y += UITheme.RowHeight + 22f;
+            }
+            else
+            {
+                Rect hintRect = new Rect(8f, y + UITheme.RowHeight + 2f, width - 16f, 18f);
+                var hintStyle = new GUIStyle(UITheme.SecondaryStyle)
+                {
+                    normal = { textColor = UITheme.TextMuted },
+                    fontSize = 10,
+                    fontStyle = FontStyle.Italic
+                };
+                GUI.Label(hintRect, "Assign a script to define behaviour", hintStyle);
+                y += UITheme.RowHeight + 22f;
+            }
         }
 
         private static float GetPropertiesHeight(ScriptableObject obj)
@@ -472,9 +433,9 @@ namespace CleanStateMachine
             var so = new SerializedObject(obj);
             so.Update();
 
-            y += 6f;
+            y += 4f;
             UITheme.DrawSectionDivider(y, width);
-            y += 10f;
+            y += 8f;
 
             Rect titleRect = new Rect(8f, y, width - 16f, 22f);
             GUI.Label(titleRect, "Properties", UITheme.LargeTitleStyle);
