@@ -14,6 +14,7 @@ namespace CleanStateMachine
         public string EditingBuffer { get; set; }
         public StateClassData StateClass { get; set; }
         public bool IsActive { get; set; }
+        public int DataIndex { get; set; } = -1;
 
         private static GUIStyle _fillStyle;
         private static GUIStyle _borderStyle;

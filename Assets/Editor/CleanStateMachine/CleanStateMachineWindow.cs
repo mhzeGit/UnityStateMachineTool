@@ -544,7 +544,7 @@ namespace CleanStateMachine
                     }
                     else
                     {
-                        var newState = new StateView(graphMousePos - new Vector2(80f, 20f));
+                        var newState = new StateView(graphMousePos - new Vector2(80f, 20f)) { DataIndex = _states.Count };
                         var cmd = new CompositeCommand("Create State and Connect");
 
                         if (source.IsEntry)
@@ -903,7 +903,7 @@ namespace CleanStateMachine
 
         private void OnCreateStateRequested(Vector2 graphMousePosition)
         {
-            var state = new StateView(graphMousePosition);
+            var state = new StateView(graphMousePosition) { DataIndex = _states.Count };
 
             if (_entryState != null && GetEntryOutgoingConnection() == null)
             {
@@ -998,7 +998,8 @@ namespace CleanStateMachine
                 var data = _clipboard[i];
                 var state = new StateView(data.position + offset, data.name)
                 {
-                    Size = data.size
+                    Size = data.size,
+                    DataIndex = _states.Count
                 };
                 composite.Add(new CreateStateCommand(_states, state));
                 pastedStates.Add(state);
@@ -1099,7 +1100,7 @@ namespace CleanStateMachine
 
             if (_entryState == null)
             {
-                _entryState = new StateView(EntryStatePosition, "Entry", isEntry: true);
+                _entryState = new StateView(EntryStatePosition, "Entry", isEntry: true) { DataIndex = 0 };
                 _states.Insert(0, _entryState);
             }
         }
@@ -1246,7 +1247,8 @@ namespace CleanStateMachine
                     var state = new StateView(sd.Position, sd.Name, sd.IsEntry)
                     {
                         Size = sd.Size,
-                        StateClass = sd.StateClass
+                        StateClass = sd.StateClass,
+                        DataIndex = i
                     };
                     _states.Add(state);
                     stateLookup.Add(state);
@@ -1439,7 +1441,7 @@ namespace CleanStateMachine
                     _activeStateDataIndex = newActiveIndex;
 
                     for (int i = 0; i < _states.Count; i++)
-                        _states[i].IsActive = (i == _activeStateDataIndex);
+                        _states[i].IsActive = (_states[i].DataIndex == _activeStateDataIndex);
 
                     Repaint();
                 }
@@ -1447,14 +1449,13 @@ namespace CleanStateMachine
                 var transitions = _trackedComponent.RecentTransitions;
                 if (transitions.Count > 0)
                 {
-                    var data = _trackedComponent.Data;
                     for (int t = 0; t < transitions.Count; t++)
                     {
                         var record = transitions[t];
-                        for (int c = 0; c < data.Connections.Count && c < _connections.Count; c++)
+                        for (int c = 0; c < _connections.Count; c++)
                         {
-                            if (data.Connections[c].FromIndex == record.FromIndex &&
-                                data.Connections[c].ToIndex == record.ToIndex)
+                            if (_connections[c].From.DataIndex == record.FromIndex &&
+                                _connections[c].To.DataIndex == record.ToIndex)
                             {
                                 _connections[c].IsActive = true;
                                 _connections[c].ActivationTime = Time.realtimeSinceStartup;

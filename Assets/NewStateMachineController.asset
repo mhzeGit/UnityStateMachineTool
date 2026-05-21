@@ -26,40 +26,6 @@ MonoBehaviour:
           Events: []
         - SectionName: OnStateExit
           Events: []
-    - Name: 1
-      Position: {x: 295.75262, y: 103.90237}
-      Size: {x: 160, y: 40}
-      IsEntry: 0
-      StateClass:
-        Sections:
-        - SectionName: OnStateEnter
-          Events:
-          - Type: 0
-            DebugMessage: 1
-            WaitDuration: 0.5
-            UnityEventCallbacks: []
-            CustomText: 
-        - SectionName: OnStateUpdate
-          Events: []
-        - SectionName: OnStateExit
-          Events: []
-    - Name: 2
-      Position: {x: 515.3323, y: 163.8187}
-      Size: {x: 160, y: 40}
-      IsEntry: 0
-      StateClass:
-        Sections:
-        - SectionName: OnStateEnter
-          Events:
-          - Type: 0
-            DebugMessage: 2
-            WaitDuration: 0.5
-            UnityEventCallbacks: []
-            CustomText: 
-        - SectionName: OnStateUpdate
-          Events: []
-        - SectionName: OnStateExit
-          Events: []
     - Name: NO 2
       Position: {x: 523.13806, y: -6.251502}
       Size: {x: 160, y: 40}
@@ -77,27 +43,61 @@ MonoBehaviour:
             CustomText: 
         - SectionName: OnStateExit
           Events: []
+    - Name: 1
+      Position: {x: 276.4557, y: 87.14753}
+      Size: {x: 160, y: 40}
+      IsEntry: 0
+      StateClass:
+        Sections:
+        - SectionName: OnStateEnter
+          Events:
+          - Type: 0
+            DebugMessage: 1
+            WaitDuration: 0.5
+            UnityEventCallbacks: []
+            CustomText: 
+        - SectionName: OnStateUpdate
+          Events: []
+        - SectionName: OnStateExit
+          Events: []
+    - Name: 2
+      Position: {x: 568.7766, y: 167.3042}
+      Size: {x: 160, y: 40}
+      IsEntry: 0
+      StateClass:
+        Sections:
+        - SectionName: OnStateEnter
+          Events:
+          - Type: 0
+            DebugMessage: 2
+            WaitDuration: 0.5
+            UnityEventCallbacks: []
+            CustomText: 
+        - SectionName: OnStateUpdate
+          Events: []
+        - SectionName: OnStateExit
+          Events: []
     Connections:
-    - FromIndex: 1
-      ToIndex: 2
-      Conditions:
-      - BlackboardVariableName: State02
-        Comparison: 0
-        CompareValue: true
-    - FromIndex: 0
-      ToIndex: 1
-      Conditions:
-      - BlackboardVariableName: State01
-        Comparison: 0
-        CompareValue: true
     - FromIndex: 2
       ToIndex: 3
       Conditions:
       - BlackboardVariableName: State02
         Comparison: 0
-        CompareValue: false
+        CompareValue: true
+    - FromIndex: 0
+      ToIndex: 2
+      Conditions:
+      - BlackboardVariableName: State01
+        Comparison: 0
+        CompareValue: true
     - FromIndex: 3
       ToIndex: 1
+      Conditions:
+      - BlackboardVariableName: State02
+        Comparison: 0
+        CompareValue: false
+    - FromIndex: 1
+      ToIndex: 2
       Conditions:
       - BlackboardVariableName: State01
         Comparison: 0
@@ -110,8 +110,8 @@ MonoBehaviour:
     - Name: State02
       Type: 0
       StringValue: 0
-    PanOffset: {x: 478.09058, y: 302.43805}
-    Zoom: 1.5683132
+    PanOffset: {x: 247.61353, y: 230.30121}
+    Zoom: 0.7408188
     ShowBlackboard: 1
-    BlackboardWidth: 220
-    DetailsWidth: 600
+    BlackboardWidth: 256
+    DetailsWidth: 220
