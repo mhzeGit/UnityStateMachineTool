@@ -98,38 +98,38 @@ MonoBehaviour:
       IsEntry: 1
       BehaviourType: 
       Behaviour: {fileID: 0}
-    - Name: WrongState
-      Position: {x: 485.26526, y: 23.809353}
-      Size: {x: 160, y: 40}
-      IsEntry: 0
-      BehaviourType: DebugLog_StateBehaviour
-      Behaviour: {fileID: -2306008434130728459}
     - Name: Correct State 2
-      Position: {x: 375.68716, y: 219.24062}
+      Position: {x: 370.9039, y: 174.85403}
       Size: {x: 160, y: 40}
       IsEntry: 0
       BehaviourType: DebugLog_StateBehaviour
       Behaviour: {fileID: -9205999975491014197}
+    - Name: WrongState
+      Position: {x: 488.22833, y: -27.462921}
+      Size: {x: 160, y: 40}
+      IsEntry: 0
+      BehaviourType: DebugLog_StateBehaviour
+      Behaviour: {fileID: -2306008434130728459}
     - Name: Correct State 1
-      Position: {x: 231.18726, y: 15.185032}
+      Position: {x: 233.15326, y: 15.343563}
       Size: {x: 160, y: 40}
       IsEntry: 0
       BehaviourType: DebugLog_StateBehaviour
       Behaviour: {fileID: 6409677120155523139}
     Connections:
+    - FromIndex: 1
+      ToIndex: 2
+      ConditionType: SimpleBool_ConditionBehaviours
+      Condition: {fileID: -7696514207278436980}
+    - FromIndex: 3
+      ToIndex: 1
+      ConditionType: SimpleBool_ConditionBehaviours
+      Condition: {fileID: 8216924739884770493}
     - FromIndex: 0
       ToIndex: 3
       ConditionType: SimpleBool_ConditionBehaviours
       Condition: {fileID: -6324071765435123549}
-    - FromIndex: 3
-      ToIndex: 2
-      ConditionType: SimpleBool_ConditionBehaviours
-      Condition: {fileID: 8216924739884770493}
     - FromIndex: 2
-      ToIndex: 1
-      ConditionType: SimpleBool_ConditionBehaviours
-      Condition: {fileID: -7696514207278436980}
-    - FromIndex: 1
       ToIndex: 3
       ConditionType: SimpleBool_ConditionBehaviours
       Condition: {fileID: 6912135157052429415}
@@ -141,14 +141,11 @@ MonoBehaviour:
     - Name: State1or2
       Type: 0
       StringValue: False
-    - Name: New Variable
-      Type: 0
-      StringValue: False
-    PanOffset: {x: 181.12625, y: 418.13416}
-    Zoom: 0.6376304
-    ShowBlackboard: 1
-    BlackboardWidth: 287
-    DetailsWidth: 286
+    PanOffset: {x: 46.94644, y: 352.84717}
+    Zoom: 0.7408212
+    ShowSidePanel: 1
+    SidePanelWidth: 308
+    DetailsHeightRatio: 0.35422885
 --- !u!114 &6409677120155523139
 MonoBehaviour:
   m_ObjectHideFlags: 1

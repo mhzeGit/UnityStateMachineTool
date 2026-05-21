@@ -318,30 +318,34 @@ namespace CleanStateMachine
         {
             var e = Event.current;
 
-            float splitterDragHeight = 6f;
-            float splitterVisualHeight = 1f;
+            float splitterHeight = 8f;
             float minSectionHeight = 60f;
-            float availableHeight = panelRect.height - splitterDragHeight;
+            float availableHeight = panelRect.height - splitterHeight;
 
             float detailsHeight = Mathf.Clamp(availableHeight * _detailsHeightRatio, minSectionHeight, availableHeight - minSectionHeight);
             float blackboardHeight = availableHeight - detailsHeight;
 
-            float splitterY = panelRect.y + detailsHeight;
-
             Rect detailsRect = new Rect(panelRect.x, panelRect.y, panelRect.width, detailsHeight);
-            Rect splitterRect = new Rect(panelRect.x, splitterY, panelRect.width, splitterDragHeight);
+            Rect splitterRect = new Rect(panelRect.x, panelRect.y + detailsHeight, panelRect.width, splitterHeight);
             Rect blackboardRect = new Rect(panelRect.x, splitterRect.yMax, panelRect.width, blackboardHeight);
 
-            // Draw details section (top)
+            // Draw both sections first (they fill their own backgrounds)
             _detailsView.Draw(detailsRect, _selectionController.Selected, _states, _connections, _blackboardVariables);
 
-            // Draw splitter area
-            float visualY = splitterRect.y + (splitterRect.height - splitterVisualHeight) * 0.5f;
+            // Fill splitter gap with panel background so nothing behind shows through
+            EditorGUI.DrawRect(splitterRect, UITheme.PanelBg);
+            EditorGUI.DrawRect(new Rect(splitterRect.x, splitterRect.y, 1f, splitterRect.height), UITheme.PanelBorder);
+            EditorGUI.DrawRect(new Rect(splitterRect.xMax - 1f, splitterRect.y, 1f, splitterRect.height), UITheme.PanelBorder);
+
+            _blackboardView.Draw(blackboardRect, _blackboardVariables, false);
+
+            // Draw splitter visual ON TOP of both sections
+            float visualY = splitterRect.y + (splitterRect.height - 1f) * 0.5f;
             Rect visualRect = new Rect(
                 panelRect.x + UITheme.Padding,
                 visualY,
                 panelRect.width - UITheme.Padding * 2,
-                splitterVisualHeight
+                1f
             );
 
             bool hover = splitterRect.Contains(e.mousePosition);
@@ -373,9 +377,6 @@ namespace CleanStateMachine
                 e.Use();
                 Repaint();
             }
-
-            // Draw blackboard section (bottom)
-            _blackboardView.Draw(blackboardRect, _blackboardVariables, false);
         }
 
         private void HandleSplitter(Rect splitterRect, Rect contentRect, bool visible, ref bool isDragging)
