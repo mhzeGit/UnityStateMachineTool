@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
@@ -7,8 +8,6 @@ namespace CleanStateMachine
     public class BlackboardView
     {
         private Vector2 _scrollPos;
-        private string _newVariableName = "New Variable";
-        private BlackboardVariableType _newVariableType = BlackboardVariableType.Float;
 
         public event System.Action VariablesChanged;
 
@@ -22,37 +21,84 @@ namespace CleanStateMachine
             UITheme.DrawPanelBackground(rect);
 
             Rect headerRect = new Rect(rect.x, rect.y, rect.width, UITheme.HeaderHeight);
-            DrawHeader(headerRect);
+            DrawHeader(headerRect, variables);
 
             Rect listRect = new Rect(
                 rect.x,
                 rect.y + UITheme.HeaderHeight,
                 rect.width,
-                rect.height - UITheme.HeaderHeight - UITheme.FooterHeight
+                rect.height - UITheme.HeaderHeight
             );
             DrawVariableList(listRect, variables);
-
-            Rect footerRect = new Rect(
-                rect.x,
-                rect.y + rect.height - UITheme.FooterHeight,
-                rect.width,
-                UITheme.FooterHeight
-            );
-            DrawFooter(footerRect, variables);
 
             if (listRect.Contains(e.mousePosition))
                 EditorGUIUtility.AddCursorRect(listRect, MouseCursor.Text);
         }
 
-        private void DrawHeader(Rect rect)
+        private void DrawHeader(Rect rect, List<BlackboardVariable> variables)
         {
             EditorGUI.DrawRect(rect, UITheme.PanelHeaderBg);
 
-            GUI.Label(rect, "Blackboard", UITheme.HeaderStyle);
+            float toggleSize = 20f;
+            float addSize = rect.height - 6f;
+            float gap = 6f;
+            float rightEdge = rect.x + rect.width;
+
+            Rect addRect = new Rect(
+                rightEdge - toggleSize - addSize - gap,
+                rect.y + (rect.height - addSize) * 0.5f,
+                addSize,
+                addSize
+            );
+
+            Rect labelRect = new Rect(rect.x, rect.y, addRect.x - rect.x - 4f, rect.height);
+            GUI.Label(labelRect, "Blackboard", UITheme.HeaderStyle);
+
+            if (GUI.Button(addRect, "+", UITheme.CloseButtonStyle))
+            {
+                var menu = new GenericMenu();
+                foreach (BlackboardVariableType type in Enum.GetValues(typeof(BlackboardVariableType)))
+                {
+                    BlackboardVariableType captured = type;
+                    string label = ObjectNames.NicifyVariableName(type.ToString());
+                    menu.AddItem(new GUIContent(label), false, () =>
+                    {
+                        variables.Add(new BlackboardVariable
+                        {
+                            Name = GetUniqueName(variables, "New Variable"),
+                            Type = captured
+                        });
+                        VariablesChanged?.Invoke();
+                        _scrollPos.y = float.MaxValue;
+                    });
+                }
+                menu.ShowAsContext();
+                Event.current.Use();
+            }
         }
 
         private void DrawVariableList(Rect rect, List<BlackboardVariable> variables)
         {
+            var e = Event.current;
+
+            if (e.type == EventType.ContextClick && rect.Contains(e.mousePosition))
+            {
+                float contentY = e.mousePosition.y - rect.y + _scrollPos.y;
+                int index = (int)(contentY / UITheme.RowHeight);
+                if (index >= 0 && index < variables.Count)
+                {
+                    int capturedIndex = index;
+                    var menu = new GenericMenu();
+                    menu.AddItem(new GUIContent("Delete"), false, () =>
+                    {
+                        variables.RemoveAt(capturedIndex);
+                        VariablesChanged?.Invoke();
+                    });
+                    menu.ShowAsContext();
+                    e.Use();
+                }
+            }
+
             float totalHeight = variables.Count * UITheme.RowHeight;
             Rect viewRect = new Rect(0f, 0f, rect.width - 14f, totalHeight);
 
@@ -63,27 +109,19 @@ namespace CleanStateMachine
                 Rect rowRect = new Rect(0f, i * UITheme.RowHeight, viewRect.width, UITheme.RowHeight);
                 Color rowBg = i % 2 == 0 ? UITheme.RowEven : UITheme.RowOdd;
                 EditorGUI.DrawRect(rowRect, rowBg);
-                DrawVariableRow(rowRect, variables[i], i, variables);
+                DrawVariableRow(rowRect, variables[i]);
             }
 
             GUI.EndScrollView();
         }
 
-        private void DrawVariableRow(Rect rect, BlackboardVariable variable, int index, List<BlackboardVariable> variables)
+        private void DrawVariableRow(Rect rect, BlackboardVariable variable)
         {
-            float deleteWidth = 18f;
-            float nameWidth = rect.width * 0.38f;
-            float typeWidth = rect.width * 0.30f;
-            float valueWidth = rect.width - nameWidth - typeWidth - deleteWidth;
+            float nameWidth = rect.width * 0.35f;
+            float valueWidth = rect.width - nameWidth - 2f;
 
-            float x = rect.x;
-            Rect nameRect = new Rect(x, rect.y, nameWidth, rect.height);
-            x += nameWidth;
-            Rect typeRect = new Rect(x, rect.y, typeWidth, rect.height);
-            x += typeWidth;
-            Rect valueRect = new Rect(x, rect.y, valueWidth, rect.height);
-            x += valueWidth;
-            Rect deleteRect = new Rect(x, rect.y, deleteWidth, rect.height);
+            Rect nameRect = new Rect(rect.x, rect.y, nameWidth, rect.height);
+            Rect valueRect = new Rect(rect.x + nameWidth + 2f, rect.y, valueWidth, rect.height);
 
             EditorGUI.BeginChangeCheck();
             string newName = EditorGUI.TextField(nameRect, variable.Name);
@@ -93,28 +131,7 @@ namespace CleanStateMachine
                 VariablesChanged?.Invoke();
             }
 
-            EditorGUI.BeginChangeCheck();
-            var newType = (BlackboardVariableType)EditorGUI.EnumPopup(typeRect, variable.Type);
-            if (EditorGUI.EndChangeCheck())
-            {
-                variable.Type = newType;
-                ResetValueForType(variable);
-                VariablesChanged?.Invoke();
-            }
-
-            EditorGUI.BeginChangeCheck();
             DrawValueField(valueRect, variable);
-            if (EditorGUI.EndChangeCheck())
-            {
-                VariablesChanged?.Invoke();
-            }
-
-            if (GUI.Button(deleteRect, "X", UITheme.CloseButtonStyle))
-            {
-                variables.RemoveAt(index);
-                VariablesChanged?.Invoke();
-                GUI.changed = true;
-            }
         }
 
         private static void ResetValueForType(BlackboardVariable v)
@@ -200,35 +217,6 @@ namespace CleanStateMachine
                     }
                     break;
                 }
-            }
-        }
-
-        private void DrawFooter(Rect rect, List<BlackboardVariable> variables)
-        {
-            EditorGUI.DrawRect(rect, UITheme.PanelHeaderBg);
-
-            Rect borderTop = new Rect(rect.x, rect.y, rect.width, 1f);
-            EditorGUI.DrawRect(borderTop, UITheme.PanelBorder);
-
-            Rect addRect = new Rect(
-                rect.x + UITheme.Padding,
-                rect.y + UITheme.Padding,
-                rect.width - UITheme.Padding * 2f,
-                rect.height - UITheme.Padding * 2f
-            );
-
-            if (GUI.Button(addRect, "Add Variable"))
-            {
-                var e = Event.current;
-                variables.Add(new BlackboardVariable
-                {
-                    Name = GetUniqueName(variables, _newVariableName),
-                    Type = _newVariableType
-                });
-                VariablesChanged?.Invoke();
-                _scrollPos.y = float.MaxValue;
-                GUI.changed = true;
-                e.Use();
             }
         }
 
