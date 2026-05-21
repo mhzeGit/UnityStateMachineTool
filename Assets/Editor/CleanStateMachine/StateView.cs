@@ -12,6 +12,7 @@ namespace CleanStateMachine
         public bool IsEntry { get; }
         public bool IsEditing { get; set; }
         public string EditingBuffer { get; set; }
+        public StateClassData StateClass { get; set; }
 
         private static GUIStyle _fillStyle;
         private static GUIStyle _borderStyle;

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
@@ -9,6 +10,7 @@ namespace CleanStateMachine
         public StateView To { get; }
         public bool IsSelected { get; set; }
         public float PerpendicularOffset { get; set; }
+        public List<TransitionCondition> Conditions { get; set; } = new List<TransitionCondition>();
 
         private static readonly Color ConnectionColor = new Color(0.60f, 0.80f, 1.00f, 1.00f);
         private static readonly Color SelectedColor = new Color(0.80f, 0.92f, 1.00f, 1.00f);

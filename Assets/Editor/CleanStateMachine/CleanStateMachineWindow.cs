@@ -39,7 +39,7 @@ namespace CleanStateMachine
         [SerializeField] private bool _showBlackboard = true;
         [SerializeField] private float _blackboardWidth = 220f;
         [SerializeField] private float _detailsWidth = 220f;
-        [SerializeField] private List<BlackboardVariable> _blackboardVariables = new();
+        private List<BlackboardVariable> _blackboardVariables = new();
         [SerializeField] private StateMachineController _controller;
 
         private bool _hasUnsavedChanges;
@@ -94,6 +94,7 @@ namespace CleanStateMachine
             _detailsView = new DetailsPanelView();
 
             _blackboardView.VariablesChanged += OnBlackboardVariablesChanged;
+            _detailsView.Changed += OnDetailsChanged;
 
             if (_controller != null)
                 LoadFromController();
@@ -120,6 +121,7 @@ namespace CleanStateMachine
             _selectionController.SelectionChanged -= OnSelectionChanged;
 
             _blackboardView.VariablesChanged -= OnBlackboardVariablesChanged;
+            _detailsView.Changed -= OnDetailsChanged;
 
             if (_controller != null && _hasUnsavedChanges && !_isLoading)
                 SaveToController();
@@ -241,7 +243,7 @@ namespace CleanStateMachine
                 DrawCollapsedPanel(leftRect, ">", ref _showBlackboard);
 
             if (_selectionController.Count > 0)
-                _detailsView.Draw(rightRect, _selectionController.Selected, _states, _connections);
+                _detailsView.Draw(rightRect, _selectionController.Selected, _states, _connections, _blackboardVariables);
 
             HandleSplitter(leftSplitterRect, _showBlackboard, ref _isDraggingLeftSplitter, isLeft: true);
             HandleSplitter(rightSplitterRect, _selectionController.Count > 0, ref _isDraggingRightSplitter, isLeft: false);
@@ -660,6 +662,7 @@ namespace CleanStateMachine
                 _preDragPositions = null;
                 if (wasMoving)
                     _lastDoubleClickCandidate = null;
+                e.Use();
             }
             else if (_selectionBox.IsActive)
             {
@@ -688,9 +691,8 @@ namespace CleanStateMachine
 
                 _selectionBox.End();
                 _lastDoubleClickCandidate = null;
+                e.Use();
             }
-
-            e.Use();
         }
 
         private List<ISelectable> GetDragItems()
@@ -1201,6 +1203,12 @@ namespace CleanStateMachine
             Repaint();
         }
 
+        private void OnDetailsChanged()
+        {
+            MarkChanged();
+            Repaint();
+        }
+
         public override void SaveChanges()
         {
             base.SaveChanges();
@@ -1259,7 +1267,8 @@ namespace CleanStateMachine
                     var sd = data.States[i];
                     var state = new StateView(sd.Position, sd.Name, sd.IsEntry)
                     {
-                        Size = sd.Size
+                        Size = sd.Size,
+                        StateClass = sd.StateClass
                     };
                     _states.Add(state);
                     stateLookup.Add(state);
@@ -1271,8 +1280,11 @@ namespace CleanStateMachine
                     if (cd.FromIndex >= 0 && cd.FromIndex < stateLookup.Count &&
                         cd.ToIndex >= 0 && cd.ToIndex < stateLookup.Count)
                     {
-                        _connections.Add(new ConnectionView(
-                            stateLookup[cd.FromIndex], stateLookup[cd.ToIndex]));
+                        var conn = new ConnectionView(
+                            stateLookup[cd.FromIndex], stateLookup[cd.ToIndex]);
+                        if (cd.Conditions != null)
+                            conn.Conditions = cd.Conditions;
+                        _connections.Add(conn);
                     }
                 }
 
@@ -1322,7 +1334,8 @@ namespace CleanStateMachine
                     Name = state.Name,
                     Position = state.Position,
                     Size = state.Size,
-                    IsEntry = state.IsEntry
+                    IsEntry = state.IsEntry,
+                    StateClass = state.StateClass
                 });
             }
 
@@ -1331,7 +1344,8 @@ namespace CleanStateMachine
                 data.Connections.Add(new ConnectionData
                 {
                     FromIndex = stateToIndex[conn.From],
-                    ToIndex = stateToIndex[conn.To]
+                    ToIndex = stateToIndex[conn.To],
+                    Conditions = conn.Conditions ?? new List<TransitionCondition>()
                 });
             }
 

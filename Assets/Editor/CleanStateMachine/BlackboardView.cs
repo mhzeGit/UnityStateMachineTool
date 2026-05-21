@@ -14,6 +14,9 @@ namespace CleanStateMachine
 
         public void Draw(Rect rect, List<BlackboardVariable> variables)
         {
+            if (variables == null)
+                return;
+
             var e = Event.current;
 
             UITheme.DrawPanelBackground(rect);
@@ -82,16 +85,29 @@ namespace CleanStateMachine
             x += valueWidth;
             Rect deleteRect = new Rect(x, rect.y, deleteWidth, rect.height);
 
-            DrawTextField(nameRect, variable.Name, v => variable.Name = v);
+            EditorGUI.BeginChangeCheck();
+            string newName = EditorGUI.TextField(nameRect, variable.Name);
+            if (EditorGUI.EndChangeCheck())
+            {
+                variable.Name = newName;
+                VariablesChanged?.Invoke();
+            }
 
+            EditorGUI.BeginChangeCheck();
             var newType = (BlackboardVariableType)EditorGUI.EnumPopup(typeRect, variable.Type);
-            if (newType != variable.Type)
+            if (EditorGUI.EndChangeCheck())
             {
                 variable.Type = newType;
                 ResetValueForType(variable);
+                VariablesChanged?.Invoke();
             }
 
+            EditorGUI.BeginChangeCheck();
             DrawValueField(valueRect, variable);
+            if (EditorGUI.EndChangeCheck())
+            {
+                VariablesChanged?.Invoke();
+            }
 
             if (GUI.Button(deleteRect, "X", UITheme.CloseButtonStyle))
             {
@@ -124,7 +140,10 @@ namespace CleanStateMachine
                     bool val = variable.BoolValue;
                     bool result = EditorGUI.Toggle(rect, val);
                     if (result != val)
+                    {
                         variable.BoolValue = result;
+                        GUI.changed = true;
+                    }
                     break;
                 }
                 case BlackboardVariableType.Int:
@@ -132,7 +151,10 @@ namespace CleanStateMachine
                     int val = variable.IntValue;
                     int result = EditorGUI.IntField(rect, val);
                     if (result != val)
+                    {
                         variable.IntValue = result;
+                        GUI.changed = true;
+                    }
                     break;
                 }
                 case BlackboardVariableType.Float:
@@ -140,14 +162,20 @@ namespace CleanStateMachine
                     float val = variable.FloatValue;
                     float result = EditorGUI.FloatField(rect, val);
                     if (Mathf.Abs(result - val) > 1e-6f)
+                    {
                         variable.FloatValue = result;
+                        GUI.changed = true;
+                    }
                     break;
                 }
                 case BlackboardVariableType.String:
                 {
                     string result = EditorGUI.TextField(rect, variable.StringValue);
                     if (result != variable.StringValue)
+                    {
                         variable.StringValue = result;
+                        GUI.changed = true;
+                    }
                     break;
                 }
                 case BlackboardVariableType.Vector2:
@@ -155,7 +183,10 @@ namespace CleanStateMachine
                     Vector2 val = variable.Vector2Value;
                     Vector2 result = EditorGUI.Vector2Field(rect, GUIContent.none, val);
                     if (result != val)
+                    {
                         variable.Vector2Value = result;
+                        GUI.changed = true;
+                    }
                     break;
                 }
                 case BlackboardVariableType.Vector3:
@@ -163,7 +194,10 @@ namespace CleanStateMachine
                     Vector3 val = variable.Vector3Value;
                     Vector3 result = EditorGUI.Vector3Field(rect, GUIContent.none, val);
                     if (result != val)
+                    {
                         variable.Vector3Value = result;
+                        GUI.changed = true;
+                    }
                     break;
                 }
             }
@@ -185,6 +219,7 @@ namespace CleanStateMachine
 
             if (GUI.Button(addRect, "Add Variable"))
             {
+                var e = Event.current;
                 variables.Add(new BlackboardVariable
                 {
                     Name = GetUniqueName(variables, _newVariableName),
@@ -192,6 +227,8 @@ namespace CleanStateMachine
                 });
                 VariablesChanged?.Invoke();
                 _scrollPos.y = float.MaxValue;
+                GUI.changed = true;
+                e.Use();
             }
         }
 
@@ -216,13 +253,6 @@ namespace CleanStateMachine
                 if (variables[i].Name == name)
                     return true;
             return false;
-        }
-
-        private static void DrawTextField(Rect rect, string text, System.Action<string> setter)
-        {
-            string result = EditorGUI.TextField(rect, text);
-            if (result != text)
-                setter(result);
         }
     }
 }
