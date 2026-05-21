@@ -172,7 +172,7 @@ namespace CleanStateMachine
                 e.Use();
             }
 
-            Color rowBg = index % 2 == 0 ? UITheme.RowEven : UITheme.RowOdd;
+            Color rowBg = index == _selectedIndex ? UITheme.RowBgSelected : UITheme.RowBg;
             EditorGUI.DrawRect(rect, rowBg);
 
             float pad = 8f;
@@ -196,6 +196,9 @@ namespace CleanStateMachine
 
             if (e.type == EventType.Repaint && handleRect.Contains(e.mousePosition))
                 EditorGUIUtility.AddCursorRect(handleRect, MouseCursor.MoveArrow);
+
+            if (e.type == EventType.MouseDown && e.button == 0 && rect.Contains(e.mousePosition) && !handleRect.Contains(e.mousePosition))
+                _selectedIndex = index;
 
             Rect nameRect = new Rect(handleRect.xMax + gap, fieldY, nameW, fieldH);
 
