@@ -588,7 +588,7 @@ namespace CleanStateMachine
                     OnLeftMouseDown(graphMousePos, e);
                     break;
 
-                case EventType.MouseDrag:
+                case EventType.MouseDrag when viewRect.Contains(e.mousePosition):
                     OnLeftMouseDrag(graphMousePos, e);
                     break;
 

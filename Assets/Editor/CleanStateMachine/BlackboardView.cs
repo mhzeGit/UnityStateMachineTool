@@ -11,6 +11,7 @@ namespace CleanStateMachine
         private int _selectedIndex = -1;
         private int _editingIndex = -1;
         private bool _focusNameField;
+
         private bool _isDragging;
         private int _dragIndex = -1;
 
@@ -83,6 +84,45 @@ namespace CleanStateMachine
             }
         }
 
+        private void HandleDragBeforeScroll(Rect scrollViewRect, List<BlackboardVariable> variables, Event e)
+        {
+            if (!_isDragging)
+                return;
+
+            if (e.type == EventType.MouseDrag)
+            {
+                float contentMouseY = e.mousePosition.y - scrollViewRect.y + _scrollPos.y;
+
+                int targetIndex = Mathf.Clamp(
+                    Mathf.FloorToInt(contentMouseY / UITheme.RowHeight),
+                    0, variables.Count - 1
+                );
+
+                if (variables.Count > 1 && targetIndex != _dragIndex)
+                {
+                    var item = variables[_dragIndex];
+                    variables.RemoveAt(_dragIndex);
+                    variables.Insert(targetIndex, item);
+                    _dragIndex = targetIndex;
+                    VariablesChanged?.Invoke();
+                }
+
+                e.Use();
+                return;
+            }
+
+            if (e.type == EventType.MouseUp || e.rawType == EventType.MouseUp)
+            {
+                _isDragging = false;
+                _dragIndex = -1;
+                e.Use();
+                return;
+            }
+
+            if (e.type != EventType.Layout && e.type != EventType.Repaint)
+                Debug.LogWarning($"[BlackboardView] Drag state active but unexpected event type: {e.type}");
+        }
+
         private void DrawVariableList(Rect rect, List<BlackboardVariable> variables)
         {
             var e = Event.current;
@@ -94,6 +134,8 @@ namespace CleanStateMachine
                 DefocusTextField();
             }
 
+            HandleDragBeforeScroll(rect, variables, e);
+
             float totalHeight = variables.Count * UITheme.RowHeight;
             Rect viewRect = new Rect(0f, 0f, rect.width - 14f, totalHeight);
 
@@ -104,7 +146,7 @@ namespace CleanStateMachine
             for (int i = 0; i < variables.Count; i++)
             {
                 Rect rowRect = new Rect(0f, i * UITheme.RowHeight, viewRect.width, UITheme.RowHeight);
-                DrawVariableRow(rowRect, variables[i], i, (idx) => deleteIndex = idx);
+                DrawVariableRow(rowRect, variables[i], i, variables, (idx) => deleteIndex = idx);
             }
 
             if (deleteIndex >= 0)
@@ -112,32 +154,18 @@ namespace CleanStateMachine
                 variables.RemoveAt(deleteIndex);
                 VariablesChanged?.Invoke();
                 DefocusTextField();
-            }
 
-            if (_isDragging)
-            {
-                if (e.type == EventType.MouseDrag)
+                if (_dragIndex >= 0)
                 {
-                    int targetIndex = Mathf.Clamp(
-                        Mathf.FloorToInt(e.mousePosition.y / UITheme.RowHeight),
-                        0, variables.Count - 1
-                    );
-
-                    if (targetIndex != _dragIndex)
+                    if (_dragIndex == deleteIndex)
                     {
-                        var item = variables[_dragIndex];
-                        variables.RemoveAt(_dragIndex);
-                        variables.Insert(targetIndex, item);
-                        _dragIndex = targetIndex;
-                        VariablesChanged?.Invoke();
+                        _isDragging = false;
+                        _dragIndex = -1;
                     }
-                    e.Use();
-                }
-
-                if (e.type == EventType.MouseUp || e.rawType == EventType.MouseUp)
-                {
-                    _isDragging = false;
-                    e.Use();
+                    else if (_dragIndex > deleteIndex)
+                    {
+                        _dragIndex--;
+                    }
                 }
             }
 
@@ -159,9 +187,12 @@ namespace CleanStateMachine
             GUI.FocusControl("");
         }
 
-        private void DrawVariableRow(Rect rect, BlackboardVariable variable, int index, Action<int> onDeleteRequested)
+        private void DrawVariableRow(Rect rect, BlackboardVariable variable,
+            int index, List<BlackboardVariable> variables, Action<int> onDeleteRequested)
         {
             var e = Event.current;
+
+            bool isDragSource = _isDragging && index == _dragIndex;
 
             if (e.type == EventType.MouseDown && e.button == 1 && rect.Contains(e.mousePosition))
             {
@@ -172,8 +203,18 @@ namespace CleanStateMachine
                 e.Use();
             }
 
-            Color rowBg = index == _selectedIndex ? UITheme.RowBgSelected : UITheme.RowBg;
+            Color rowBg = isDragSource
+                ? UITheme.RowBgDrag
+                : (index == _selectedIndex ? UITheme.RowBgSelected : UITheme.RowBg);
             EditorGUI.DrawRect(rect, rowBg);
+
+            if (isDragSource)
+            {
+                Color accent = UITheme.DropIndicator;
+                accent.a = 0.6f;
+                EditorGUI.DrawRect(new Rect(rect.x, rect.y, rect.width, 1f), accent);
+                EditorGUI.DrawRect(new Rect(rect.x, rect.yMax - 1f, rect.width, 1f), accent);
+            }
 
             float pad = 8f;
             float fieldH = rect.height - 8f;
@@ -185,20 +226,26 @@ namespace CleanStateMachine
             float nameW = innerW - handleW - gap - valueW;
 
             Rect handleRect = new Rect(rect.x + pad, fieldY, handleW, fieldH);
-            DrawDragHandle(handleRect);
+            DrawDragHandle(handleRect, isDragSource);
 
             if (e.type == EventType.MouseDown && e.button == 0 && handleRect.Contains(e.mousePosition))
             {
-                _isDragging = true;
-                _dragIndex = index;
-                e.Use();
+                if (_editingIndex < 0 && variables.Count > 1)
+                {
+                    _isDragging = true;
+                    _dragIndex = index;
+                    e.Use();
+                }
             }
 
-            if (e.type == EventType.Repaint && handleRect.Contains(e.mousePosition))
+            if (e.type == EventType.Repaint && handleRect.Contains(e.mousePosition) && !_isDragging)
                 EditorGUIUtility.AddCursorRect(handleRect, MouseCursor.MoveArrow);
 
-            if (e.type == EventType.MouseDown && e.button == 0 && rect.Contains(e.mousePosition) && !handleRect.Contains(e.mousePosition))
+            if (e.type == EventType.MouseDown && e.button == 0 && rect.Contains(e.mousePosition)
+                && !handleRect.Contains(e.mousePosition))
+            {
                 _selectedIndex = index;
+            }
 
             Rect nameRect = new Rect(handleRect.xMax + gap, fieldY, nameW, fieldH);
 
@@ -245,7 +292,7 @@ namespace CleanStateMachine
             EditorGUI.DrawRect(new Rect(rect.x, rect.yMax - 1f, rect.width, 1f), UITheme.RowBoundary);
         }
 
-        private void DrawDragHandle(Rect rect)
+        private void DrawDragHandle(Rect rect, bool isActive)
         {
             int cols = 2;
             int rows = 3;
@@ -258,6 +305,8 @@ namespace CleanStateMachine
             float startX = rect.x + (rect.width - totalW) * 0.5f;
             float startY = rect.y + (rect.height - totalH) * 0.5f;
 
+            Color dotColor = isActive ? UITheme.TextColor : UITheme.TextMuted;
+
             for (int row = 0; row < rows; row++)
             {
                 for (int col = 0; col < cols; col++)
@@ -268,7 +317,7 @@ namespace CleanStateMachine
                         dotSize,
                         dotSize
                     );
-                    EditorGUI.DrawRect(dotRect, UITheme.TextMuted);
+                    EditorGUI.DrawRect(dotRect, dotColor);
                 }
             }
         }

@@ -23,6 +23,8 @@ namespace CleanStateMachine
         public static readonly Color RowBoundary = Gray(0.25f);
         public static readonly Color RowBg = Gray(0.17f);
         public static readonly Color RowBgSelected = Gray(0.27f);
+        public static readonly Color RowBgDrag = Gray(0.32f);
+        public static readonly Color DropIndicator = Accent;
 
         // Text
         public static readonly Color TextColor = Gray(0.95f);
