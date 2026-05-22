@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace CleanStateMachine
 {
@@ -44,11 +45,8 @@ namespace CleanStateMachine
         private bool _hasUnsavedChanges;
         private bool _isLoading;
         private StateMachineController _pendingController;
-        private BlackboardView _blackboardView;
-        private DetailsPanelView _detailsView;
-        private bool _isDraggingSplitter;
-        private bool _isDraggingInternalSplitter;
         private float _detailsHeightRatio = 0.5f;
+        private SidePanel _sidePanelElement;
 
         private Vector2 _lastMouseGraphPos;
 
@@ -91,13 +89,6 @@ namespace CleanStateMachine
             _selectionBox = new SelectionBox();
             _connectionController = new ConnectionController();
 
-            _blackboardView = new BlackboardView();
-            _detailsView = new DetailsPanelView();
-
-            _blackboardView.RepaintRequested += Repaint;
-            _blackboardView.VariablesChanged += OnBlackboardVariablesChanged;
-            _detailsView.Changed += OnDetailsChanged;
-
             EditorApplication.update += OnEditorUpdate;
 
             if (_controller != null)
@@ -124,14 +115,21 @@ namespace CleanStateMachine
             _contextMenu.DeleteRequested -= DeleteSelected;
             _selectionController.SelectionChanged -= OnSelectionChanged;
 
-            _blackboardView.RepaintRequested -= Repaint;
-            _blackboardView.VariablesChanged -= OnBlackboardVariablesChanged;
-            _detailsView.Changed -= OnDetailsChanged;
-
             EditorApplication.update -= OnEditorUpdate;
 
             if (_controller != null && _hasUnsavedChanges && !_isLoading)
                 SaveToController();
+        }
+
+        private void CreateGUI()
+        {
+            rootVisualElement.Clear();
+            _sidePanelElement = new SidePanel(this);
+            _sidePanelElement.style.position = Position.Absolute;
+            _sidePanelElement.style.right = 0f;
+            _sidePanelElement.style.top = 0f;
+            _sidePanelElement.style.bottom = 0f;
+            rootVisualElement.Add(_sidePanelElement);
         }
 
         private void OnGUI()
@@ -148,11 +146,8 @@ namespace CleanStateMachine
 
             var e = Event.current;
 
-            Rect contentRect = new Rect(0f, 0f, position.width, position.height);
-
-            ComputeLayout(contentRect, out Rect graphRect, out Rect sidePanelRect, out Rect splitterRect);
-
-            HandleSplitter(splitterRect, contentRect, _showSidePanel, ref _isDraggingSplitter);
+            float sideW = _showSidePanel ? _sidePanelWidth : UITheme.CollapsedWidth;
+            Rect graphRect = new Rect(0f, 0f, position.width - sideW, position.height);
 
             _panController.HandleInput(graphRect, ref _panOffset, ref _zoom);
 
@@ -240,199 +235,11 @@ namespace CleanStateMachine
             DrawSelectionOverlays();
             _selectionBox.DrawScreen(_zoom, _panOffset);
 
-            if (_showSidePanel)
-            {
-                DrawCombinedPanel(sidePanelRect);
-                DrawPanelToggle(sidePanelRect);
-            }
-            else
-                DrawCollapsedPanel(sidePanelRect, ref _showSidePanel);
-
             if (_panController.IsPanning || _dragController.IsActive || _selectionBox.IsActive || _connectionController.IsConnecting)
                 Repaint();
         }
 
-        private void ComputeLayout(Rect contentRect, out Rect graphRect, out Rect sidePanelRect, out Rect splitterRect)
-        {
-            float sideW = _showSidePanel ? _sidePanelWidth : UITheme.CollapsedWidth;
-            float splitter = UITheme.SplitterWidth;
-            float minGraph = 200f;
-            float sideMax = contentRect.width - splitter - minGraph;
 
-            if (_showSidePanel && _sidePanelWidth > sideMax)
-                _sidePanelWidth = Mathf.Max(UITheme.MinPanelWidth, sideMax);
-
-            sideW = _showSidePanel ? _sidePanelWidth : UITheme.CollapsedWidth;
-
-            float sideX = contentRect.width - sideW;
-            sidePanelRect = new Rect(sideX, 0f, sideW, contentRect.height);
-
-            float gw = contentRect.width - sideW - (_showSidePanel ? splitter : 0f);
-            graphRect = new Rect(0f, 0f, gw, contentRect.height);
-
-            splitterRect = _showSidePanel
-                ? new Rect(sideX - splitter, 0f, splitter, contentRect.height)
-                : new Rect(0f, 0f, 0f, 0f);
-        }
-
-        private void DrawPanelToggle(Rect panelRect)
-        {
-            float toggleSize = 20f;
-            Rect toggleRect = new Rect(
-                panelRect.xMax - toggleSize,
-                panelRect.y + 4f,
-                toggleSize,
-                toggleSize
-            );
-
-            bool hover = toggleRect.Contains(Event.current.mousePosition);
-            if (Event.current.type == EventType.Repaint)
-                UITheme.DrawArrowRight(toggleRect, hover ? UITheme.TextColor : UITheme.IconColor);
-
-            if (Event.current.type == EventType.MouseDown && Event.current.button == 0 && toggleRect.Contains(Event.current.mousePosition))
-            {
-                _showSidePanel = false;
-                Event.current.Use();
-                Repaint();
-            }
-        }
-
-        private static void DrawCollapsedPanel(Rect rect, ref bool showPanel)
-        {
-            EditorGUI.DrawRect(rect, UITheme.PanelHeaderBg);
-            EditorGUI.DrawRect(new Rect(rect.x, rect.y, 1f, rect.height), UITheme.RowBorder);
-
-            bool hover = rect.Contains(Event.current.mousePosition);
-            if (Event.current.type == EventType.Repaint)
-                UITheme.DrawArrowLeft(rect, hover ? UITheme.TextColor : UITheme.IconColor);
-
-            var e = Event.current;
-            if (e.type == EventType.MouseDown && e.button == 0 && rect.Contains(e.mousePosition))
-            {
-                showPanel = true;
-                e.Use();
-            }
-        }
-
-        private void DrawCombinedPanel(Rect panelRect)
-        {
-            var e = Event.current;
-
-            float splitterHeight = 8f;
-            float minSectionHeight = 60f;
-            float availableHeight = panelRect.height - splitterHeight;
-
-            float detailsHeight = Mathf.Clamp(availableHeight * _detailsHeightRatio, minSectionHeight, availableHeight - minSectionHeight);
-            float blackboardHeight = availableHeight - detailsHeight;
-
-            Rect detailsRect = new Rect(panelRect.x, panelRect.y, panelRect.width, detailsHeight);
-            Rect splitterRect = new Rect(panelRect.x, panelRect.y + detailsHeight, panelRect.width, splitterHeight);
-            Rect blackboardRect = new Rect(panelRect.x, splitterRect.yMax, panelRect.width, blackboardHeight);
-
-            // Draw both sections first (they fill their own backgrounds)
-            _detailsView.Draw(detailsRect, _selectionController.Selected, _states, _connections, _blackboardVariables);
-
-            // Fill splitter gap with panel background so nothing behind shows through
-            EditorGUI.DrawRect(splitterRect, UITheme.PanelBg);
-            EditorGUI.DrawRect(new Rect(splitterRect.x, splitterRect.y, 1f, splitterRect.height), UITheme.PanelBorder);
-            EditorGUI.DrawRect(new Rect(splitterRect.xMax - 1f, splitterRect.y, 1f, splitterRect.height), UITheme.PanelBorder);
-
-            _blackboardView.Draw(blackboardRect, _blackboardVariables, false);
-
-            // Draw splitter visual ON TOP of both sections
-            float visualY = splitterRect.y + (splitterRect.height - 1f) * 0.5f;
-            Rect visualRect = new Rect(
-                panelRect.x + UITheme.Padding,
-                visualY,
-                panelRect.width - UITheme.Padding * 2,
-                1f
-            );
-
-            bool hover = splitterRect.Contains(e.mousePosition);
-            Color splitterColor = _isDraggingInternalSplitter
-                ? UITheme.SplitterActive
-                : (hover ? UITheme.SplitterHover : UITheme.RowBorder);
-            EditorGUI.DrawRect(visualRect, splitterColor);
-
-            EditorGUIUtility.AddCursorRect(splitterRect, MouseCursor.ResizeVertical);
-
-            // Handle internal splitter drag
-            if (e.type == EventType.MouseDown && e.button == 0 && splitterRect.Contains(e.mousePosition))
-            {
-                _isDraggingInternalSplitter = true;
-                e.Use();
-            }
-
-            if (e.type == EventType.MouseDrag && _isDraggingInternalSplitter)
-            {
-                float mouseY = e.mousePosition.y - panelRect.y;
-                _detailsHeightRatio = Mathf.Clamp01(mouseY / panelRect.height);
-                e.Use();
-                Repaint();
-            }
-
-            if (e.type == EventType.MouseUp && _isDraggingInternalSplitter)
-            {
-                _isDraggingInternalSplitter = false;
-                e.Use();
-                Repaint();
-            }
-        }
-
-        private void HandleSplitter(Rect splitterRect, Rect contentRect, bool visible, ref bool isDragging)
-        {
-            if (!visible || splitterRect.width <= 0f)
-            {
-                isDragging = false;
-                return;
-            }
-
-            float hotZoneHalf = 5f;
-            float centerX = splitterRect.x + splitterRect.width * 0.5f;
-            Rect hotRect = new Rect(centerX - hotZoneHalf, splitterRect.y, hotZoneHalf * 2f, splitterRect.height);
-
-            bool hover = hotRect.Contains(Event.current.mousePosition);
-            Color splitterColor = isDragging ? UITheme.SplitterActive : (hover ? UITheme.SplitterHover : UITheme.SplitterBg);
-            EditorGUI.DrawRect(splitterRect, splitterColor);
-
-            if (isDragging)
-                EditorGUIUtility.AddCursorRect(new Rect(0f, 0f, contentRect.width, contentRect.height), MouseCursor.SplitResizeLeftRight);
-            EditorGUIUtility.AddCursorRect(hotRect, MouseCursor.SplitResizeLeftRight);
-
-            var e = Event.current;
-            switch (e.type)
-            {
-                case EventType.MouseDown when e.button == 0:
-                {
-                    if (hotRect.Contains(e.mousePosition))
-                    {
-                        isDragging = true;
-                        e.Use();
-                    }
-                    break;
-                }
-                case EventType.MouseDrag when isDragging:
-                {
-                    float minW = UITheme.MinPanelWidth;
-                    float maxW = UITheme.MaxPanelWidth;
-                    float minGraph = 200f;
-                    float splitter = UITheme.SplitterWidth;
-                    float taken = minGraph + splitter;
-                    float available = contentRect.width - taken;
-                    float actualMax = Mathf.Min(maxW, available);
-                    _sidePanelWidth = Mathf.Clamp(
-                        contentRect.width - e.mousePosition.x - splitter,
-                        minW, actualMax);
-                    e.Use();
-                    Repaint();
-                    break;
-                }
-                case EventType.MouseUp when isDragging:
-                    isDragging = false;
-                    e.Use();
-                    break;
-            }
-        }
 
         private void HandleKeyboardShortcuts(Event e)
         {
@@ -1176,6 +983,9 @@ namespace CleanStateMachine
                         _groups.RemoveAt(i);
                 _groups.AddRange(pickedGroups);
             }
+
+            if (_sidePanelElement != null)
+                _sidePanelElement.UpdateSelection();
         }
 
         private void UpdateTitle()
@@ -1199,16 +1009,45 @@ namespace CleanStateMachine
             UpdateTitle();
         }
 
-        private void OnBlackboardVariablesChanged()
+        // ─── Internal accessors for UITK SidePanel ─────────────────────
+
+        internal bool GetShowSidePanel() => _showSidePanel;
+        internal void SetShowSidePanel(bool value)
+        {
+            _showSidePanel = value;
+            if (_sidePanelElement != null)
+                _sidePanelElement.SetExpanded(value);
+        }
+
+        internal float GetSidePanelWidth() => _sidePanelWidth;
+        internal void SetSidePanelWidth(float value)
+        {
+            _sidePanelWidth = value;
+        }
+
+        internal float GetDetailsHeightRatio() => _detailsHeightRatio;
+        internal void SetDetailsHeightRatio(float value)
+        {
+            _detailsHeightRatio = value;
+        }
+
+        internal List<BlackboardVariable> GetBlackboardVariables() => _blackboardVariables;
+
+        internal IReadOnlyList<ISelectable> GetSelection() => _selectionController.Selected;
+
+        internal List<StateView> GetStates() => _states;
+
+        internal List<ConnectionView> GetConnections() => _connections;
+
+        internal void NotifySidePanelChanged()
         {
             MarkChanged();
             Repaint();
         }
 
-        private void OnDetailsChanged()
+        internal void SaveSidePanelLayout(float detailsHeightRatio)
         {
-            MarkChanged();
-            Repaint();
+            _detailsHeightRatio = detailsHeightRatio;
         }
 
         public override void SaveChanges()
@@ -1322,6 +1161,15 @@ namespace CleanStateMachine
             _isLoading = false;
             MarkSaved();
             UpdateTitle();
+
+            if (_sidePanelElement != null)
+            {
+                _sidePanelElement.SyncFromWindow();
+                _sidePanelElement.UpdateVisibility();
+                _sidePanelElement.UpdateSelection();
+                _sidePanelElement.UpdateBlackboard();
+            }
+
             Repaint();
         }
 
@@ -1455,6 +1303,14 @@ namespace CleanStateMachine
             EnsureEntryStateExists();
 
             MarkSaved();
+
+            if (_sidePanelElement != null)
+            {
+                _sidePanelElement.UpdateVisibility();
+                _sidePanelElement.UpdateSelection();
+                _sidePanelElement.UpdateBlackboard();
+            }
+
             Repaint();
         }
 

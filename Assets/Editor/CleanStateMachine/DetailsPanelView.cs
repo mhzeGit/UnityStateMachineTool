@@ -478,7 +478,7 @@ namespace CleanStateMachine
             }
         }
 
-        private static void DrawBlackboardVariableRefField(Rect rect, SerializedProperty prop,
+        internal static void DrawBlackboardVariableRefField(Rect rect, SerializedProperty prop,
             List<BlackboardVariable> blackboardVariables)
         {
             var useBbProp = prop.FindPropertyRelative("UseBlackboard");
