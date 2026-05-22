@@ -378,11 +378,12 @@ namespace CleanStateMachine
                 totalHeight += pad + contentH + pad + border * 2f;
             }
 
-            var imContainer = new IMGUIContainer(() =>
+            IMGUIContainer imContainer = null;
+            imContainer = new IMGUIContainer(() =>
             {
                 if (_currentSO == null) return;
 
-                float w = _scrollView.resolvedStyle.width - 14f;
+                float w = imContainer.layout.width;
                 if (w < 1f) w = 200f;
 
                 var so2 = new SerializedObject(_currentSO);

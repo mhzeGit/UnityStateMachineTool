@@ -91,6 +91,7 @@
 
 .details-scroll {
     flex-grow: 1;
+    padding-left: 8px;
 }
 
 /* --- Internal Splitter --- */
