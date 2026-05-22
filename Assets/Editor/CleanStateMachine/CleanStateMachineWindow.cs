@@ -1057,6 +1057,17 @@ namespace CleanStateMachine
             Repaint();
         }
 
+        internal void OnSaveCommand()
+        {
+            if (_controller != null)
+            {
+                SaveToController();
+                _controller.Save();
+                MarkSaved();
+            }
+            Repaint();
+        }
+
         internal void SaveSidePanelLayout(float detailsHeightRatio)
         {
             _detailsHeightRatio = detailsHeightRatio;

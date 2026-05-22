@@ -441,6 +441,13 @@ namespace CleanStateMachine
 
         private void OnKeyDown(KeyDownEvent e)
         {
+            if (e.keyCode == KeyCode.S && e.ctrlKey)
+            {
+                _window.OnSaveCommand();
+                e.StopPropagation();
+                return;
+            }
+
             if (e.keyCode != KeyCode.Delete && e.keyCode != KeyCode.Backspace) return;
             if (!_isMouseOver) return;
             if (_editingIndex >= 0) return;

@@ -135,15 +135,15 @@ MonoBehaviour:
       Condition: {fileID: -7696514207278436980}
     Groups: []
     BlackboardVariables:
+    - Name: WrongState
+      Type: 3
+      StringValue: ITS ON A WROvNG STATE!!!
     - Name: State 01
       Type: 0
       StringValue: False
     - Name: State 02
       Type: 0
       StringValue: False
-    - Name: WrongState
-      Type: 3
-      StringValue: ITS ON A WROvNG STATE!!!
     PanOffset: {x: -193.22522, y: 497.8269}
     Zoom: 1.1618388
     ShowSidePanel: 1
