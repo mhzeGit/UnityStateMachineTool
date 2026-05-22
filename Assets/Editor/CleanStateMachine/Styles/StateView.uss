@@ -3,16 +3,6 @@
     overflow: visible;
 }
 
-.state-view__shadow {
-    position: absolute;
-    left: 4px;
-    top: 4px;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.3);
-    border-radius: 8px;
-}
-
 .state-view__fill {
     position: absolute;
     left: 0;

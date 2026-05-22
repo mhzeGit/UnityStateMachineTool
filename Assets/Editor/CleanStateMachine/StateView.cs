@@ -52,7 +52,6 @@ namespace CleanStateMachine
         public int DataIndex { get; set; } = -1;
 
         // Visual children (prepared for future UITK panel integration)
-        private VisualElement _shadow;
         private VisualElement _fill;
         private VisualElement _glow;
         private Label _nameLabel;
@@ -60,15 +59,12 @@ namespace CleanStateMachine
         // IMGUI rendering (used while element is not in UITK panel)
         private static GUIStyle _fillStyle;
         private static GUIStyle _borderStyle;
-        private static GUIStyle _shadowStyle;
         private static GUIStyle _selectionStyle;
         private static GUIStyle _editStyle;
         private static GUIStyle _glowStyle;
 
         private static Texture2D _cachedFillTexture;
         private static int _cachedFillRadius;
-        private static Texture2D _cachedShadowTexture;
-        private static int _cachedShadowInnerRadius;
         private static Texture2D _cachedBorderTexture;
         private static int _cachedBorderRadius;
         private static int _cachedBorderWidth;
@@ -88,7 +84,6 @@ namespace CleanStateMachine
         // Grayscale node fill; color reserved for functional indicators (entry, selection)
         private static readonly Color FillColor = new Color(0.26f, 0.26f, 0.26f);
         private static readonly Color PermanentBorderColor = new Color(0.34f, 0.34f, 0.34f);
-        private static readonly Color ShadowColor = new Color(0f, 0f, 0f, 0.30f);
         private static readonly Color SelectionColor = new Color(0.537f, 0.706f, 0.980f);
 
         private static readonly Color EntryFillColor = new Color(0.302f, 0.502f, 0.302f);
@@ -99,9 +94,6 @@ namespace CleanStateMachine
         private const int BaseCornerRadius = 8;
         private const float PermanentBorderWidth = 1.5f;
         private const float SelectionBorderWidth = 2f;
-        private const float ShadowOffsetPx = 4f;
-        private const float ShadowExpandPx = 6f;
-        private const int ShadowBlurKernel = 3;
         private const float GlowExpandPx = 12f;
         private const float GlowPulseSpeed = 2.5f;
         private const int GlowBlurKernel = 4;
@@ -117,10 +109,6 @@ namespace CleanStateMachine
             pickingMode = PickingMode.Ignore;
             style.position = UnityEngine.UIElements.Position.Absolute;
             style.overflow = Overflow.Visible;
-
-            _shadow = new VisualElement();
-            _shadow.AddToClassList("state-view__shadow");
-            Add(_shadow);
 
             _glow = new VisualElement();
             _glow.AddToClassList("state-view__glow");
@@ -198,14 +186,10 @@ namespace CleanStateMachine
                     padding = new RectOffset(4, 4, 4, 4)
                 };
                 _borderStyle = new GUIStyle { padding = new RectOffset(0, 0, 0, 0) };
-                _shadowStyle = new GUIStyle { padding = new RectOffset(0, 0, 0, 0) };
             }
 
             int scaledRadius = Mathf.Max(1, Mathf.RoundToInt(BaseCornerRadius * zoom));
             int borderWidth = Mathf.Max(1, Mathf.RoundToInt(PermanentBorderWidth * zoom));
-            int shadowExpand = Mathf.Max(1, Mathf.RoundToInt(ShadowExpandPx * zoom));
-
-            EnsureShadowTexture(scaledRadius, shadowExpand);
             if (IsEntry)
             {
                 EnsureEntryFillTexture(scaledRadius);
@@ -218,25 +202,10 @@ namespace CleanStateMachine
             }
 
             var fillBorder = new RectOffset(scaledRadius, scaledRadius, scaledRadius, scaledRadius);
-            int shadowRadius = scaledRadius + shadowExpand;
-            var shadowBorder = new RectOffset(shadowRadius, shadowRadius, shadowRadius, shadowRadius);
 
             Vector2 screenPos = Position * zoom + panOffset;
             Vector2 scaledSize = Size * zoom;
             var rect = new Rect(screenPos.x, screenPos.y, scaledSize.x, scaledSize.y);
-
-            float shadowExpandScreen = ShadowExpandPx * zoom;
-            float shadowOffset = Mathf.Max(1f, ShadowOffsetPx * zoom);
-            var shadowRect = new Rect(
-                screenPos.x - shadowExpandScreen + shadowOffset,
-                screenPos.y - shadowExpandScreen + shadowOffset,
-                scaledSize.x + shadowExpandScreen * 2f,
-                scaledSize.y + shadowExpandScreen * 2f
-            );
-
-            _shadowStyle.normal.background = _cachedShadowTexture;
-            _shadowStyle.border = shadowBorder;
-            GUI.Box(shadowRect, "", _shadowStyle);
 
             if (IsActive)
                 DrawActiveGlow(zoom, panOffset, rect, scaledRadius);
@@ -380,24 +349,6 @@ namespace CleanStateMachine
             _cachedFillRadius = cornerRadius;
         }
 
-        private static void EnsureShadowTexture(int innerRadius, int expand)
-        {
-            if (_cachedShadowTexture != null && _cachedShadowInnerRadius == innerRadius)
-                return;
-
-            if (_cachedShadowTexture != null)
-            {
-                Object.DestroyImmediate(_cachedShadowTexture);
-                _cachedShadowTexture = null;
-            }
-
-            int radius = innerRadius + expand;
-            int texSize = radius * 2 + 8;
-            _cachedShadowTexture = GenerateSoftShadowTexture(texSize, texSize, radius, ShadowColor, ShadowBlurKernel);
-            _cachedShadowTexture.hideFlags = HideFlags.HideAndDontSave;
-            _cachedShadowInnerRadius = innerRadius;
-        }
-
         private static void EnsureBorderTexture(int cornerRadius, int borderWidth, Color borderColor)
         {
             if (_cachedBorderTexture != null && _cachedBorderRadius == cornerRadius && _cachedBorderWidth == borderWidth)
@@ -486,58 +437,6 @@ namespace CleanStateMachine
                     color.a *= alpha;
                     tex.SetPixel(x, y, color);
                 }
-            }
-
-            tex.Apply();
-            return tex;
-        }
-
-        private static Texture2D GenerateSoftShadowTexture(int width, int height, int radius, Color shadowColor, int blurKernel)
-        {
-            var tex = new Texture2D(width, height, TextureFormat.RGBA32, false);
-            tex.wrapMode = TextureWrapMode.Clamp;
-            tex.filterMode = FilterMode.Bilinear;
-
-            Color[] src = new Color[width * height];
-
-            for (int y = 0; y < height; y++)
-            {
-                for (int x = 0; x < width; x++)
-                {
-                    float alpha = GetRoundedRectCoverage(x, y, width, height, radius);
-                    src[y * width + x] = new Color(shadowColor.r, shadowColor.g, shadowColor.b, shadowColor.a * alpha);
-                }
-            }
-
-            if (blurKernel >= 3)
-            {
-                Color[] blurred = new Color[src.Length];
-                int half = blurKernel / 2;
-                float inv = 1f / (blurKernel * blurKernel);
-
-                for (int y = 0; y < height; y++)
-                {
-                    for (int x = 0; x < width; x++)
-                    {
-                        float a = 0f;
-                        for (int ky = 0; ky < blurKernel; ky++)
-                        {
-                            for (int kx = 0; kx < blurKernel; kx++)
-                            {
-                                int sx = Mathf.Clamp(x + kx - half, 0, width - 1);
-                                int sy = Mathf.Clamp(y + ky - half, 0, height - 1);
-                                a += src[sy * width + sx].a;
-                            }
-                        }
-                        blurred[y * width + x] = new Color(0f, 0f, 0f, a * inv * shadowColor.a);
-                    }
-                }
-
-                tex.SetPixels(blurred);
-            }
-            else
-            {
-                tex.SetPixels(src);
             }
 
             tex.Apply();
