@@ -149,27 +149,30 @@
 }
 
 .variable-row-drag {
-    background-color: rgba(255, 255, 255, 0.12);
-    opacity: 0.85;
+    background-color: rgba(255, 255, 255, 0.15);
+    opacity: 0.9;
+    border-left-color: rgba(255, 255, 255, 0.3);
+    border-left-width: 2px;
 }
 
-/* Drag handle - vertical dots */
+/* Drag handle */
 .drag-handle {
-    width: 18px;
-    height: 24px;
+    width: 22px;
+    height: 26px;
     cursor: grab;
-    justify-content: center;
-    align-items: center;
     flex-shrink: 0;
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.15);
-    opacity: 0.5;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.25);
+    opacity: 0.65;
     -unity-text-align: middle-center;
+    transition: opacity 0.15s, background-color 0.15s;
+    border-radius: 3px;
 }
 
 .drag-handle:hover {
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.6);
     opacity: 1;
+    background-color: rgba(255, 255, 255, 0.06);
 }
 
 /* Variable name */
@@ -244,19 +247,68 @@
     align-items: center;
 }
 
+/* Vector field (multiple axis inputs) */
+.variable-value-vector {
+    flex: 1;
+    flex-direction: row;
+    align-items: center;
+}
+
+.axis-field {
+    flex-direction: row;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+}
+
+.axis-label {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.45);
+    width: 14px;
+    -unity-text-align: middle-center;
+    flex-shrink: 0;
+}
+
+.axis-input {
+    flex: 1;
+    min-width: 20px;
+}
+
+.axis-input .unity-text-field__input,
+.axis-input .unity-base-text-field__input {
+    font-size: 11px;
+    -unity-text-align: middle-left;
+    background-color: rgba(0, 0, 0, 0.15);
+    border-color: rgba(255, 255, 255, 0.08);
+    border-width: 1px;
+    padding-left: 4px;
+    padding-right: 4px;
+    color: rgba(255, 255, 255, 0.7);
+    height: 22px;
+}
+
+.axis-input .unity-text-field__input:focus,
+.axis-input .unity-base-text-field__input:focus {
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
 /* --- Add Button --- */
 .add-button {
     width: 24px;
-    height: 24px;
+    height: 30px;
     cursor: pointer;
     background-color: transparent;
-    font-size: 18px;
+    background-image: none;
+    -unity-background-image: none;
+    font-size: 38px;
     color: #999999;
     justify-content: center;
     align-items: center;
+    -unity-text-align: middle-center;
     margin-right: 8px;
     padding: 0;
-    border: none;
+    border-width: 0;
+    border-color: transparent;
     flex-shrink: 0;
 }
 

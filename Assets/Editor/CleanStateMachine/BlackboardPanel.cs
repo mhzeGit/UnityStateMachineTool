@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
@@ -15,6 +16,11 @@ namespace CleanStateMachine
         private int _dragStartIndex = -1;
         private int _dragIndex = -1;
         private bool _isDragging;
+        private Vector2 _dragMouseStartPos;
+        private bool _dragPastThreshold;
+        private const float DragThreshold = 5f;
+        private const float AutoScrollEdgeThreshold = 20f;
+        private const float AutoScrollSpeed = 30f;
 
         public BlackboardPanel(CleanStateMachineWindow window)
         {
@@ -67,10 +73,9 @@ namespace CleanStateMachine
             row.userData = index;
 
             // Drag handle
-            var handle = new Label("\u22EE\u22EE");
+            var handle = new Label("\u2807");
             handle.AddToClassList("drag-handle");
-            int captured = index;
-            handle.RegisterCallback<MouseDownEvent>(e => OnHandleDown(e, captured));
+            handle.RegisterCallback<MouseDownEvent>(OnHandleDown);
             row.Add(handle);
 
             // Name label (or input when editing)
@@ -84,12 +89,12 @@ namespace CleanStateMachine
             nameInput.AddToClassList("variable-name-input");
             nameInput.value = variable.Name;
             nameInput.style.display = DisplayStyle.None;
-            nameInput.RegisterCallback<FocusOutEvent>(e => OnNameEditEnd(index, nameInput));
+            nameInput.RegisterCallback<FocusOutEvent>(e => OnNameEditEnd(_editingIndex, nameInput));
             nameInput.RegisterCallback<KeyDownEvent>(e =>
             {
                 if (e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter || e.keyCode == KeyCode.Escape)
                 {
-                    OnNameEditEnd(index, nameInput);
+                    OnNameEditEnd(_editingIndex, nameInput);
                     e.StopPropagation();
                 }
             });
@@ -99,9 +104,11 @@ namespace CleanStateMachine
 
             nameLabel.RegisterCallback<MouseDownEvent>(e =>
             {
-                if (e.clickCount == 2 && _editingIndex < 0)
+                if (e.clickCount == 2 && _editingIndex < 0 && e.button == 0)
                 {
-                    _editingIndex = index;
+                    var rowElement = (e.currentTarget as VisualElement).parent.parent;
+                    int idx = (int)rowElement.userData;
+                    _editingIndex = idx;
                     nameLabel.style.display = DisplayStyle.None;
                     nameInput.style.display = DisplayStyle.Flex;
                     nameInput.Focus();
@@ -134,17 +141,95 @@ namespace CleanStateMachine
             }
             else
             {
-                var valueField = new TextField();
-                valueField.AddToClassList("variable-value");
-                valueField.value = variable.StringValue;
-                valueField.RegisterValueChangedCallback(e =>
+                switch (variable.Type)
                 {
-                    var cmd = new ModifyBlackboardVariableCommand(
-                        variable, e.previousValue, e.newValue);
-                    _window.UndoRedoSystem.Execute(cmd);
-                    _window.NotifySidePanelChanged();
-                });
-                rightGroup.Add(valueField);
+                    case BlackboardVariableType.Int:
+                    {
+                        var intField = new IntegerField();
+                        intField.AddToClassList("variable-value");
+                        intField.value = variable.IntValue;
+                        intField.RegisterValueChangedCallback(e =>
+                        {
+                            var cmd = new ModifyBlackboardVariableCommand(
+                                variable, e.previousValue.ToString(), e.newValue.ToString());
+                            _window.UndoRedoSystem.Execute(cmd);
+                            _window.NotifySidePanelChanged();
+                        });
+                        rightGroup.Add(intField);
+                        break;
+                    }
+                    case BlackboardVariableType.Float:
+                    {
+                        var floatField = new FloatField();
+                        floatField.AddToClassList("variable-value");
+                        floatField.value = variable.FloatValue;
+                        floatField.RegisterValueChangedCallback(e =>
+                        {
+                            var cmd = new ModifyBlackboardVariableCommand(
+                                variable, e.previousValue.ToString("G"), e.newValue.ToString("G"));
+                            _window.UndoRedoSystem.Execute(cmd);
+                            _window.NotifySidePanelChanged();
+                        });
+                        rightGroup.Add(floatField);
+                        break;
+                    }
+                    case BlackboardVariableType.String:
+                    {
+                        var valueField = new TextField();
+                        valueField.AddToClassList("variable-value");
+                        valueField.value = variable.StringValue;
+                        valueField.RegisterValueChangedCallback(e =>
+                        {
+                            var cmd = new ModifyBlackboardVariableCommand(
+                                variable, e.previousValue, e.newValue);
+                            _window.UndoRedoSystem.Execute(cmd);
+                            _window.NotifySidePanelChanged();
+                        });
+                        rightGroup.Add(valueField);
+                        break;
+                    }
+                    case BlackboardVariableType.Vector2:
+                    {
+                        var vectorContainer = new VisualElement();
+                        vectorContainer.AddToClassList("variable-value-vector");
+                        var v2 = variable.Vector2Value;
+                        AddAxisField(vectorContainer, "X", v2.x,
+                            newValue => {
+                                var current = variable.Vector2Value;
+                                UpdateVector2(variable, newValue, current.y);
+                            });
+                        AddAxisField(vectorContainer, "Y", v2.y,
+                            newValue => {
+                                var current = variable.Vector2Value;
+                                UpdateVector2(variable, current.x, newValue);
+                            });
+                        rightGroup.Add(vectorContainer);
+                        break;
+                    }
+                    case BlackboardVariableType.Vector3:
+                    {
+                        var vectorContainer = new VisualElement();
+                        vectorContainer.AddToClassList("variable-value-vector");
+                        var v3 = variable.Vector3Value;
+                        AddAxisField(vectorContainer, "X", v3.x,
+                            newValue => {
+                                var current = variable.Vector3Value;
+                                UpdateVector3(variable, newValue, current.y, current.z);
+                            });
+                        AddAxisField(vectorContainer, "Y", v3.y,
+                            newValue => {
+                                var current = variable.Vector3Value;
+                                UpdateVector3(variable, current.x, newValue, current.z);
+                            });
+                        AddAxisField(vectorContainer, "Z", v3.z,
+                            newValue => {
+                                var current = variable.Vector3Value;
+                                UpdateVector3(variable, current.x, current.y, newValue);
+                            });
+                        rightGroup.Add(vectorContainer);
+                        break;
+                    }
+                }
             }
 
             row.Add(rightGroup);
@@ -152,12 +237,13 @@ namespace CleanStateMachine
             // Right-click context menu
             row.RegisterCallback<ContextClickEvent>(e =>
             {
+                var rowElement = e.currentTarget as VisualElement;
+                int idx = (int)rowElement.userData;
                 var menu = new GenericMenu();
-                int capturedIdx = index;
                 menu.AddItem(new GUIContent("Delete Variable"), false, () =>
                 {
-                    if (_variables == null) return;
-                    var cmd = new DeleteBlackboardVariableCommand(_variables, capturedIdx);
+                    if (_variables == null || idx < 0 || idx >= _variables.Count) return;
+                    var cmd = new DeleteBlackboardVariableCommand(_variables, idx);
                     _window.UndoRedoSystem.Execute(cmd);
                     Rebuild();
                 });
@@ -216,12 +302,16 @@ namespace CleanStateMachine
             }
         }
 
-        private void OnHandleDown(MouseDownEvent evt, int index)
+        private void OnHandleDown(MouseDownEvent evt)
         {
             if (_variables == null || _variables.Count <= 1) return;
+            var handle = evt.currentTarget as VisualElement;
+            int index = (int)handle.parent.userData;
             _isDragging = true;
+            _dragPastThreshold = false;
             _dragStartIndex = index;
             _dragIndex = index;
+            _dragMouseStartPos = evt.mousePosition;
             _rows[index].AddToClassList("variable-row-drag");
             this.RegisterCallback<MouseMoveEvent>(OnDragMove);
             this.RegisterCallback<MouseUpEvent>(OnDragUp);
@@ -232,15 +322,28 @@ namespace CleanStateMachine
         {
             if (!_isDragging || _variables == null) return;
 
-            Vector2 localPos = this.WorldToLocal(evt.mousePosition);
+            if (!_dragPastThreshold)
+            {
+                if (Vector2.Distance(evt.mousePosition, _dragMouseStartPos) < DragThreshold)
+                    return;
+                _dragPastThreshold = true;
+            }
+
+            Vector2 scrollViewLocal = _scrollView.WorldToLocal(evt.mousePosition);
+            float viewHeight = _scrollView.resolvedStyle.height;
+            if (scrollViewLocal.y < AutoScrollEdgeThreshold)
+                _scrollView.scrollOffset = new Vector2(0, Mathf.Max(0, _scrollView.scrollOffset.y - AutoScrollSpeed));
+            else if (scrollViewLocal.y > viewHeight - AutoScrollEdgeThreshold)
+                _scrollView.scrollOffset = new Vector2(0, _scrollView.scrollOffset.y + AutoScrollSpeed);
+
+            Vector2 contentLocal = _scrollView.contentContainer.WorldToLocal(evt.mousePosition);
             float rowHeight = 30f;
             int targetIndex = Mathf.Clamp(
-                Mathf.FloorToInt((localPos.y + _scrollView.scrollOffset.y) / rowHeight),
+                Mathf.FloorToInt(contentLocal.y / rowHeight),
                 0, _variables.Count - 1);
 
             if (targetIndex == _dragIndex) return;
 
-            // Move row element in the scroll view (no rebuild)
             var row = _rows[_dragIndex];
             _scrollView.Remove(row);
 
@@ -259,6 +362,7 @@ namespace CleanStateMachine
         private void OnDragUp(MouseUpEvent evt)
         {
             _isDragging = false;
+            _dragPastThreshold = false;
             this.UnregisterCallback<MouseMoveEvent>(OnDragMove);
             this.UnregisterCallback<MouseUpEvent>(OnDragUp);
 
@@ -270,13 +374,52 @@ namespace CleanStateMachine
                 var item = _variables[_dragStartIndex];
                 _variables.RemoveAt(_dragStartIndex);
                 _variables.Insert(_dragIndex, item);
+
+                for (int i = 0; i < _rows.Count; i++)
+                    _rows[i].userData = i;
+
                 _window.NotifySidePanelChanged();
-                Rebuild();
             }
 
             _dragStartIndex = -1;
             _dragIndex = -1;
             evt.StopPropagation();
+        }
+
+        private void AddAxisField(VisualElement parent, string axisName, float initialValue, Action<float> onChanged)
+        {
+            var container = new VisualElement();
+            container.AddToClassList("axis-field");
+
+            var label = new Label(axisName);
+            label.AddToClassList("axis-label");
+            container.Add(label);
+
+            var field = new FloatField();
+            field.AddToClassList("axis-input");
+            field.value = initialValue;
+            field.RegisterValueChangedCallback(e => onChanged(e.newValue));
+            container.Add(field);
+
+            parent.Add(container);
+        }
+
+        private void UpdateVector2(BlackboardVariable variable, float x, float y)
+        {
+            string oldStr = variable.StringValue;
+            variable.Vector2Value = new Vector2(x, y);
+            var cmd = new ModifyBlackboardVariableCommand(variable, oldStr, variable.StringValue);
+            _window.UndoRedoSystem.Execute(cmd);
+            _window.NotifySidePanelChanged();
+        }
+
+        private void UpdateVector3(BlackboardVariable variable, float x, float y, float z)
+        {
+            string oldStr = variable.StringValue;
+            variable.Vector3Value = new Vector3(x, y, z);
+            var cmd = new ModifyBlackboardVariableCommand(variable, oldStr, variable.StringValue);
+            _window.UndoRedoSystem.Execute(cmd);
+            _window.NotifySidePanelChanged();
         }
 
         private void OnAddVariable()
@@ -301,7 +444,14 @@ namespace CleanStateMachine
             {
                 Name = GetUniqueName("New Variable"),
                 Type = type,
-                StringValue = type == BlackboardVariableType.Bool ? "False" : "0"
+                StringValue = type switch
+                {
+                    BlackboardVariableType.Bool => "False",
+                    BlackboardVariableType.String => "",
+                    BlackboardVariableType.Vector2 => "0,0",
+                    BlackboardVariableType.Vector3 => "0,0,0",
+                    _ => "0"
+                }
             };
             _variables.Add(v);
             _window.NotifySidePanelChanged();
