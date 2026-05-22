@@ -50,8 +50,9 @@ namespace CleanStateMachine
 
         private Vector2 _lastMouseGraphPos;
 
+        private GridBackground _gridBackground;
+        private IMGUIContainer _graphCanvas;
         private UndoRedoSystem _undoRedoSystem;
-        private GraphView _graphView;
         private GraphPanController _panController;
         private GraphContextMenu _contextMenu;
         private SelectionController _selectionController;
@@ -81,7 +82,6 @@ namespace CleanStateMachine
         {
             wantsMouseMove = true;
             _undoRedoSystem = new UndoRedoSystem();
-            _graphView = new GraphView();
             _panController = new GraphPanController();
             _contextMenu = new GraphContextMenu();
             _selectionController = new SelectionController();
@@ -125,6 +125,25 @@ namespace CleanStateMachine
         {
             rootVisualElement.Clear();
 
+            _gridBackground = new GridBackground();
+            _gridBackground.style.position = Position.Absolute;
+            _gridBackground.style.left = 0f;
+            _gridBackground.style.top = 0f;
+            _gridBackground.style.right = 0f;
+            _gridBackground.style.bottom = 0f;
+            _gridBackground.style.overflow = Overflow.Hidden;
+            _gridBackground.style.backgroundColor = new Color(0.12f, 0.12f, 0.12f);
+            rootVisualElement.Add(_gridBackground);
+
+            _graphCanvas = new IMGUIContainer(OnGraphCanvasGUI);
+            _graphCanvas.style.position = Position.Absolute;
+            _graphCanvas.style.left = 0f;
+            _graphCanvas.style.top = 0f;
+            _graphCanvas.style.right = 0f;
+            _graphCanvas.style.bottom = 0f;
+            _graphCanvas.pickingMode = PickingMode.Ignore;
+            rootVisualElement.Add(_graphCanvas);
+
             _sidePanelElement = new SidePanel(this);
             _sidePanelElement.style.position = Position.Absolute;
             _sidePanelElement.style.right = 0f;
@@ -137,6 +156,7 @@ namespace CleanStateMachine
                 _sidePanelElement?.SyncFromWindow();
                 _sidePanelElement?.UpdateBlackboard();
                 _sidePanelElement?.UpdateSelection();
+                _gridBackground?.UpdateView(_panOffset, _zoom);
             }).StartingIn(10);
         }
 
@@ -216,7 +236,15 @@ namespace CleanStateMachine
                 }
             }
 
-            _graphView.Draw(graphRect, _panOffset, _zoom);
+            _gridBackground.UpdateView(_panOffset, _zoom);
+            _graphCanvas.MarkDirtyRepaint();
+
+            if (_panController.IsPanning || _dragController.IsActive || _selectionBox.IsActive || _connectionController.IsConnecting)
+                Repaint();
+        }
+
+        private void OnGraphCanvasGUI()
+        {
             DrawGroups();
             DrawConnections();
             _connectionController.DrawPending(_zoom, _panOffset);
@@ -242,9 +270,6 @@ namespace CleanStateMachine
 
             DrawSelectionOverlays();
             _selectionBox.DrawScreen(_zoom, _panOffset);
-
-            if (_panController.IsPanning || _dragController.IsActive || _selectionBox.IsActive || _connectionController.IsConnecting)
-                Repaint();
         }
 
 
