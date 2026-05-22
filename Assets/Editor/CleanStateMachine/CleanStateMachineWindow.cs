@@ -144,6 +144,8 @@ namespace CleanStateMachine
             _graphCanvas.pickingMode = PickingMode.Ignore;
             rootVisualElement.Add(_graphCanvas);
 
+            rootVisualElement.Add(_selectionBox.Element);
+
             _sidePanelElement = new SidePanel(this);
             _sidePanelElement.style.position = Position.Absolute;
             _sidePanelElement.style.right = 0f;
@@ -547,6 +549,7 @@ namespace CleanStateMachine
             else if (_selectionBox.IsActive)
             {
                 _selectionBox.Update(graphPos);
+                PerformBoxSelection(_selectionBox.GetGraphRect(), e.shift);
                 _lastDoubleClickCandidate = null;
             }
 
@@ -572,33 +575,35 @@ namespace CleanStateMachine
             }
             else if (_selectionBox.IsActive)
             {
-                if (!e.shift)
-                    _selectionController.Clear();
-
-                Rect r = _selectionBox.GetGraphRect();
-
-                var boxStates = new List<StateView>();
-                for (int i = 0; i < _states.Count; i++)
-                    if (r.Overlaps(_states[i].GetGraphBounds()))
-                        boxStates.Add(_states[i]);
-                _selectionController.SelectRange(boxStates);
-
-                var boxConnections = new List<ConnectionView>();
-                for (int i = 0; i < _connections.Count; i++)
-                    if (r.Overlaps(_connections[i].GetGraphBounds()))
-                        boxConnections.Add(_connections[i]);
-                _selectionController.SelectRange(boxConnections);
-
-                var boxGroups = new List<CommentGroupView>();
-                for (int i = 0; i < _groups.Count; i++)
-                    if (r.Overlaps(_groups[i].GetGraphBounds()))
-                        boxGroups.Add(_groups[i]);
-                _selectionController.SelectRange(boxGroups);
-
+                PerformBoxSelection(_selectionBox.GetGraphRect(), e.shift);
                 _selectionBox.End();
                 _lastDoubleClickCandidate = null;
                 e.Use();
             }
+        }
+
+        private void PerformBoxSelection(Rect graphRect, bool shiftHeld)
+        {
+            if (!shiftHeld)
+                _selectionController.Clear();
+
+            var boxStates = new List<StateView>();
+            for (int i = 0; i < _states.Count; i++)
+                if (graphRect.Overlaps(_states[i].GetGraphBounds()))
+                    boxStates.Add(_states[i]);
+            _selectionController.SelectRange(boxStates);
+
+            var boxConnections = new List<ConnectionView>();
+            for (int i = 0; i < _connections.Count; i++)
+                if (graphRect.Overlaps(_connections[i].GetGraphBounds()))
+                    boxConnections.Add(_connections[i]);
+            _selectionController.SelectRange(boxConnections);
+
+            var boxGroups = new List<CommentGroupView>();
+            for (int i = 0; i < _groups.Count; i++)
+                if (graphRect.Overlaps(_groups[i].GetGraphBounds()))
+                    boxGroups.Add(_groups[i]);
+            _selectionController.SelectRange(boxGroups);
         }
 
         private List<ISelectable> GetDragItems()
