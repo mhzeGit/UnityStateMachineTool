@@ -122,6 +122,144 @@
     background-color: #4d4d4d;
 }
 
+/* --- SO Properties (DetailsPanel) --- */
+.so-properties-container {
+    flex-direction: column;
+    padding-top: 4px;
+}
+
+.property-card {
+    flex-direction: column;
+    background-color: #1f1f1f;
+    border: 1px solid #141414;
+    border-radius: 2px;
+    margin-left: 4px;
+    margin-right: 4px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+    padding: 4px;
+    flex-shrink: 0;
+}
+
+.property-card-label {
+    font-size: 11px;
+    -unity-font-style: bold;
+    color: #f2f2f2;
+    padding-left: 4px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    height: 18px;
+    -unity-text-align: middle-left;
+    flex-shrink: 0;
+}
+
+.property-card-content {
+    flex-direction: row;
+    padding-left: 4px;
+    padding-right: 4px;
+    padding-bottom: 2px;
+    min-height: 22px;
+}
+
+.property-card-content .unity-property-field {
+    flex: 1;
+    min-width: 0;
+}
+
+/* --- Blackboard Variable Reference (DetailsPanel) --- */
+.bb-varref-row {
+    flex-direction: row;
+    align-items: center;
+    flex: 1;
+    min-height: 22px;
+}
+
+.bb-mode-button {
+    width: 72px;
+    height: 22px;
+    cursor: pointer;
+    background-color: #2a2a2a;
+    color: #bfbfbf;
+    font-size: 10px;
+    -unity-text-align: middle-center;
+    border-color: #141414;
+    border-width: 1px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    padding-left: 4px;
+    padding-right: 4px;
+    justify-content: center;
+}
+
+.bb-mode-button:hover {
+    background-color: #383838;
+}
+
+.bb-value-area {
+    flex: 1;
+    flex-direction: row;
+    align-items: center;
+    padding-left: 6px;
+    min-width: 0;
+}
+
+.bb-value-area .unity-toggle {
+    flex: 1;
+    height: 22px;
+}
+
+.bb-value-area .unity-integer-field,
+.bb-value-area .unity-float-field,
+.bb-value-area .unity-text-field {
+    flex: 1;
+    min-width: 40px;
+}
+
+.bb-value-area .unity-integer-field__input,
+.bb-value-area .unity-float-field__input,
+.bb-value-area .unity-base-text-field__input {
+    font-size: 11px;
+    -unity-text-align: middle-left;
+    background-color: rgba(0, 0, 0, 0.15);
+    border-color: rgba(255, 255, 255, 0.08);
+    border-width: 1px;
+    padding-left: 6px;
+    padding-right: 4px;
+    color: rgba(255, 255, 255, 0.7);
+    height: 22px;
+}
+
+.bb-value-area .unity-integer-field__input:focus,
+.bb-value-area .unity-float-field__input:focus,
+.bb-value-area .unity-base-text-field__input:focus {
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.bb-dropdown-button {
+    flex: 1;
+    height: 22px;
+    cursor: pointer;
+    background-color: #262626;
+    color: #bfbfbf;
+    font-size: 11px;
+    -unity-text-align: middle-left;
+    padding-left: 8px;
+    padding-right: 8px;
+    border-color: #141414;
+    border-width: 1px;
+    border-radius: 3px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    justify-content: flex-start;
+}
+
+.bb-dropdown-button:hover {
+    background-color: #333333;
+    border-color: #292929;
+}
+
 /* --- Blackboard Panel --- */
 .blackboard-panel {
     flex-direction: column;
@@ -141,8 +279,8 @@
     padding-right: 4px;
     flex-shrink: 0;
     background-color: rgba(255, 255, 255, 0.025);
-    border-top: 1px solid rgba(255, 255, 255, 0.04);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .variable-row:hover {

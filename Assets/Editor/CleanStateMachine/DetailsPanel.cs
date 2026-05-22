@@ -389,96 +389,218 @@ namespace CleanStateMachine
         {
             if (_currentSO == null) return;
 
-            float pad = 4f;
-            float labelH = 18f;
-            float fieldH = 22f;
-            float gap = 4f;
-            float border = 1f;
-
-            float totalHeight = 2f;
             var so = new SerializedObject(_currentSO);
+            var container = new VisualElement();
+            container.AddToClassList("so-properties-container");
+
             var prop = so.GetIterator();
             bool enterChildren = true;
             while (prop.NextVisible(enterChildren))
             {
                 enterChildren = false;
                 if (prop.name == "m_Script") continue;
-                bool isBbRef = prop.type == "BlackboardVariableReference";
-                float contentH = isBbRef ? labelH + gap + fieldH : labelH + gap + fieldH;
-                totalHeight += pad + contentH + pad + border * 2f;
+
+                var card = new VisualElement();
+                card.AddToClassList("property-card");
+
+                var label = new Label(prop.displayName);
+                label.AddToClassList("property-card-label");
+                card.Add(label);
+
+                VisualElement content;
+                if (prop.type == "BlackboardVariableReference")
+                {
+                    content = BuildBbVarRefField(so, prop.Copy());
+                }
+                else
+                {
+                    var pf = new PropertyField(prop.Copy(), "");
+                    content = pf;
+                }
+                content.AddToClassList("property-card-content");
+                card.Add(content);
+
+                container.Add(card);
             }
 
-            IMGUIContainer imContainer = null;
-            imContainer = new IMGUIContainer(() =>
+            if (container.childCount > 0)
             {
-                if (_currentSO == null) return;
+                container.Bind(so);
+                _scrollView.Add(container);
+            }
+        }
 
-                float w = imContainer.layout.width;
-                if (w < 1f) w = 200f;
+        private VisualElement BuildBbVarRefField(SerializedObject so, SerializedProperty prop)
+        {
+            var row = new VisualElement();
+            row.AddToClassList("bb-varref-row");
 
-                var so2 = new SerializedObject(_currentSO);
-                so2.Update();
+            var useBbProp = prop.FindPropertyRelative("UseBlackboard");
+            var varNameProp = prop.FindPropertyRelative("BlackboardVariableName");
+            var valueTypeProp = prop.FindPropertyRelative("ValueType");
+            var defaultValueProp = prop.FindPropertyRelative("DefaultValue");
 
-                float y = 0f;
+            var modeBtn = new Button();
+            modeBtn.AddToClassList("bb-mode-button");
+            row.Add(modeBtn);
 
-                var prop2 = so2.GetIterator();
-                bool enter = true;
-                while (prop2.NextVisible(enter))
+            var valueArea = new VisualElement();
+            valueArea.AddToClassList("bb-value-area");
+            row.Add(valueArea);
+
+            Action rebuild = null;
+            rebuild = () =>
+            {
+                bool useBb = useBbProp.boolValue;
+                var bbType = (BlackboardVariableType)valueTypeProp.enumValueIndex;
+
+                modeBtn.text = useBb ? "Blackboard" : "Direct";
+                valueArea.Clear();
+
+                if (useBb)
                 {
-                    enter = false;
-                    if (prop2.name == "m_Script") continue;
+                    string currentVarName = varNameProp.stringValue;
+                    var dropdownBtn = new Button();
+                    dropdownBtn.AddToClassList("bb-dropdown-button");
+                    dropdownBtn.text = string.IsNullOrEmpty(currentVarName)
+                        ? "Select variable..." : currentVarName;
 
-                    bool isBbRef = prop2.type == "BlackboardVariableReference";
-                    float contentH = isBbRef ? labelH + gap + fieldH : labelH + gap + fieldH;
-                    float cardH = pad + contentH + pad;
-                    float rowH = cardH + border * 2f;
-
-                    EditorGUI.DrawRect(new Rect(0f, y, w, rowH), UITheme.PanelBorder);
-                    EditorGUI.DrawRect(new Rect(border, y + border, w - border * 2f, cardH), UITheme.PanelBg);
-
-                    float innerX = 8f;
-                    float innerW = w - 16f;
-                    float cy = y + border + pad;
-
-                    EditorGUI.LabelField(new Rect(innerX, cy, innerW, labelH),
-                        prop2.displayName, UITheme.VariableLabelStyle);
-                    cy += labelH + gap;
-
-                    if (isBbRef)
+                    dropdownBtn.clicked += () =>
                     {
-                        var useBbProp = prop2.FindPropertyRelative("UseBlackboard");
-                        var varNameProp = prop2.FindPropertyRelative("BlackboardVariableName");
-                        var valueTypeProp = prop2.FindPropertyRelative("ValueType");
-                        var defaultValueProp = prop2.FindPropertyRelative("DefaultValue");
-                        var bbType = (BlackboardVariableType)valueTypeProp.enumValueIndex;
-                        bool useBb = useBbProp.boolValue;
+                        var menu = new GenericMenu();
+                        menu.AddItem(new GUIContent("None (direct)"),
+                            string.IsNullOrEmpty(currentVarName), () =>
+                        {
+                            varNameProp.stringValue = "";
+                            useBbProp.boolValue = false;
+                            so.ApplyModifiedProperties();
+                            EditorUtility.SetDirty(_currentSO);
+                            rebuild();
+                        });
+                        menu.AddSeparator("");
+                        bool hasMatch = false;
+                        for (int i = 0; i < _blackboardVariables.Count; i++)
+                        {
+                            var bv = _blackboardVariables[i];
+                            if (bv.Type == bbType)
+                            {
+                                hasMatch = true;
+                                string varName = bv.Name;
+                                string captured = varName;
+                                menu.AddItem(new GUIContent(varName),
+                                    varName == currentVarName, (object n) =>
+                                {
+                                    varNameProp.stringValue = (string)n;
+                                    so.ApplyModifiedProperties();
+                                    EditorUtility.SetDirty(_currentSO);
+                                    rebuild();
+                                }, captured);
+                            }
+                        }
+                        if (!hasMatch)
+                            menu.AddDisabledItem(new GUIContent("No matching variables"));
+                        menu.DropDown(dropdownBtn.worldBound);
+                    };
 
-                        float modeW = Mathf.Min(130f, innerW * 0.4f);
-                        DrawModeToggle(new Rect(innerX, cy, modeW, fieldH), useBb, useBbProp);
-
-                        float fieldX = innerX + modeW + 4f;
-                        float fieldW = innerW - modeW - 4f;
-                        var fRect = new Rect(fieldX, cy, fieldW, fieldH);
-                        if (useBb)
-                            DrawBbDropdown(fRect, varNameProp, useBbProp, bbType, _blackboardVariables);
-                        else
-                            DrawValueField(fRect, bbType, defaultValueProp);
-                    }
-                    else
-                    {
-                        EditorGUI.PropertyField(new Rect(innerX, cy, innerW, fieldH),
-                            prop2, GUIContent.none, true);
-                    }
-
-                    y += rowH;
+                    valueArea.Add(dropdownBtn);
                 }
+                else
+                {
+                    switch (bbType)
+                    {
+                        case BlackboardVariableType.Bool:
+                        {
+                            var toggle = new Toggle();
+                            toggle.value = bool.TryParse(defaultValueProp.stringValue, out var v) && v;
+                            toggle.RegisterValueChangedCallback(e =>
+                            {
+                                defaultValueProp.stringValue = e.newValue.ToString();
+                                so.ApplyModifiedProperties();
+                                EditorUtility.SetDirty(_currentSO);
+                            });
+                            valueArea.Add(toggle);
+                            break;
+                        }
+                        case BlackboardVariableType.Int:
+                        {
+                            var field = new IntegerField();
+                            field.value = int.TryParse(defaultValueProp.stringValue, out var v) ? v : 0;
+                            field.RegisterValueChangedCallback(e =>
+                            {
+                                defaultValueProp.stringValue = e.newValue.ToString();
+                                so.ApplyModifiedProperties();
+                                EditorUtility.SetDirty(_currentSO);
+                            });
+                            valueArea.Add(field);
+                            break;
+                        }
+                        case BlackboardVariableType.Float:
+                        {
+                            var field = new FloatField();
+                            field.value = float.TryParse(defaultValueProp.stringValue, out var v) ? v : 0f;
+                            field.RegisterValueChangedCallback(e =>
+                            {
+                                defaultValueProp.stringValue = e.newValue.ToString("G");
+                                so.ApplyModifiedProperties();
+                                EditorUtility.SetDirty(_currentSO);
+                            });
+                            valueArea.Add(field);
+                            break;
+                        }
+                        case BlackboardVariableType.String:
+                        {
+                            var field = new TextField();
+                            field.value = defaultValueProp.stringValue;
+                            field.RegisterValueChangedCallback(e =>
+                            {
+                                defaultValueProp.stringValue = e.newValue;
+                                so.ApplyModifiedProperties();
+                                EditorUtility.SetDirty(_currentSO);
+                            });
+                            valueArea.Add(field);
+                            break;
+                        }
+                        case BlackboardVariableType.Vector2:
+                        case BlackboardVariableType.Vector3:
+                        {
+                            var field = new TextField();
+                            field.value = defaultValueProp.stringValue;
+                            field.RegisterValueChangedCallback(e =>
+                            {
+                                defaultValueProp.stringValue = e.newValue;
+                                so.ApplyModifiedProperties();
+                                EditorUtility.SetDirty(_currentSO);
+                            });
+                            valueArea.Add(field);
+                            break;
+                        }
+                    }
+                }
+            };
 
-                if (so2.ApplyModifiedProperties())
+            modeBtn.clicked += () =>
+            {
+                bool currentUseBb = useBbProp.boolValue;
+                var menu = new GenericMenu();
+                menu.AddItem(new GUIContent("Direct"), !currentUseBb, () =>
+                {
+                    useBbProp.boolValue = false;
+                    so.ApplyModifiedProperties();
                     EditorUtility.SetDirty(_currentSO);
-            });
+                    rebuild();
+                });
+                menu.AddItem(new GUIContent("Blackboard"), currentUseBb, () =>
+                {
+                    useBbProp.boolValue = true;
+                    so.ApplyModifiedProperties();
+                    EditorUtility.SetDirty(_currentSO);
+                    rebuild();
+                });
+                menu.DropDown(modeBtn.worldBound);
+            };
 
-            imContainer.style.height = totalHeight;
-            _scrollView.Add(imContainer);
+            rebuild();
+            return row;
         }
 
         // ─── VALIDATION ────────────────────────────────────────────────
@@ -507,173 +629,6 @@ namespace CleanStateMachine
                     count++;
             }
             return count;
-        }
-
-        // ─── STATIC HELPERS (Blackboard Variable Ref) ──────────────────
-
-        internal static void DrawBlackboardVariableRefField(Rect rect, SerializedProperty prop,
-            List<BlackboardVariable> blackboardVariables, float labelWidth = 72f)
-        {
-            var useBbProp = prop.FindPropertyRelative("UseBlackboard");
-            var varNameProp = prop.FindPropertyRelative("BlackboardVariableName");
-            var valueTypeProp = prop.FindPropertyRelative("ValueType");
-            var defaultValueProp = prop.FindPropertyRelative("DefaultValue");
-
-            var bbType = (BlackboardVariableType)valueTypeProp.enumValueIndex;
-            bool useBb = useBbProp.boolValue;
-
-            float gap = 4f;
-
-            Rect labelRect = new Rect(8f, rect.y + 1f, labelWidth, rect.height - 2f);
-            GUI.Label(labelRect, prop.displayName, UITheme.VariableLabelStyle);
-
-            float modeX = 8f + labelWidth + 8f;
-            float modeWidth = rect.width - modeX - 8f;
-            if (modeWidth > 120f) modeWidth = 120f;
-            Rect modeRect = new Rect(modeX, rect.y + 3f, modeWidth, rect.height - 6f);
-            DrawModeToggle(modeRect, useBb, useBbProp);
-
-            float fieldX = modeRect.xMax + gap;
-            float fieldW = rect.width - fieldX - 8f;
-
-            Rect fieldRect = new Rect(fieldX, rect.y + 3f, fieldW, rect.height - 6f);
-
-            if (useBb)
-            {
-                DrawBbDropdown(fieldRect, varNameProp, useBbProp, bbType, blackboardVariables);
-            }
-            else
-            {
-                DrawValueField(fieldRect, bbType, defaultValueProp);
-            }
-        }
-
-        private static void DrawModeToggle(Rect rect, bool useBb, SerializedProperty useBbProp)
-        {
-            string display = useBb ? "Blackboard" : "Direct";
-
-            var popupStyle = new GUIStyle(EditorStyles.popup)
-            {
-                fontSize = 11,
-                alignment = TextAnchor.MiddleLeft,
-                normal = { textColor = UITheme.TextColor, background = null },
-                hover = { textColor = UITheme.TextColor },
-                focused = { textColor = UITheme.TextColor }
-            };
-
-            if (GUI.Button(rect, new GUIContent(display), popupStyle))
-            {
-                var menu = new GenericMenu();
-                menu.AddItem(new GUIContent("Direct"), !useBb, () =>
-                {
-                    useBbProp.boolValue = false;
-                    useBbProp.serializedObject.ApplyModifiedProperties();
-                });
-                menu.AddItem(new GUIContent("Blackboard"), useBb, () =>
-                {
-                    useBbProp.boolValue = true;
-                    useBbProp.serializedObject.ApplyModifiedProperties();
-                });
-                menu.DropDown(rect);
-            }
-        }
-
-        private static void DrawBbDropdown(Rect rect, SerializedProperty varNameProp,
-            SerializedProperty useBbProp, BlackboardVariableType bbType,
-            List<BlackboardVariable> blackboardVariables)
-        {
-            string current = varNameProp.stringValue;
-            string display = string.IsNullOrEmpty(current) ? "Select variable..." : current;
-
-            var dropStyle = new GUIStyle(EditorStyles.popup)
-            {
-                fontSize = 11,
-                alignment = TextAnchor.MiddleLeft,
-                normal = { textColor = UITheme.TextColor, background = null },
-                hover = { textColor = UITheme.TextColor },
-                focused = { textColor = UITheme.TextColor }
-            };
-
-            if (GUI.Button(rect, new GUIContent(display), dropStyle))
-            {
-                var menu = new GenericMenu();
-                menu.AddItem(new GUIContent("None (direct)"), string.IsNullOrEmpty(current), () =>
-                {
-                    varNameProp.stringValue = "";
-                    useBbProp.boolValue = false;
-                    varNameProp.serializedObject.ApplyModifiedProperties();
-                });
-                menu.AddSeparator("");
-                bool hasMatch = false;
-                for (int i = 0; i < blackboardVariables.Count; i++)
-                {
-                    var bv = blackboardVariables[i];
-                    if (bv.Type == bbType)
-                    {
-                        hasMatch = true;
-                        string varName = bv.Name;
-                        bool selected = varName == current;
-                        string captured = varName;
-                        menu.AddItem(new GUIContent(varName), selected, (object n) =>
-                        {
-                            varNameProp.stringValue = (string)n;
-                            varNameProp.serializedObject.ApplyModifiedProperties();
-                        }, captured);
-                    }
-                }
-                if (!hasMatch)
-                {
-                    menu.AddDisabledItem(new GUIContent("No matching variables"));
-                }
-                menu.DropDown(rect);
-            }
-        }
-
-        private static void DrawValueField(Rect rect, BlackboardVariableType bbType,
-            SerializedProperty defaultValueProp)
-        {
-            switch (bbType)
-            {
-                case BlackboardVariableType.Bool:
-                {
-                    bool val = bool.TryParse(defaultValueProp.stringValue, out var v) && v;
-                    bool result = EditorGUI.Toggle(rect, val);
-                    if (result != val)
-                        defaultValueProp.stringValue = result.ToString();
-                    break;
-                }
-                case BlackboardVariableType.Int:
-                {
-                    int val = int.TryParse(defaultValueProp.stringValue, out var v) ? v : 0;
-                    int result = EditorGUI.IntField(rect, val);
-                    if (result != val)
-                        defaultValueProp.stringValue = result.ToString();
-                    break;
-                }
-                case BlackboardVariableType.Float:
-                {
-                    float val = float.TryParse(defaultValueProp.stringValue, out var v) ? v : 0f;
-                    float result = EditorGUI.FloatField(rect, val);
-                    if (Mathf.Abs(result - val) > 1e-6f)
-                        defaultValueProp.stringValue = result.ToString("G");
-                    break;
-                }
-                case BlackboardVariableType.String:
-                {
-                    string result = EditorGUI.TextField(rect, defaultValueProp.stringValue);
-                    if (result != defaultValueProp.stringValue)
-                        defaultValueProp.stringValue = result;
-                    break;
-                }
-                case BlackboardVariableType.Vector2:
-                case BlackboardVariableType.Vector3:
-                {
-                    string result = EditorGUI.TextField(rect, defaultValueProp.stringValue);
-                    if (result != defaultValueProp.stringValue)
-                        defaultValueProp.stringValue = result;
-                    break;
-                }
-            }
         }
     }
 }
