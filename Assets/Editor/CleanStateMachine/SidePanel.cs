@@ -95,6 +95,21 @@ namespace CleanStateMachine
             _panelEdgeSplitter.AddToClassList("panel-edge-splitter");
             Add(_panelEdgeSplitter);
 
+            var panelShadow = new VisualElement();
+            panelShadow.AddToClassList("panel-shadow");
+            panelShadow.pickingMode = PickingMode.Ignore;
+            var shadowTex = new Texture2D(10, 1, TextureFormat.RGBA32, false);
+            shadowTex.wrapMode = TextureWrapMode.Clamp;
+            shadowTex.filterMode = FilterMode.Bilinear;
+            for (int i = 0; i < 10; i++)
+            {
+                float t = i / 9f;
+                shadowTex.SetPixel(i, 0, new Color(0, 0, 0, t * 0.45f));
+            }
+            shadowTex.Apply();
+            panelShadow.style.backgroundImage = new StyleBackground(shadowTex);
+            Add(panelShadow);
+
             RegisterCallback<GeometryChangedEvent>(OnGeometryChanged);
             _panelEdgeSplitter.RegisterCallback<MouseDownEvent>(OnPanelSplitterDown);
             _panelEdgeSplitter.RegisterCallback<MouseMoveEvent>(OnPanelSplitterMove);

@@ -4,6 +4,14 @@
     border-left: 1px solid #141414;
 }
 
+.panel-shadow {
+    position: absolute;
+    left: -10px;
+    top: 0;
+    width: 10px;
+    bottom: 0;
+}
+
 .panel-edge-splitter {
     position: absolute;
     left: 0;
@@ -134,6 +142,7 @@
     background-color: rgba(255, 255, 255, 0.025);
     border-top: 1px solid rgba(255, 255, 255, 0.04);
     border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+    transition: translate 0.1s ease;
 }
 
 .variable-row:hover {

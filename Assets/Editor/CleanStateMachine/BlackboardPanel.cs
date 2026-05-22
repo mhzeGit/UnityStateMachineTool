@@ -21,6 +21,8 @@ namespace CleanStateMachine
         private const float DragThreshold = 5f;
         private const float AutoScrollEdgeThreshold = 20f;
         private const float AutoScrollSpeed = 30f;
+        private const float RowHeight = 30f;
+        private IVisualElementScheduledItem _pendingSmoothMove;
 
         public BlackboardPanel(CleanStateMachineWindow window)
         {
@@ -337,13 +339,20 @@ namespace CleanStateMachine
                 _scrollView.scrollOffset = new Vector2(0, _scrollView.scrollOffset.y + AutoScrollSpeed);
 
             Vector2 contentLocal = _scrollView.contentContainer.WorldToLocal(evt.mousePosition);
-            float rowHeight = 30f;
             int targetIndex = Mathf.Clamp(
-                Mathf.FloorToInt(contentLocal.y / rowHeight),
+                Mathf.FloorToInt(contentLocal.y / RowHeight),
                 0, _variables.Count - 1);
 
             if (targetIndex == _dragIndex) return;
 
+            _pendingSmoothMove?.Pause();
+
+            // FLIP: record old world positions before layout change
+            var oldPositions = new Dictionary<VisualElement, Vector2>(_rows.Count);
+            for (int i = 0; i < _rows.Count; i++)
+                oldPositions[_rows[i]] = _rows[i].LocalToWorld(Vector2.zero);
+
+            // Perform the remove/insert (layout snaps)
             var row = _rows[_dragIndex];
             _scrollView.Remove(row);
 
@@ -355,6 +364,32 @@ namespace CleanStateMachine
             _rows.RemoveAt(_dragIndex);
             _rows.Insert(targetIndex, row);
 
+            // INVERT: apply inverse translate so rows stay visually where they were
+            for (int i = 0; i < _rows.Count; i++)
+            {
+                Vector2 newWorldPos = _rows[i].LocalToWorld(Vector2.zero);
+                if (oldPositions.TryGetValue(_rows[i], out Vector2 oldWorldPos))
+                {
+                    float deltaY = oldWorldPos.y - newWorldPos.y;
+                    if (Mathf.Abs(deltaY) > 0.5f)
+                    {
+                        _rows[i].AddToClassList("variable-row-no-animate");
+                        _rows[i].style.translate = new Translate(0, deltaY);
+                    }
+                }
+            }
+
+            // PLAY: on next frame, remove no-animate class and clear translate to animate back
+            _pendingSmoothMove = schedule.Execute(() =>
+            {
+                for (int i = 0; i < _rows.Count; i++)
+                {
+                    _rows[i].RemoveFromClassList("variable-row-no-animate");
+                    _rows[i].style.translate = new Translate(0, 0);
+                }
+                _pendingSmoothMove = null;
+            }).StartingIn(16);
+
             _dragIndex = targetIndex;
             evt.StopPropagation();
         }
@@ -363,8 +398,17 @@ namespace CleanStateMachine
         {
             _isDragging = false;
             _dragPastThreshold = false;
+            _pendingSmoothMove?.Pause();
+            _pendingSmoothMove = null;
             this.UnregisterCallback<MouseMoveEvent>(OnDragMove);
             this.UnregisterCallback<MouseUpEvent>(OnDragUp);
+
+            // Reset all translates immediately (no animation on drop)
+            for (int i = 0; i < _rows.Count; i++)
+            {
+                _rows[i].RemoveFromClassList("variable-row-no-animate");
+                _rows[i].style.translate = new Translate(0, 0);
+            }
 
             if (_dragIndex >= 0 && _dragIndex < _rows.Count)
                 _rows[_dragIndex].RemoveFromClassList("variable-row-drag");
