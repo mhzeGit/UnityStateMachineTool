@@ -1,23 +1,63 @@
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace CleanStateMachine
 {
-    public class StateView : ISelectable
+    public class StateView : VisualElement, ISelectable
     {
         public Vector2 Position { get; set; }
         public Vector2 Size { get; set; }
-        public string Name { get; set; }
 
-        public bool IsSelected { get; set; }
+        private string _name;
+        public string Name
+        {
+            get => _name;
+            set
+            {
+                _name = value;
+                if (_nameLabel != null)
+                    _nameLabel.text = value;
+            }
+        }
+
+        private bool _isSelected;
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set
+            {
+                _isSelected = value;
+                if (_fill != null)
+                    _fill.EnableInClassList("state-view__fill--selected", value);
+            }
+        }
+
         public bool IsEntry { get; }
         public bool IsEditing { get; set; }
         public string EditingBuffer { get; set; }
         public MonoScript BehaviourScript { get; set; }
         public StateBehaviour BehaviourInstance { get; set; }
-        public bool IsActive { get; set; }
+
+        private bool _isActive;
+        public bool IsActive
+        {
+            get => _isActive;
+            set
+            {
+                _isActive = value;
+            }
+        }
+
         public int DataIndex { get; set; } = -1;
 
+        // Visual children (prepared for future UITK panel integration)
+        private VisualElement _shadow;
+        private VisualElement _fill;
+        private VisualElement _glow;
+        private Label _nameLabel;
+
+        // IMGUI rendering (used while element is not in UITK panel)
         private static GUIStyle _fillStyle;
         private static GUIStyle _borderStyle;
         private static GUIStyle _shadowStyle;
@@ -70,8 +110,32 @@ namespace CleanStateMachine
         {
             Position = position;
             Size = new Vector2(DefaultWidth, DefaultHeight);
-            Name = name;
+            _name = name;
             IsEntry = isEntry;
+
+            // Prepare VisualElement children for future UITK panel integration
+            pickingMode = PickingMode.Ignore;
+            style.position = UnityEngine.UIElements.Position.Absolute;
+            style.overflow = Overflow.Visible;
+
+            _shadow = new VisualElement();
+            _shadow.AddToClassList("state-view__shadow");
+            Add(_shadow);
+
+            _glow = new VisualElement();
+            _glow.AddToClassList("state-view__glow");
+            _glow.style.display = DisplayStyle.None;
+            Add(_glow);
+
+            _fill = new VisualElement();
+            _fill.AddToClassList("state-view__fill");
+            if (IsEntry)
+                _fill.AddToClassList("state-view__fill--entry");
+            Add(_fill);
+
+            _nameLabel = new Label(_name);
+            _nameLabel.AddToClassList("state-view__label");
+            Add(_nameLabel);
         }
 
         public Vector2 GetCenter()
@@ -278,6 +342,8 @@ namespace CleanStateMachine
             GUI.Box(glowRect, "", _glowStyle);
             GUI.color = Color.white;
         }
+
+        // ─── Texture generation (original IMGUI implementation) ─────────────────
 
         private static void EnsureGlowTexture(int innerRadius, int expand)
         {

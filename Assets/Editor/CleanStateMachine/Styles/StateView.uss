@@ -1,0 +1,76 @@
+.state-view {
+    position: absolute;
+    overflow: visible;
+}
+
+.state-view__shadow {
+    position: absolute;
+    left: 4px;
+    top: 4px;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+}
+
+.state-view__fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgb(66, 66, 66);
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    border-left-color: rgb(87, 87, 87);
+    border-right-color: rgb(87, 87, 87);
+    border-top-color: rgb(87, 87, 87);
+    border-bottom-color: rgb(87, 87, 87);
+    border-left-width: 1.5px;
+    border-right-width: 1.5px;
+    border-top-width: 1.5px;
+    border-bottom-width: 1.5px;
+}
+
+.state-view__fill--entry {
+    background-color: rgb(77, 128, 77);
+    border-color: rgb(166, 227, 161);
+}
+
+.state-view__fill--selected {
+    border-color: rgb(137, 180, 250);
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+}
+
+.state-view__fill--entry.state-view__fill--selected {
+    border-color: rgb(137, 180, 250);
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+}
+
+.state-view__glow {
+    position: absolute;
+    background-color: rgba(120, 170, 230, 0.4);
+    border-radius: 12px;
+    opacity: 0;
+}
+
+.state-view__label {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    font-size: 12px;
+    color: white;
+    -unity-text-align: middle-center;
+    padding: 4px;
+    overflow: hidden;
+}

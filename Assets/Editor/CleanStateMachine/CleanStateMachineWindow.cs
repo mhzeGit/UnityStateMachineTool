@@ -124,6 +124,7 @@ namespace CleanStateMachine
         private void CreateGUI()
         {
             rootVisualElement.Clear();
+
             _sidePanelElement = new SidePanel(this);
             _sidePanelElement.style.position = Position.Absolute;
             _sidePanelElement.style.right = 0f;
