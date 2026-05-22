@@ -257,6 +257,7 @@ namespace CleanStateMachine
                 if (_undoRedoSystem.Undo())
                 {
                     MarkChanged();
+                    _sidePanelElement?.UpdateBlackboard();
                     Repaint();
                 }
                 e.Use();
@@ -268,6 +269,7 @@ namespace CleanStateMachine
                 if (_undoRedoSystem.Redo())
                 {
                     MarkChanged();
+                    _sidePanelElement?.UpdateBlackboard();
                     Repaint();
                 }
                 e.Use();
@@ -1037,6 +1039,8 @@ namespace CleanStateMachine
         {
             _detailsHeightRatio = value;
         }
+
+        internal UndoRedoSystem UndoRedoSystem => _undoRedoSystem;
 
         internal List<BlackboardVariable> GetBlackboardVariables() => _blackboardVariables;
 

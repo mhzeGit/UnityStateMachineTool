@@ -112,7 +112,7 @@ namespace CleanStateMachine
 
             row.Add(nameContainer);
 
-            // Right-aligned group: value + delete
+            // Right-aligned group: value
             var rightGroup = new VisualElement();
             rightGroup.AddToClassList("variable-right");
 
@@ -124,7 +124,9 @@ namespace CleanStateMachine
                 toggle.value = variable.BoolValue;
                 toggle.RegisterValueChangedCallback(e =>
                 {
-                    variable.BoolValue = e.newValue;
+                    var cmd = new ModifyBlackboardVariableCommand(
+                        variable, e.previousValue.ToString(), e.newValue.ToString());
+                    _window.UndoRedoSystem.Execute(cmd);
                     _window.NotifySidePanelChanged();
                 });
                 toggleContainer.Add(toggle);
@@ -137,24 +139,13 @@ namespace CleanStateMachine
                 valueField.value = variable.StringValue;
                 valueField.RegisterValueChangedCallback(e =>
                 {
-                    variable.StringValue = e.newValue;
+                    var cmd = new ModifyBlackboardVariableCommand(
+                        variable, e.previousValue, e.newValue);
+                    _window.UndoRedoSystem.Execute(cmd);
                     _window.NotifySidePanelChanged();
                 });
                 rightGroup.Add(valueField);
             }
-
-            // Delete button
-            var deleteBtn = new Label("\u00D7");
-            deleteBtn.AddToClassList("variable-delete");
-            deleteBtn.RegisterCallback<ClickEvent>(e =>
-            {
-                if (_variables == null) return;
-                _variables.RemoveAt(index);
-                _window.NotifySidePanelChanged();
-                Rebuild();
-                e.StopPropagation();
-            });
-            rightGroup.Add(deleteBtn);
 
             row.Add(rightGroup);
 
@@ -166,8 +157,8 @@ namespace CleanStateMachine
                 menu.AddItem(new GUIContent("Delete Variable"), false, () =>
                 {
                     if (_variables == null) return;
-                    _variables.RemoveAt(capturedIdx);
-                    _window.NotifySidePanelChanged();
+                    var cmd = new DeleteBlackboardVariableCommand(_variables, capturedIdx);
+                    _window.UndoRedoSystem.Execute(cmd);
                     Rebuild();
                 });
                 menu.ShowAsContext();
@@ -292,11 +283,25 @@ namespace CleanStateMachine
         {
             if (_variables == null) return;
 
+            var menu = new GenericMenu();
+            foreach (BlackboardVariableType type in System.Enum.GetValues(typeof(BlackboardVariableType)))
+            {
+                BlackboardVariableType capturedType = type;
+                string label = ObjectNames.NicifyVariableName(type.ToString());
+                menu.AddItem(new GUIContent(label), false, () => AddVariable(capturedType));
+            }
+            menu.ShowAsContext();
+        }
+
+        private void AddVariable(BlackboardVariableType type)
+        {
+            if (_variables == null) return;
+
             var v = new BlackboardVariable
             {
                 Name = GetUniqueName("New Variable"),
-                Type = BlackboardVariableType.Float,
-                StringValue = "0"
+                Type = type,
+                StringValue = type == BlackboardVariableType.Bool ? "False" : "0"
             };
             _variables.Add(v);
             _window.NotifySidePanelChanged();

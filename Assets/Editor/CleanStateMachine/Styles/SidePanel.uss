@@ -176,7 +176,8 @@
 .variable-name {
     font-size: 12px;
     color: rgba(255, 255, 255, 0.85);
-    flex-grow: 1;
+    flex: 1;
+    min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -203,17 +204,18 @@
     border-color: rgba(255, 255, 255, 0.4);
 }
 
-/* Right-aligned group (value + delete) */
+/* Right-aligned group (value) */
 .variable-right {
     flex-direction: row;
     align-items: center;
-    flex-shrink: 0;
+    flex: 1;
+    min-width: 0;
 }
 
 /* Variable value TextField */
 .variable-value {
-    width: 80px;
-    flex-shrink: 0;
+    flex: 1;
+    min-width: 60px;
 }
 
 .variable-value .unity-text-field__input,
@@ -236,34 +238,10 @@
 
 /* Variable value Toggle (Bool) */
 .variable-value-toggle {
-    width: 80px;
-    flex-shrink: 0;
+    flex: 1;
     height: 22px;
     justify-content: center;
     align-items: center;
-}
-
-/* Delete button - dim by default, visible on row hover */
-.variable-delete {
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
-    justify-content: center;
-    align-items: center;
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.2);
-    flex-shrink: 0;
-    opacity: 0;
-}
-
-.variable-row:hover .variable-delete {
-    opacity: 1;
-}
-
-.variable-delete:hover {
-    color: rgba(255, 120, 120, 0.9);
-    background-color: rgba(255, 0, 0, 0.1);
-    border-radius: 3px;
 }
 
 /* --- Add Button --- */
@@ -284,7 +262,10 @@
 
 .add-button:hover {
     color: #f2f2f2;
-    background-color: #333333;
+}
+
+.add-button:active {
+    background-color: transparent;
 }
 
 /* --- Empty State --- */
