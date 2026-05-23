@@ -3,7 +3,6 @@
     flex-direction: column;
     border-left-color: #141414;
     border-left-width: 1px;
-    border-left-style: solid;
 }
 
 .panel-shadow {
@@ -52,7 +51,6 @@
     background-color: #262626;
     border-bottom-color: #141414;
     border-bottom-width: 1px;
-    border-bottom-style: solid;
     flex-direction: row;
     align-items: center;
     flex-shrink: 0;
@@ -134,7 +132,6 @@
     background-color: #1f1f1f;
     border-color: #141414;
     border-width: 1px;
-    border-style: solid;
     border-radius: 2px;
     margin-left: 4px;
     margin-right: 4px;
@@ -282,7 +279,6 @@
     background-color: rgba(255, 255, 255, 0.025);
     border-bottom-color: rgba(255, 255, 255, 0.09);
     border-bottom-width: 1px;
-    border-bottom-style: solid;
 }
 
 .variable-row:hover {
@@ -513,7 +509,6 @@
     background-color: #1e1e1e;
     border-bottom-color: #141414;
     border-bottom-width: 1px;
-    border-bottom-style: solid;
     flex-shrink: 0;
 }
 
@@ -524,7 +519,6 @@
     background-color: #1e1e1e;
     border-bottom-color: #141414;
     border-bottom-width: 1px;
-    border-bottom-style: solid;
     flex-shrink: 0;
 }
 
@@ -675,7 +669,6 @@
     background-color: #161616;
     border-color: #141414;
     border-width: 1px;
-    border-style: solid;
     border-radius: 3px;
     margin-left: 4px;
     margin-right: 4px;
