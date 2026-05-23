@@ -161,7 +161,19 @@ MonoBehaviour:
       BehaviourType: DebugLog_StateBehaviour
       Behaviour: {fileID: 6409677120155523139}
     - Name: State
-      Position: {x: 581.5619, y: 106.61545}
+      Position: {x: 621.1653, y: -9.064213}
+      Size: {x: 160, y: 40}
+      IsEntry: 0
+      BehaviourType: 
+      Behaviour: {fileID: 0}
+    - Name: State
+      Position: {x: 762.3532, y: 82.517136}
+      Size: {x: 160, y: 40}
+      IsEntry: 0
+      BehaviourType: 
+      Behaviour: {fileID: 0}
+    - Name: State
+      Position: {x: 876.8299, y: -10.336176}
       Size: {x: 160, y: 40}
       IsEntry: 0
       BehaviourType: 
@@ -172,9 +184,6 @@ MonoBehaviour:
       Conditions: []
     - FromIndex: 0
       ToIndex: 3
-      Conditions: []
-    - FromIndex: 3
-      ToIndex: 4
       Conditions: []
     - FromIndex: 3
       ToIndex: 1
@@ -190,8 +199,8 @@ MonoBehaviour:
         Instance: {fileID: -74142085561586492}
     Groups:
     - Label: Group 1
-      MemberIndices: 0200000004000000
-      Color: {r: 0.21698111, g: 0.06243324, b: 0.06243324, a: 0.48235294}
+      MemberIndices: 040000000500000006000000
+      Color: {r: 0.18, g: 0.18, b: 0.18, a: 0.35}
     BlackboardVariables:
     - Name: WrongState
       Type: 3
@@ -202,8 +211,8 @@ MonoBehaviour:
     - Name: CanEnterAnyState
       Type: 0
       StringValue: False
-    PanOffset: {x: -207.92438, y: 196.37381}
-    Zoom: 0.9134181
+    PanOffset: {x: -210.35162, y: 207.12616}
+    Zoom: 0.7861863
     ShowSidePanel: 1
     SidePanelWidth: 308
     DetailsHeightRatio: 0.6218656

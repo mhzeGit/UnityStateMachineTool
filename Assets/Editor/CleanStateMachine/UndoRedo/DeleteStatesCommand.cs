@@ -12,6 +12,7 @@ namespace CleanStateMachine
         private readonly List<StateView> _deletedStates = new();
         private readonly List<ConnectionView> _deletedConnections = new();
         private readonly List<CommentGroupView> _deletedGroups = new();
+        private readonly Dictionary<CommentGroupView, List<StateView>> _removedFromGroup = new();
 
         public string Description
         {
@@ -66,6 +67,31 @@ namespace CleanStateMachine
             }
 
             _deletedGroups.AddRange(selectedGroups);
+
+            for (int i = 0; i < _deletedStates.Count; i++)
+            {
+                var state = _deletedStates[i];
+                for (int j = 0; j < _groupList.Count; j++)
+                {
+                    var group = _groupList[j];
+                    if (selectedGroups.Contains(group))
+                        continue;
+
+                    for (int k = 0; k < group.Members.Count; k++)
+                    {
+                        if (group.Members[k] != state)
+                            continue;
+
+                        if (!_removedFromGroup.TryGetValue(group, out var list))
+                        {
+                            list = new List<StateView>();
+                            _removedFromGroup[group] = list;
+                        }
+                        list.Add(state);
+                        break;
+                    }
+                }
+            }
         }
 
         public void Execute()
@@ -78,6 +104,12 @@ namespace CleanStateMachine
 
             for (int i = 0; i < _deletedStates.Count; i++)
                 _stateList.Remove(_deletedStates[i]);
+
+            foreach (var kvp in _removedFromGroup)
+            {
+                for (int i = 0; i < kvp.Value.Count; i++)
+                    kvp.Key.RemoveMember(kvp.Value[i]);
+            }
         }
 
         public void Undo()
@@ -93,6 +125,12 @@ namespace CleanStateMachine
             for (int i = 0; i < _deletedGroups.Count; i++)
                 if (!_groupList.Contains(_deletedGroups[i]))
                     _groupList.Add(_deletedGroups[i]);
+
+            foreach (var kvp in _removedFromGroup)
+            {
+                for (int i = 0; i < kvp.Value.Count; i++)
+                    kvp.Key.AddMember(kvp.Value[i]);
+            }
         }
 
         public void Redo()

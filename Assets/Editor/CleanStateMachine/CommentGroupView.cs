@@ -35,6 +35,17 @@ namespace CleanStateMachine
         }
         public IReadOnlyList<StateView> Members => _members;
 
+        public bool RemoveMember(StateView state)
+        {
+            return _members.Remove(state);
+        }
+
+        public void AddMember(StateView state)
+        {
+            if (!_members.Contains(state))
+                _members.Add(state);
+        }
+
         public event Action<CommentGroupView, string, string> EditingCommitted;
 
         private const float PadH = 20f;
