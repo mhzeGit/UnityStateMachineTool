@@ -45,11 +45,8 @@ namespace CleanStateMachine
             addBtn.AddToClassList("add-button");
             addBtn.clicked += () =>
             {
-                var root = panel?.visualTree;
-                if (root == null) return;
-
                 var pos = addBtn.worldBound.position + new Vector2(0f, addBtn.worldBound.height);
-                MenuDropdown.Show(root, pos, menu =>
+                MenuDropdown.Show(_window.rootVisualElement, pos, menu =>
                 {
                     foreach (BlackboardVariableType type in System.Enum.GetValues(typeof(BlackboardVariableType)))
                     {
@@ -260,11 +257,8 @@ namespace CleanStateMachine
             // Right-click context menu
             row.RegisterCallback<ContextClickEvent>(e =>
             {
-                var root = panel?.visualTree;
-                if (root == null) return;
-
                 int idx = (int)row.userData;
-                MenuDropdown.Show(root, e.mousePosition, menu =>
+                MenuDropdown.Show(_window.rootVisualElement, e.mousePosition, menu =>
                 {
                     menu.AddItem("Delete Variable", () =>
                     {

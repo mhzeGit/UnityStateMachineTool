@@ -188,6 +188,7 @@ namespace CleanStateMachine
             _sidePanelElement.style.bottom = 0f;
             rootVisualElement.Add(_sidePanelElement);
 
+            SyncGroupElements();
             rootVisualElement.schedule.Execute(() =>
             {
                 _sidePanelElement?.SyncFromWindow();
@@ -786,6 +787,8 @@ namespace CleanStateMachine
         private void SyncGroupElements()
         {
             if (_groupContainer == null) return;
+            if (_editingGroup != null && !_groups.Contains(_editingGroup))
+                _editingGroup = null;
             _groupContainer.Clear();
             for (int i = 0; i < _groups.Count; i++)
             {

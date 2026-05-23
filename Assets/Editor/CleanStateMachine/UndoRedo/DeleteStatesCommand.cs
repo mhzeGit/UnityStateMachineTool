@@ -54,12 +54,6 @@ namespace CleanStateMachine
                     selectedGroups.Add(g);
             }
 
-            foreach (var group in selectedGroups)
-            {
-                for (int i = 0; i < group.Members.Count; i++)
-                    selectedStates.Add(group.Members[i]);
-            }
-
             _deletedStates.AddRange(selectedStates);
 
             for (int i = 0; i < _connectionList.Count; i++)

@@ -336,12 +336,9 @@ namespace CleanStateMachine
             pickerBtn.text = currentScript != null ? currentScript.name : "None (Select...)";
             pickerBtn.clicked += () =>
             {
-                var root = panel?.visualTree;
-                if (root == null) return;
-
                 var filtered = FindFilteredScripts(isValid);
                 var pos = pickerBtn.worldBound.position + new Vector2(0f, pickerBtn.worldBound.height);
-                MenuDropdown.Show(root, pos, menu =>
+                MenuDropdown.Show(_window.rootVisualElement, pos, menu =>
                 {
                     menu.AddItem("None", () => onAssign(currentScript, null));
                     menu.AddSeparator();
@@ -486,11 +483,8 @@ namespace CleanStateMachine
 
                     dropdownBtn.clicked += () =>
                     {
-                        var root = panel?.visualTree;
-                        if (root == null) return;
-
                         var pos = dropdownBtn.worldBound.position + new Vector2(0f, dropdownBtn.worldBound.height);
-                        MenuDropdown.Show(root, pos, menu =>
+                        MenuDropdown.Show(_window.rootVisualElement, pos, menu =>
                         {
                             menu.AddItem("None (direct)", () =>
                             {
@@ -602,11 +596,8 @@ namespace CleanStateMachine
 
             modeBtn.clicked += () =>
             {
-                var root = panel?.visualTree;
-                if (root == null) return;
-
                 var pos = modeBtn.worldBound.position + new Vector2(0f, modeBtn.worldBound.height);
-                MenuDropdown.Show(root, pos, menu =>
+                MenuDropdown.Show(_window.rootVisualElement, pos, menu =>
                 {
                     menu.AddItem("Direct", () =>
                     {
