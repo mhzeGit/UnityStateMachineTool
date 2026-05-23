@@ -58,9 +58,10 @@ namespace CleanStateMachine
                 GetScreenEndpoints(conn, out Vector3 startPos, out Vector3 endPos);
 
                 float fade = 0f;
+                double elapsed = 0;
                 if (conn.IsActive)
                 {
-                    double elapsed = Time.realtimeSinceStartup - conn.ActivationTime;
+                    elapsed = Time.realtimeSinceStartup - conn.ActivationTime;
                     fade = Mathf.Clamp01(1f - (float)(elapsed / 3.0));
                     if (fade <= 0.01f)
                     {
@@ -73,14 +74,25 @@ namespace CleanStateMachine
                     }
                 }
 
+                float widthMultiplier = 1f;
+                if (fade > 0.01f)
+                {
+                    const float burstDuration = 0.25f;
+                    if (elapsed < burstDuration)
+                    {
+                        float t = (float)(elapsed / burstDuration);
+                        widthMultiplier = 1f + 1f * (1f - t) * (1f - t);
+                    }
+                }
+
                 Color color = conn.IsSelected ? SelectedColor : Color.Lerp(ConnectionColor, ActiveConnectionColor, fade);
-                float width = Mathf.Max(1f, (conn.IsSelected ? SelectedBaseWidth : BaseWidth) * _zoom);
+                float width = Mathf.Max(1f, (conn.IsSelected ? SelectedBaseWidth : BaseWidth) * _zoom * widthMultiplier);
 
                 DrawLine(mgc, startPos, endPos, color, width);
                 DrawMidArrowhead(mgc, startPos, endPos, color, _zoom);
 
                 if (fade > 0.01f)
-                    DrawActiveWave(mgc, startPos, endPos, _zoom, fade, color);
+                    DrawActiveWave(mgc, startPos, endPos, _zoom, fade, color, elapsed);
             }
         }
 
@@ -205,17 +217,34 @@ namespace CleanStateMachine
             mesh.SetNextIndex(2); mesh.SetNextIndex(3); mesh.SetNextIndex(5);
         }
 
-        private static void DrawActiveWave(MeshGenerationContext mgc, Vector3 start, Vector3 end, float zoom, float fade, Color arrowColor)
+        private static void DrawActiveWave(MeshGenerationContext mgc, Vector3 start, Vector3 end, float zoom, float fade, Color arrowColor, double elapsed)
         {
             Vector3 dir = (end - start).normalized;
             float totalLen = Vector3.Distance(start, end);
             if (totalLen < 0.01f) return;
 
-            float speed = 0.8f;
+            const float burstDuration = 0.25f;
+            const float burstPeak = 2.5f;
+
+            float burst = 1f;
+            if (elapsed < burstDuration)
+            {
+                float t = (float)(elapsed / burstDuration);
+                burst = 1f + (burstPeak - 1f) * (1f - t) * (1f - t);
+            }
+
+            float speed = 0.8f * burst;
             int circleCount = 5;
-            float circleRadius = Mathf.Max(2f, 4f * zoom);
+            float circleRadius = Mathf.Max(2f, 4f * zoom) * burst;
 
             Color waveColor = new Color(arrowColor.r, arrowColor.g, arrowColor.b, arrowColor.a * fade);
+
+            if (burst > 1f)
+            {
+                float burstAlpha = (burst - 1f) / (burstPeak - 1f);
+                waveColor = Color.Lerp(waveColor, Color.white, burstAlpha * burstAlpha);
+                waveColor.a = arrowColor.a * fade;
+            }
 
             for (int i = 0; i < circleCount; i++)
             {

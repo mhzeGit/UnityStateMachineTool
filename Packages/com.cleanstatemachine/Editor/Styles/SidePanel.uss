@@ -205,12 +205,6 @@
 .bb-value-area .unity-toggle {
     flex: 1;
     height: 22px;
-    background-color: #212121;
-}
-
-.bb-value-area .unity-toggle .unity-base-field__input,
-.bb-value-area .unity-toggle__input {
-    background-color: #212121;
 }
 
 .bb-value-area .unity-integer-field,
@@ -413,14 +407,7 @@
     align-items: center;
 }
 
-.variable-value-toggle .unity-toggle {
-    background-color: #212121;
-}
 
-.variable-value-toggle .unity-toggle .unity-base-field__input,
-.variable-value-toggle .unity-toggle__input {
-    background-color: #212121;
-}
 
 /* Vector field (multiple axis inputs) */
 .variable-value-vector {

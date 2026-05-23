@@ -79,12 +79,6 @@
     flex-direction: row;
     justify-content: flex-start;
     align-items: center;
-    background-color: #212121;
-}
-
-.variable-field.unity-toggle .unity-base-field__input,
-.variable-field.unity-toggle .unity-toggle__input {
-    background-color: #212121;
 }
 
 .variable-field {
