@@ -41,6 +41,8 @@ namespace CleanStateMachine
             public Vector2 position;
             public string name;
             public Vector2 size;
+            public MonoScript behaviourScript;
+            public StateBehaviour behaviourInstance;
         }
 
         private static List<CopiedStateData> _clipboard;
@@ -367,6 +369,14 @@ namespace CleanStateMachine
             if (e.keyCode == KeyCode.V && e.control)
             {
                 PasteStates();
+                e.Use();
+                Repaint();
+                return;
+            }
+
+            if (e.keyCode == KeyCode.D && e.control)
+            {
+                DuplicateSelectedStates();
                 e.Use();
                 Repaint();
                 return;
@@ -1053,7 +1063,9 @@ namespace CleanStateMachine
                     {
                         position = s.Position,
                         name = s.Name,
-                        size = s.Size
+                        size = s.Size,
+                        behaviourScript = s.BehaviourScript,
+                        behaviourInstance = s.BehaviourInstance
                     });
                 }
             }
@@ -1090,8 +1102,23 @@ namespace CleanStateMachine
                 var state = new StateView(data.position + offset, data.name)
                 {
                     Size = data.size,
-                    DataIndex = _states.Count
+                    DataIndex = _states.Count,
+                    BehaviourScript = data.behaviourScript
                 };
+
+                if (data.behaviourScript != null && data.behaviourInstance != null)
+                {
+                    var type = data.behaviourScript.GetClass();
+                    if (type != null && type.IsSubclassOf(typeof(StateBehaviour)))
+                    {
+                        var instance = (StateBehaviour)ScriptableObject.CreateInstance(type);
+                        EditorUtility.CopySerialized(data.behaviourInstance, instance);
+                        instance.name = $"{state.Name}_Behaviour";
+                        instance.hideFlags = HideFlags.HideInHierarchy;
+                        state.BehaviourInstance = instance;
+                    }
+                }
+
                 composite.Add(new CreateStateCommand(_states, state));
                 pastedStates.Add(state);
             }
@@ -1104,6 +1131,20 @@ namespace CleanStateMachine
                 _selectionController.Select(pastedStates[i]);
 
             Repaint();
+        }
+
+        private void DuplicateSelectedStates()
+        {
+            CopySelectedStates();
+            if (_clipboard == null || _clipboard.Count == 0) return;
+
+            for (int i = 0; i < _clipboard.Count; i++)
+            {
+                var d = _clipboard[i];
+                d.position += new Vector2(20f, 20f);
+            }
+
+            PasteStates();
         }
 
         private void DeleteSelected()

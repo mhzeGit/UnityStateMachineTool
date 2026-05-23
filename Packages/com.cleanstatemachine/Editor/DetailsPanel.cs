@@ -20,6 +20,12 @@ namespace CleanStateMachine
         private ScriptableObject _currentSO;
         private readonly Label _emptyLabel;
 
+        private static ConditionEntryView _conditionClipboard;
+
+        private int _hoveredConditionIndex = -1;
+        private bool _hoveringAddButton;
+        private ConnectionView _activeConnection;
+
         public DetailsPanel(CleanStateMachineWindow window)
         {
             _window = window;
@@ -35,6 +41,9 @@ namespace CleanStateMachine
 
             _scrollView = new ScrollView();
             _scrollView.AddToClassList("details-scroll");
+            _scrollView.focusable = true;
+            _scrollView.RegisterCallback<KeyDownEvent>(OnConditionKeyDown);
+            _scrollView.RegisterCallback<MouseEnterEvent>(_ => _scrollView.Focus());
             Add(_scrollView);
 
             _emptyLabel = new Label("Select an item to inspect");
@@ -52,6 +61,9 @@ namespace CleanStateMachine
             _connections = connections;
             _blackboardVariables = blackboardVariables;
             _currentSO = null;
+            _hoveredConditionIndex = -1;
+            _hoveringAddButton = false;
+            _activeConnection = null;
 
             _scrollView.Clear();
             _emptyLabel.RemoveFromHierarchy();
@@ -144,6 +156,7 @@ namespace CleanStateMachine
 
         private void BuildConnectionContent(ConnectionView conn)
         {
+            _activeConnection = conn;
             AddSectionTitle("Connection Information");
             AddInfoRow("From", conn.From?.Name ?? "\u2014");
             AddInfoRow("To", conn.To?.Name ?? "\u2014");
@@ -164,6 +177,35 @@ namespace CleanStateMachine
             });
             addBtn.text = "+ Add Condition";
             addBtn.AddToClassList("add-condition-button");
+            addBtn.focusable = true;
+
+            addBtn.RegisterCallback<MouseEnterEvent>(_ =>
+            {
+                _hoveringAddButton = true;
+                _hoveredConditionIndex = -1;
+            });
+            addBtn.RegisterCallback<MouseLeaveEvent>(_ => _hoveringAddButton = false);
+
+            addBtn.RegisterCallback<ContextClickEvent>(evt =>
+            {
+                if (_conditionClipboard?.Script == null || _conditionClipboard.Instance == null) return;
+                var pos = _window.rootVisualElement.WorldToLocal(
+                    new Vector2(evt.mousePosition.x, evt.mousePosition.y));
+                MenuDropdown.Show(_window.rootVisualElement, pos, menu =>
+                {
+                    menu.AddItem("Paste Condition", () => AppendConditionFromClipboard(conn));
+                });
+            });
+
+            addBtn.RegisterCallback<KeyDownEvent>(evt =>
+            {
+                if (evt.ctrlKey && evt.keyCode == KeyCode.V && _conditionClipboard?.Script != null)
+                {
+                    AppendConditionFromClipboard(conn);
+                    evt.StopPropagation();
+                }
+            });
+
             _scrollView.Add(addBtn);
         }
 
@@ -196,6 +238,37 @@ namespace CleanStateMachine
             removeBtn.AddToClassList("condition-remove-button");
             header.Add(removeBtn);
 
+            var capturedIndex = index;
+
+            container.RegisterCallback<MouseEnterEvent>(_ =>
+            {
+                _hoveredConditionIndex = capturedIndex;
+                _hoveringAddButton = false;
+            });
+            container.RegisterCallback<MouseLeaveEvent>(_ =>
+            {
+                if (_hoveredConditionIndex == capturedIndex)
+                    _hoveredConditionIndex = -1;
+            });
+
+            container.RegisterCallback<ContextClickEvent>(evt =>
+            {
+                var pos = _window.rootVisualElement.WorldToLocal(
+                    new Vector2(evt.mousePosition.x, evt.mousePosition.y));
+                MenuDropdown.Show(_window.rootVisualElement, pos, menu =>
+                {
+                    if (entry.Script != null)
+                        menu.AddItem("Copy Condition", () => CopyCondition(entry));
+                    else
+                        menu.AddDisabledItem("Copy Condition");
+
+                    if (_conditionClipboard != null && _conditionClipboard.Script != null)
+                        menu.AddItem("Paste Condition", () => PasteCondition(conn, capturedIndex));
+                    else
+                        menu.AddDisabledItem("Paste Condition");
+                });
+            });
+
             container.Add(header);
 
             var scriptRow = new VisualElement();
@@ -204,7 +277,6 @@ namespace CleanStateMachine
             var pickerBtn = new Button();
             pickerBtn.AddToClassList("script-picker-button");
             pickerBtn.text = entry.Script != null ? GetConditionDisplayName(entry.Script) : "None (Select...)";
-            var capturedIndex = index;
             pickerBtn.clicked += () =>
             {
                 var filtered = FindFilteredScripts(IsValidConditionScript);
@@ -293,6 +365,96 @@ namespace CleanStateMachine
             }
 
             _scrollView.Add(container);
+        }
+
+        private void CopyCondition(ConditionEntryView entry)
+        {
+            if (entry.Script == null || entry.Instance == null) return;
+
+            var type = entry.Script.GetClass();
+            if (type == null) return;
+
+            _conditionClipboard = new ConditionEntryView
+            {
+                Script = entry.Script,
+                Instance = null
+            };
+
+            var clone = (ConditionScript)ScriptableObject.CreateInstance(type);
+            EditorUtility.CopySerialized(entry.Instance, clone);
+            clone.name = $"{type.Name}_Clipboard";
+            clone.hideFlags = HideFlags.HideInHierarchy;
+            _conditionClipboard.Instance = clone;
+        }
+
+        private void PasteCondition(ConnectionView conn, int afterIndex)
+        {
+            if (_conditionClipboard?.Script == null || _conditionClipboard.Instance == null) return;
+
+            var type = _conditionClipboard.Script.GetClass();
+            if (type == null) return;
+
+            var instance = (ConditionScript)ScriptableObject.CreateInstance(type);
+            EditorUtility.CopySerialized(_conditionClipboard.Instance, instance);
+            instance.hideFlags = HideFlags.HideInHierarchy;
+
+            conn.ConditionEntries.Insert(afterIndex + 1, new ConditionEntryView
+            {
+                Script = _conditionClipboard.Script,
+                Instance = instance
+            });
+
+            _window.NotifySidePanelChanged();
+            UpdateSelection(_selected, _states, _connections, _blackboardVariables);
+        }
+
+        private void AppendConditionFromClipboard(ConnectionView conn)
+        {
+            if (_conditionClipboard?.Script == null || _conditionClipboard.Instance == null) return;
+            var type = _conditionClipboard.Script.GetClass();
+            if (type == null) return;
+            var instance = (ConditionScript)ScriptableObject.CreateInstance(type);
+            EditorUtility.CopySerialized(_conditionClipboard.Instance, instance);
+            instance.hideFlags = HideFlags.HideInHierarchy;
+            conn.ConditionEntries.Add(new ConditionEntryView
+            {
+                Script = _conditionClipboard.Script,
+                Instance = instance
+            });
+            _window.NotifySidePanelChanged();
+            UpdateSelection(_selected, _states, _connections, _blackboardVariables);
+        }
+
+        private void OnConditionKeyDown(KeyDownEvent evt)
+        {
+            if (!evt.ctrlKey) return;
+
+            if (evt.keyCode == KeyCode.C && _hoveredConditionIndex >= 0 && _activeConnection != null)
+            {
+                var entries = _activeConnection.ConditionEntries;
+                if (_hoveredConditionIndex < entries.Count)
+                {
+                    var entry = entries[_hoveredConditionIndex];
+                    if (entry.Script != null && entry.Instance != null)
+                        CopyCondition(entry);
+                    evt.StopPropagation();
+                }
+                return;
+            }
+
+            if (evt.keyCode == KeyCode.V && _conditionClipboard?.Script != null)
+            {
+                if (_hoveredConditionIndex >= 0 && _activeConnection != null)
+                {
+                    PasteCondition(_activeConnection, _hoveredConditionIndex);
+                    evt.StopPropagation();
+                }
+                else if (_hoveringAddButton && _activeConnection != null)
+                {
+                    AppendConditionFromClipboard(_activeConnection);
+                    evt.StopPropagation();
+                }
+            }
         }
 
         private void OnConditionEntryScriptChanged(ConnectionView conn, int index, MonoScript next)
