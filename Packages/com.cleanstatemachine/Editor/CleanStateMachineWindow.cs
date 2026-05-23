@@ -96,6 +96,7 @@ namespace CleanStateMachine
         private static readonly Vector2 EntryStatePosition = new Vector2(50f, 200f);
         private const float CollapsedPanelWidth = 35f;
         private const float ResizeHandleScreenSize = 8f;
+        private const int DoubleClickTimeMs = 160;
 
         private void OnEnable()
         {
@@ -519,7 +520,7 @@ namespace CleanStateMachine
                 long elapsed = now - _lastClickTimestamp;
                 bool sameState = sv == _lastDoubleClickCandidate;
 
-                if (sameState && elapsed < 500)
+                if (sameState && elapsed < DoubleClickTimeMs)
                 {
                     _lastDoubleClickCandidate = null;
                     if (!_selectionController.IsSelected(sv))
@@ -543,7 +544,7 @@ namespace CleanStateMachine
                 long elapsed = now - _lastClickTimestamp;
                 bool sameGroup = gv == _lastDoubleClickCandidateGroup;
 
-                if (sameGroup && elapsed < 500)
+                if (sameGroup && elapsed < DoubleClickTimeMs)
                 {
                     _lastDoubleClickCandidateGroup = null;
                     if (!_selectionController.IsSelected(gv))
