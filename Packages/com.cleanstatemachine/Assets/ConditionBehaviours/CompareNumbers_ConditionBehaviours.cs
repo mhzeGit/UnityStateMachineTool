@@ -13,31 +13,31 @@ public class CompareNumbers_ConditionBehaviours : ConditionScript
         LessThanOrEqual
     }
 
-    public CleanStateMachine.BlackboardVariableType number1Type = CleanStateMachine.BlackboardVariableType.Float;
     public CleanStateMachine.BlackboardVariableReference number1 = new CleanStateMachine.BlackboardVariableReference
     {
-        ValueType = CleanStateMachine.BlackboardVariableType.Float,
+        ValueType = CleanStateMachine.BlackboardVariableType.Int,
         DefaultValue = "0"
     };
-    public CleanStateMachine.BlackboardVariableType number2Type = CleanStateMachine.BlackboardVariableType.Float;
     public CleanStateMachine.BlackboardVariableReference number2 = new CleanStateMachine.BlackboardVariableReference
     {
-        ValueType = CleanStateMachine.BlackboardVariableType.Float,
+        ValueType = CleanStateMachine.BlackboardVariableType.Int,
         DefaultValue = "0"
     };
     public ComparisonType comparison = ComparisonType.Equal;
 
-    private static float GetValue(CleanStateMachine.BlackboardVariableReference variable, CleanStateMachine.BlackboardVariableType type, StateMachineComponent stateMachine)
+    public override string DisplayName => "Compare Numbers";
+
+    private static float GetValue(CleanStateMachine.BlackboardVariableReference variable, StateMachineComponent stateMachine)
     {
-        return type == CleanStateMachine.BlackboardVariableType.Int
+        return variable.ValueType == CleanStateMachine.BlackboardVariableType.Int
             ? variable.GetIntValue(stateMachine)
             : variable.GetFloatValue(stateMachine);
     }
 
     public override bool Evaluate(StateMachineComponent stateMachine)
     {
-        float a = GetValue(number1, number1Type, stateMachine);
-        float b = GetValue(number2, number2Type, stateMachine);
+        float a = GetValue(number1, stateMachine);
+        float b = GetValue(number2, stateMachine);
 
         return comparison switch
         {

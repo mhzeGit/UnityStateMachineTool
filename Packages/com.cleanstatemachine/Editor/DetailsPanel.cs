@@ -203,7 +203,7 @@ namespace CleanStateMachine
 
             var pickerBtn = new Button();
             pickerBtn.AddToClassList("script-picker-button");
-            pickerBtn.text = entry.Script != null ? entry.Script.name : "None (Select...)";
+            pickerBtn.text = entry.Script != null ? GetConditionDisplayName(entry.Script) : "None (Select...)";
             var capturedIndex = index;
             pickerBtn.clicked += () =>
             {
@@ -217,7 +217,7 @@ namespace CleanStateMachine
                     foreach (var script in filtered)
                     {
                         var captured = script;
-                        menu.AddItem(script.name, () => OnConditionEntryScriptChanged(conn, capturedIndex, captured));
+                        menu.AddItem(GetConditionDisplayName(script), () => OnConditionEntryScriptChanged(conn, capturedIndex, captured));
                     }
                     if (filtered.Count == 0)
                         menu.AddDisabledItem("No matching scripts found");
@@ -237,9 +237,8 @@ namespace CleanStateMachine
 
             if (entry.Script != null)
             {
-                var scriptType = entry.Script.GetClass();
-                string typeName = scriptType != null ? scriptType.Name : entry.Script.name;
-                var typeLabel = new Label(typeName);
+                string displayName = GetConditionDisplayName(entry.Script);
+                var typeLabel = new Label(displayName);
                 typeLabel.AddToClassList("script-type-name");
                 container.Add(typeLabel);
 
@@ -770,6 +769,20 @@ namespace CleanStateMachine
         {
             var type = script.GetClass();
             return type != null && type.IsSubclassOf(typeof(ConditionScript));
+        }
+
+        private static string GetConditionDisplayName(MonoScript script)
+        {
+            var type = script.GetClass();
+            if (type == null) return script.name;
+            if (type.IsSubclassOf(typeof(ConditionScript)))
+            {
+                var instance = (ConditionScript)ScriptableObject.CreateInstance(type);
+                string name = instance.DisplayName;
+                Object.DestroyImmediate(instance);
+                return name;
+            }
+            return type.Name;
         }
 
         // ─── UTILITY ───────────────────────────────────────────────────

@@ -14,6 +14,8 @@ public class SimpleBool_ConditionBehaviours : ConditionScript
         DefaultValue = "False"
     };
 
+    public override string DisplayName => "Simple Bool";
+
     public override bool Evaluate(StateMachineComponent stateMachine)
     {
         bool result = conditionBool.GetBoolValue(stateMachine);
