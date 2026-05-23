@@ -1,0 +1,16 @@
+{
+  "name": "com.cleanstatemachine",
+  "version": "1.0.0",
+  "displayName": "Clean State Machine",
+  "description": "A clean state machine system for Unity with visual graph editor",
+  "unity": "6000.0",
+  "dependencies": {},
+  "keywords": [
+    "state machine",
+    "visual editor",
+    "graph"
+  ],
+  "author": {
+    "name": "mhze"
+  }
+}

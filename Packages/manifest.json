@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "com.cleanstatemachine": "file:Packages/com.cleanstatemachine",
     "com.mhze.unity-folder-colorizer": "https://github.com/mhzeGit/unity-folder-colorizer.git",
     "com.mhze.unity-fast-play-button": "https://github.com/mhzeGit/unity-fast-play-button.git",
     "com.mhze.unity-editor-navigator": "https://github.com/mhzeGit/unity-editor-navigator.git",
