@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using UnityEditor;
 using UnityEngine;
@@ -8,6 +9,16 @@ namespace CleanStateMachine
 {
     public class CleanStateMachineWindow : EditorWindow
     {
+        [System.Flags]
+        private enum ResizeEdge
+        {
+            None = 0,
+            Left = 1,
+            Right = 2,
+            Top = 4,
+            Bottom = 8,
+        }
+
         [MenuItem("Tools/CleanStateMachine")]
         public static void ShowWindow()
         {
@@ -70,6 +81,10 @@ namespace CleanStateMachine
         private StateView _entryState;
         private StateView _editingState;
         private CommentGroupView _editingGroup;
+        private CommentGroupView _resizingGroup;
+        private ResizeEdge _resizeEdgeFlags;
+        private Vector2 _resizeStartGraphPos;
+        private Rect _resizeStartRect;
         private static readonly Stopwatch _clickStopwatch = Stopwatch.StartNew();
         private long _lastClickTimestamp;
         private StateView _lastDoubleClickCandidate;
@@ -80,6 +95,7 @@ namespace CleanStateMachine
 
         private static readonly Vector2 EntryStatePosition = new Vector2(50f, 200f);
         private const float CollapsedPanelWidth = 35f;
+        private const float ResizeHandleScreenSize = 8f;
 
         private void OnEnable()
         {
@@ -261,6 +277,7 @@ namespace CleanStateMachine
             SyncStateHierarchy();
             UpdateStateTransforms();
             UpdateGroupPositions();
+            UpdateResizeCursor();
             _graphCanvas.MarkDirtyRepaint();
 
             if (_panController.IsPanning || _dragController.IsActive || _selectionBox.IsActive || _connectionController.IsConnecting)
@@ -472,6 +489,26 @@ namespace CleanStateMachine
 
         private void OnLeftMouseDown(Vector2 graphPos, Event e)
         {
+            // Check for resize on selected group edges first
+            if (_editingState == null && _editingGroup == null && !e.shift)
+            {
+                for (int i = _groups.Count - 1; i >= 0; i--)
+                {
+                    var group = _groups[i];
+
+                    var edge = GetResizeEdge(group, graphPos);
+                    if (edge != ResizeEdge.None)
+                    {
+                        _resizingGroup = group;
+                        _resizeEdgeFlags = edge;
+                        _resizeStartGraphPos = graphPos;
+                        _resizeStartRect = group.GetGraphBounds();
+                        e.Use();
+                        return;
+                    }
+                }
+            }
+
             ISelectable hit = HitTest(graphPos);
 
             if (hit is StateView sv && !sv.IsEntry)
@@ -568,7 +605,35 @@ namespace CleanStateMachine
 
         private void OnLeftMouseDrag(Vector2 graphPos, Event e)
         {
-            if (_dragController.IsActive)
+            if (_resizingGroup != null)
+            {
+                Vector2 delta = graphPos - _resizeStartGraphPos;
+                Rect r = _resizeStartRect;
+
+                if (_resizeEdgeFlags.HasFlag(ResizeEdge.Left))
+                {
+                    float newX = Mathf.Min(r.xMax - MinGroupWidth, r.x + delta.x);
+                    r.xMin = newX;
+                }
+                if (_resizeEdgeFlags.HasFlag(ResizeEdge.Right))
+                {
+                    r.xMax = Mathf.Max(r.xMin + MinGroupWidth, r.xMax + delta.x);
+                }
+                if (_resizeEdgeFlags.HasFlag(ResizeEdge.Top))
+                {
+                    float newY = Mathf.Min(r.yMax - MinGroupHeight, r.y + delta.y);
+                    r.yMin = newY;
+                }
+                if (_resizeEdgeFlags.HasFlag(ResizeEdge.Bottom))
+                {
+                    r.yMax = Mathf.Max(r.yMin + MinGroupHeight, r.yMax + delta.y);
+                }
+
+                _resizingGroup.SetRect(r);
+                _lastDoubleClickCandidate = null;
+                e.Use();
+            }
+            else if (_dragController.IsActive)
             {
                 _dragController.UpdateDrag(graphPos, _zoom);
                 if (_dragController.IsMoving)
@@ -586,7 +651,23 @@ namespace CleanStateMachine
 
         private void OnLeftMouseUp(Vector2 graphPos, Event e)
         {
-            if (_dragController.IsActive)
+            if (_resizingGroup != null)
+            {
+                Rect newRect = _resizingGroup.GetGraphBounds();
+                if (Mathf.Abs(newRect.x - _resizeStartRect.x) > 0.001f ||
+                    Mathf.Abs(newRect.y - _resizeStartRect.y) > 0.001f ||
+                    Mathf.Abs(newRect.width - _resizeStartRect.width) > 0.001f ||
+                    Mathf.Abs(newRect.height - _resizeStartRect.height) > 0.001f)
+                {
+                    var cmd = new ResizeGroupCommand(_resizingGroup, _resizeStartRect, newRect);
+                    _undoRedoSystem.Execute(cmd);
+                    MarkChanged();
+                }
+                _resizingGroup = null;
+                SyncStatesWithGroups();
+                e.Use();
+            }
+            else if (_dragController.IsActive)
             {
                 bool wasMoving = _dragController.IsMoving;
                 _dragController.EndDrag();
@@ -599,6 +680,7 @@ namespace CleanStateMachine
                 _preDragPositions = null;
                 if (wasMoving)
                     _lastDoubleClickCandidate = null;
+                SyncStatesWithGroups();
                 e.Use();
             }
             else if (_selectionBox.IsActive)
@@ -721,6 +803,77 @@ namespace CleanStateMachine
             return null;
         }
 
+        private const float MinGroupWidth = 60f;
+        private const float MinGroupHeight = 50f;
+
+        private ResizeEdge GetResizeEdge(CommentGroupView group, Vector2 graphPos)
+        {
+            float threshold = ResizeHandleScreenSize / _zoom;
+            Rect r = group.GetGraphBounds();
+
+            bool nearLeft = Mathf.Abs(graphPos.x - r.xMin) <= threshold;
+            bool nearRight = Mathf.Abs(graphPos.x - r.xMax) <= threshold;
+            bool nearTop = Mathf.Abs(graphPos.y - r.yMin) <= threshold;
+            bool nearBottom = Mathf.Abs(graphPos.y - r.yMax) <= threshold;
+
+            ResizeEdge edge = ResizeEdge.None;
+            if (nearLeft) edge |= ResizeEdge.Left;
+            if (nearRight) edge |= ResizeEdge.Right;
+            if (nearTop) edge |= ResizeEdge.Top;
+            if (nearBottom) edge |= ResizeEdge.Bottom;
+
+            return edge;
+        }
+
+        private void UpdateResizeCursor()
+        {
+            float hs = ResizeHandleScreenSize;
+
+            for (int i = 0; i < _groups.Count; i++)
+            {
+                var group = _groups[i];
+
+                Rect r = group.GetGraphBounds();
+                Vector2 sp = r.position * _zoom + _panOffset;
+                Vector2 ss = r.size * _zoom;
+
+                float edgeW = hs * 2f;
+                float inset = hs;
+
+                // Left edge (excluding corners)
+                EditorGUIUtility.AddCursorRect(
+                    new Rect(sp.x - hs, sp.y + inset, edgeW, ss.y - inset * 2f),
+                    MouseCursor.ResizeHorizontal);
+                // Right edge (excluding corners)
+                EditorGUIUtility.AddCursorRect(
+                    new Rect(sp.x + ss.x - hs, sp.y + inset, edgeW, ss.y - inset * 2f),
+                    MouseCursor.ResizeHorizontal);
+
+                // Top edge (excluding corners)
+                EditorGUIUtility.AddCursorRect(
+                    new Rect(sp.x + inset, sp.y - hs, ss.x - inset * 2f, edgeW),
+                    MouseCursor.ResizeVertical);
+                // Bottom edge (excluding corners)
+                EditorGUIUtility.AddCursorRect(
+                    new Rect(sp.x + inset, sp.y + ss.y - hs, ss.x - inset * 2f, edgeW),
+                    MouseCursor.ResizeVertical);
+
+                // Corners
+                EditorGUIUtility.AddCursorRect(
+                    new Rect(sp.x - hs, sp.y - hs, edgeW, edgeW),
+                    MouseCursor.ResizeUpLeft);
+                EditorGUIUtility.AddCursorRect(
+                    new Rect(sp.x + ss.x - hs, sp.y - hs, edgeW, edgeW),
+                    MouseCursor.ResizeUpRight);
+                EditorGUIUtility.AddCursorRect(
+                    new Rect(sp.x - hs, sp.y + ss.y - hs, edgeW, edgeW),
+                    MouseCursor.ResizeUpRight);
+                EditorGUIUtility.AddCursorRect(
+                    new Rect(sp.x + ss.x - hs, sp.y + ss.y - hs, edgeW, edgeW),
+                    MouseCursor.ResizeUpLeft);
+            }
+        }
+
         private void CreateGroupFromSelectedStates()
         {
             var selectedStates = new List<StateView>();
@@ -740,6 +893,13 @@ namespace CleanStateMachine
 
             _selectionController.Clear();
             _selectionController.Select(group);
+            SyncStatesWithGroups();
+        }
+
+        private void SyncStatesWithGroups()
+        {
+            for (int i = 0; i < _groups.Count; i++)
+                _groups[i].SyncContainedStates(_states);
         }
 
         private void DrawSelectionOverlays()
@@ -845,6 +1005,7 @@ namespace CleanStateMachine
             }
 
             MarkChanged();
+            SyncStatesWithGroups();
             Repaint();
         }
 
@@ -934,6 +1095,7 @@ namespace CleanStateMachine
 
             _undoRedoSystem.Execute(composite);
             MarkChanged();
+            SyncStatesWithGroups();
 
             for (int i = 0; i < pastedStates.Count; i++)
                 _selectionController.Select(pastedStates[i]);

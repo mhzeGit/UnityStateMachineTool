@@ -19,7 +19,7 @@ namespace CleanStateMachine
             }
         }
 
-        private Vector2 _fallbackPosition;
+        private Rect _rect;
         private readonly List<StateView> _members = new();
 
         private string _labelText;
@@ -84,6 +84,16 @@ namespace CleanStateMachine
             _groupColor = DefaultGroupColor;
             _members.AddRange(members);
 
+            if (_members.Count > 0)
+            {
+                Rect b = GetMembersBounds();
+                _rect = new Rect(b.x - PadH, b.y - PadTop, b.width + PadH * 2f, b.height + PadTop + PadBot);
+            }
+            else
+            {
+                _rect = new Rect(0f, 0f, 160f, 40f);
+            }
+
             pickingMode = PickingMode.Ignore;
             style.position = UnityEngine.UIElements.Position.Absolute;
             style.overflow = Overflow.Hidden;
@@ -119,7 +129,7 @@ namespace CleanStateMachine
         private Rect GetMembersBounds()
         {
             if (_members.Count == 0)
-                return new Rect(_fallbackPosition.x, _fallbackPosition.y, 160f, 40f);
+                return new Rect(0f, 0f, 160f, 40f);
 
             float xMin = float.MaxValue, xMax = float.MinValue;
             float yMin = float.MaxValue, yMax = float.MinValue;
@@ -136,21 +146,10 @@ namespace CleanStateMachine
 
         public Vector2 Position
         {
-            get
-            {
-                Rect b = GetMembersBounds();
-                return new Vector2(b.x - PadH, b.y - PadTop);
-            }
+            get => _rect.position;
             set
             {
-                if (_members.Count == 0)
-                {
-                    _fallbackPosition = value;
-                    return;
-                }
-
-                Vector2 current = Position;
-                Vector2 delta = value - current;
+                Vector2 delta = value - _rect.position;
                 if (delta.sqrMagnitude < 0.0001f) return;
 
                 for (int i = 0; i < _members.Count; i++)
@@ -158,21 +157,43 @@ namespace CleanStateMachine
                     if (!_members[i].IsEntry)
                         _members[i].Position += delta;
                 }
+
+                _rect.position = value;
             }
         }
 
         public Vector2 Size
         {
-            get
-            {
-                Rect b = GetMembersBounds();
-                return new Vector2(b.width + PadH * 2f, b.height + PadTop + PadBot);
-            }
+            get => _rect.size;
+            set => _rect.size = value;
         }
 
-        public Rect GetGraphBounds()
+        public Rect GetGraphBounds() => _rect;
+
+        public void SetRect(Rect rect)
         {
-            return new Rect(Position.x, Position.y, Size.x, Size.y);
+            _rect = rect;
+        }
+
+        public void SyncContainedStates(IEnumerable<StateView> allStates)
+        {
+            foreach (var state in allStates)
+            {
+                if (state.IsEntry) continue;
+
+                Rect stateRect = state.GetGraphBounds();
+                bool contained = stateRect.xMin >= _rect.xMin - 0.001f &&
+                                 stateRect.yMin >= _rect.yMin - 0.001f &&
+                                 stateRect.xMax <= _rect.xMax + 0.001f &&
+                                 stateRect.yMax <= _rect.yMax + 0.001f;
+
+                if (contained && !_members.Contains(state))
+                    _members.Add(state);
+                else if (!contained && _members.Remove(state))
+                {
+                    // state was removed from group
+                }
+            }
         }
 
         public new bool ContainsPoint(Vector2 p)
