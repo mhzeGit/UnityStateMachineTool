@@ -726,7 +726,7 @@ namespace CleanStateMachine
             var selectedStates = new List<StateView>();
             for (int i = 0; i < _selectionController.Count; i++)
             {
-                if (_selectionController.Selected[i] is StateView s)
+                if (_selectionController.Selected[i] is StateView s && !s.IsEntry)
                     selectedStates.Add(s);
             }
 
@@ -1268,7 +1268,7 @@ namespace CleanStateMachine
                     var members = new List<StateView>();
                     foreach (int mi in gd.MemberIndices)
                     {
-                        if (mi >= 0 && mi < stateLookup.Count)
+                        if (mi >= 0 && mi < stateLookup.Count && !stateLookup[mi].IsEntry)
                             members.Add(stateLookup[mi]);
                     }
                     var group = new CommentGroupView(members, gd.Label);

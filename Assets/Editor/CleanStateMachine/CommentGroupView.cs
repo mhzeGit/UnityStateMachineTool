@@ -42,7 +42,7 @@ namespace CleanStateMachine
 
         public void AddMember(StateView state)
         {
-            if (!_members.Contains(state))
+            if (!_members.Contains(state) && !state.IsEntry)
                 _members.Add(state);
         }
 
@@ -154,7 +154,10 @@ namespace CleanStateMachine
                 if (delta.sqrMagnitude < 0.0001f) return;
 
                 for (int i = 0; i < _members.Count; i++)
-                    _members[i].Position += delta;
+                {
+                    if (!_members[i].IsEntry)
+                        _members[i].Position += delta;
+                }
             }
         }
 

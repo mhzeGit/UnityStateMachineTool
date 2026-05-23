@@ -97,20 +97,23 @@ namespace CleanStateMachine
             AddInfoRow("Size", $"({state.Size.x:F0} x {state.Size.y:F0})");
             AddInfoRow("Connections", CountStateConnections(state).ToString());
 
-            AddDivider();
-            AddSectionTitle("State Behaviour");
-
-            AddScriptRow(
-                state.BehaviourScript,
-                IsValidStateBehaviour,
-                (prev, next) => OnStateScriptChanged(state, prev, next));
-
-            if (state.BehaviourInstance != null)
+            if (!state.IsEntry)
             {
-                _currentSO = state.BehaviourInstance;
                 AddDivider();
-                AddSectionTitle("Properties");
-                AddSOProperties();
+                AddSectionTitle("State Behaviour");
+
+                AddScriptRow(
+                    state.BehaviourScript,
+                    IsValidStateBehaviour,
+                    (prev, next) => OnStateScriptChanged(state, prev, next));
+
+                if (state.BehaviourInstance != null)
+                {
+                    _currentSO = state.BehaviourInstance;
+                    AddDivider();
+                    AddSectionTitle("Properties");
+                    AddSOProperties();
+                }
             }
         }
 
