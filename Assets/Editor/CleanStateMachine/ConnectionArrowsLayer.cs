@@ -14,6 +14,8 @@ namespace CleanStateMachine
         private static readonly Color ConnectionColor = new Color(0.537f, 0.706f, 0.980f, 0.85f);
         private static readonly Color SelectedColor = new Color(0.537f, 0.706f, 0.980f, 1f);
         private static readonly Color PendingColor = new Color(0.60f, 0.80f, 1.00f, 1.00f);
+        private static readonly Color ActiveConnectionColor = new Color(0.4f, 0.9f, 0.4f, 0.8f);
+        private static readonly Color ActiveConnectionWaveColor = new Color(0.4f, 0.9f, 0.4f, 0.6f);
 
         private const float ArrowGraphSize = 10f;
         private const float ArrowGraphWidth = 5f;
@@ -56,7 +58,7 @@ namespace CleanStateMachine
                 GetScreenEndpoints(conn, out Vector3 startPos, out Vector3 endPos);
 
                 bool isActive = conn.IsActive;
-                Color color = conn.IsSelected ? SelectedColor : (isActive ? UITheme.ActiveConnection : ConnectionColor);
+                Color color = conn.IsSelected ? SelectedColor : (isActive ? ActiveConnectionColor : ConnectionColor);
                 float width = Mathf.Max(1f, (conn.IsSelected ? SelectedBaseWidth : BaseWidth) * _zoom);
 
                 DrawLine(mgc, startPos, endPos, color, width);
@@ -214,7 +216,7 @@ namespace CleanStateMachine
 
                 Vector3 pos = start + dir * (t * totalLen);
 
-                Color circleColor = UITheme.ActiveConnectionWave;
+                Color circleColor = ActiveConnectionWaveColor;
                 circleColor.a *= fade * (0.5f + 0.3f * Mathf.Sin(i * 2.5f + 1f));
 
                 DrawCircle(mgc, pos, circleRadius, circleColor);
@@ -222,7 +224,7 @@ namespace CleanStateMachine
 
             if (fade < 0.5f)
             {
-                Color color = UITheme.ActiveConnection;
+                Color color = ActiveConnectionColor;
                 color.a *= fade * 2f;
                 float width = Mathf.Max(1f, 2f * zoom);
                 DrawLine(mgc, start, end, color, width);

@@ -79,6 +79,7 @@ namespace CleanStateMachine
         private int _activeStateDataIndex = -1;
 
         private static readonly Vector2 EntryStatePosition = new Vector2(50f, 200f);
+        private const float CollapsedPanelWidth = 35f;
 
         private void OnEnable()
         {
@@ -212,7 +213,7 @@ namespace CleanStateMachine
 
             var e = Event.current;
 
-            float sideW = _showSidePanel ? _sidePanelWidth : UITheme.CollapsedWidth;
+            float sideW = _showSidePanel ? _sidePanelWidth : CollapsedPanelWidth;
             Rect graphRect = new Rect(0f, 0f, position.width - sideW, position.height);
 
             _panController.HandleInput(graphRect, ref _panOffset, ref _zoom);
