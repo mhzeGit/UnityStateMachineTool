@@ -19,6 +19,7 @@ namespace CleanStateMachine
         private const float ArrowGraphWidth = 5f;
         private const float BaseWidth = 2f;
         private const float SelectedBaseWidth = 3f;
+        private const float FeatherPixels = 0.8f;
 
         public ConnectionArrowsLayer(List<ConnectionView> connections, ConnectionController connectionController)
         {
@@ -102,20 +103,40 @@ namespace CleanStateMachine
             Vector3 dir = (end - start).normalized;
             Vector3 perp = new Vector3(-dir.y, dir.x, 0f);
             float halfW = width * 0.5f;
+            float feather = Mathf.Max(0.5f, FeatherPixels);
 
-            var mesh = mgc.Allocate(4, 6);
+            var mesh = mgc.Allocate(8, 18);
 
-            mesh.SetNextVertex(new Vertex { position = new Vector3(start.x + perp.x * halfW, start.y + perp.y * halfW, 0f), tint = color });
-            mesh.SetNextVertex(new Vertex { position = new Vector3(start.x - perp.x * halfW, start.y - perp.y * halfW, 0f), tint = color });
-            mesh.SetNextVertex(new Vertex { position = new Vector3(end.x - perp.x * halfW, end.y - perp.y * halfW, 0f), tint = color });
-            mesh.SetNextVertex(new Vertex { position = new Vector3(end.x + perp.x * halfW, end.y + perp.y * halfW, 0f), tint = color });
+            Color cEdge = new Color(color.r, color.g, color.b, 0f);
 
-            mesh.SetNextIndex(0);
-            mesh.SetNextIndex(1);
-            mesh.SetNextIndex(2);
-            mesh.SetNextIndex(0);
-            mesh.SetNextIndex(2);
-            mesh.SetNextIndex(3);
+            Vector3 slo = start + perp * (halfW + feather);
+            Vector3 sli = start + perp * halfW;
+            Vector3 sri = start - perp * halfW;
+            Vector3 sro = start - perp * (halfW + feather);
+
+            Vector3 elo = end + perp * (halfW + feather);
+            Vector3 eli = end + perp * halfW;
+            Vector3 eri = end - perp * halfW;
+            Vector3 ero = end - perp * (halfW + feather);
+
+            mesh.SetNextVertex(new Vertex { position = slo, tint = cEdge });
+            mesh.SetNextVertex(new Vertex { position = sli, tint = color });
+            mesh.SetNextVertex(new Vertex { position = sri, tint = color });
+            mesh.SetNextVertex(new Vertex { position = sro, tint = cEdge });
+
+            mesh.SetNextVertex(new Vertex { position = elo, tint = cEdge });
+            mesh.SetNextVertex(new Vertex { position = eli, tint = color });
+            mesh.SetNextVertex(new Vertex { position = eri, tint = color });
+            mesh.SetNextVertex(new Vertex { position = ero, tint = cEdge });
+
+            mesh.SetNextIndex(0); mesh.SetNextIndex(1); mesh.SetNextIndex(5);
+            mesh.SetNextIndex(0); mesh.SetNextIndex(5); mesh.SetNextIndex(4);
+
+            mesh.SetNextIndex(1); mesh.SetNextIndex(2); mesh.SetNextIndex(6);
+            mesh.SetNextIndex(1); mesh.SetNextIndex(6); mesh.SetNextIndex(5);
+
+            mesh.SetNextIndex(2); mesh.SetNextIndex(3); mesh.SetNextIndex(7);
+            mesh.SetNextIndex(2); mesh.SetNextIndex(7); mesh.SetNextIndex(6);
         }
 
         private static void DrawMidArrowhead(MeshGenerationContext mgc, Vector3 start, Vector3 end, Color color, float zoom)
@@ -128,15 +149,43 @@ namespace CleanStateMachine
             float arrowWidth = arrowSize * 0.5f;
             Vector3 basePt = mid - dir * arrowSize;
 
-            var mesh = mgc.Allocate(3, 3);
+            Vector3 tip = mid;
+            Vector3 left = basePt + perp * arrowWidth;
+            Vector3 right = basePt - perp * arrowWidth;
 
-            mesh.SetNextVertex(new Vertex { position = new Vector3(mid.x, mid.y, 0f), tint = color });
-            mesh.SetNextVertex(new Vertex { position = new Vector3(basePt.x + perp.x * arrowWidth, basePt.y + perp.y * arrowWidth, 0f), tint = color });
-            mesh.SetNextVertex(new Vertex { position = new Vector3(basePt.x - perp.x * arrowWidth, basePt.y - perp.y * arrowWidth, 0f), tint = color });
+            Vector3 centroid = (tip + left + right) / 3f;
+            float feather = Mathf.Max(0.5f, FeatherPixels);
 
-            mesh.SetNextIndex(0);
-            mesh.SetNextIndex(1);
-            mesh.SetNextIndex(2);
+            Color cEdge = new Color(color.r, color.g, color.b, 0f);
+
+            float offsetScale = feather / Mathf.Max(0.1f,
+                Vector3.Distance(centroid, tip) +
+                Vector3.Distance(centroid, left) +
+                Vector3.Distance(centroid, right) / 3f);
+
+            Vector3 tipO = tip + (tip - centroid).normalized * feather;
+            Vector3 leftO = left + (left - centroid).normalized * feather;
+            Vector3 rightO = right + (right - centroid).normalized * feather;
+
+            var mesh = mgc.Allocate(6, 21);
+
+            mesh.SetNextVertex(new Vertex { position = tip, tint = color });
+            mesh.SetNextVertex(new Vertex { position = left, tint = color });
+            mesh.SetNextVertex(new Vertex { position = right, tint = color });
+            mesh.SetNextVertex(new Vertex { position = tipO, tint = cEdge });
+            mesh.SetNextVertex(new Vertex { position = leftO, tint = cEdge });
+            mesh.SetNextVertex(new Vertex { position = rightO, tint = cEdge });
+
+            mesh.SetNextIndex(0); mesh.SetNextIndex(1); mesh.SetNextIndex(2);
+
+            mesh.SetNextIndex(0); mesh.SetNextIndex(1); mesh.SetNextIndex(4);
+            mesh.SetNextIndex(0); mesh.SetNextIndex(4); mesh.SetNextIndex(3);
+
+            mesh.SetNextIndex(1); mesh.SetNextIndex(2); mesh.SetNextIndex(5);
+            mesh.SetNextIndex(1); mesh.SetNextIndex(5); mesh.SetNextIndex(4);
+
+            mesh.SetNextIndex(2); mesh.SetNextIndex(0); mesh.SetNextIndex(3);
+            mesh.SetNextIndex(2); mesh.SetNextIndex(3); mesh.SetNextIndex(5);
         }
 
         private static void DrawActiveWave(MeshGenerationContext mgc, ConnectionView conn, Vector3 start, Vector3 end, float zoom)
@@ -184,29 +233,47 @@ namespace CleanStateMachine
         private static void DrawCircle(MeshGenerationContext mgc, Vector3 center, float radius, Color color)
         {
             int segments = 12;
-            int vertCount = segments + 1;
-            int indexCount = segments * 3;
+            float feather = Mathf.Max(0.5f, FeatherPixels);
+            int vertCount = 1 + segments * 2;
+            int indexCount = segments * 3 + segments * 6;
 
             var mesh = mgc.Allocate(vertCount, indexCount);
+            Color cEdge = new Color(color.r, color.g, color.b, 0f);
 
             mesh.SetNextVertex(new Vertex { position = new Vector3(center.x, center.y, 0f), tint = color });
 
             for (int i = 0; i < segments; i++)
             {
                 float angle = (float)i / segments * Mathf.PI * 2f;
-                mesh.SetNextVertex(new Vertex
-                {
-                    position = new Vector3(center.x + Mathf.Cos(angle) * radius, center.y + Mathf.Sin(angle) * radius, 0f),
-                    tint = color
-                });
+                float cos = Mathf.Cos(angle);
+                float sin = Mathf.Sin(angle);
+
+                Vector3 innerPos = new Vector3(center.x + cos * radius, center.y + sin * radius, 0f);
+                Vector3 outerPos = new Vector3(center.x + cos * (radius + feather), center.y + sin * (radius + feather), 0f);
+
+                mesh.SetNextVertex(new Vertex { position = innerPos, tint = color });
+                mesh.SetNextVertex(new Vertex { position = outerPos, tint = cEdge });
             }
 
             for (int i = 0; i < segments; i++)
             {
-                ushort next = (ushort)((i + 1) % segments);
+                int ni = (i + 1) % segments;
+                ushort innerI = (ushort)(1 + i * 2);
+                ushort innerN = (ushort)(1 + ni * 2);
+                ushort outerI = (ushort)(1 + i * 2 + 1);
+                ushort outerN = (ushort)(1 + ni * 2 + 1);
+
                 mesh.SetNextIndex(0);
-                mesh.SetNextIndex((ushort)(i + 1));
-                mesh.SetNextIndex((ushort)(next + 1));
+                mesh.SetNextIndex(innerI);
+                mesh.SetNextIndex(innerN);
+
+                mesh.SetNextIndex(innerI);
+                mesh.SetNextIndex(outerI);
+                mesh.SetNextIndex(outerN);
+
+                mesh.SetNextIndex(innerI);
+                mesh.SetNextIndex(outerN);
+                mesh.SetNextIndex(innerN);
             }
         }
     }
