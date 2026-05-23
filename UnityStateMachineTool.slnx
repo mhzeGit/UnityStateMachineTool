@@ -2,4 +2,5 @@
   <Project Path="Assembly-CSharp.csproj" />
   <Project Path="CleanStateMachine.Editor.csproj" />
   <Project Path="CleanStateMachine.Runtime.csproj" />
+  <Project Path="CleanStateMachine.Behaviours.csproj" />
 </Solution>
