@@ -23,6 +23,10 @@ namespace CleanStateMachine
         private const float SelectedBaseWidth = 3f;
         private const float FeatherPixels = 0.8f;
 
+        private const float BurstDuration = 0.25f;
+        private const float BurstLineWidthPeak = 5f;
+        private const float BurstCircleSizePeak = 1.8f;
+
         public ConnectionArrowsLayer(List<ConnectionView> connections, ConnectionController connectionController)
         {
             _connections = connections;
@@ -75,14 +79,10 @@ namespace CleanStateMachine
                 }
 
                 float widthMultiplier = 1f;
-                if (fade > 0.01f)
+                if (fade > 0.01f && elapsed < BurstDuration)
                 {
-                    const float burstDuration = 0.25f;
-                    if (elapsed < burstDuration)
-                    {
-                        float t = (float)(elapsed / burstDuration);
-                        widthMultiplier = 1f + 1f * (1f - t) * (1f - t);
-                    }
+                    float t = (float)(elapsed / BurstDuration);
+                    widthMultiplier = 1f + (BurstLineWidthPeak - 1f) * (1f - t) * (1f - t);
                 }
 
                 Color color = conn.IsSelected ? SelectedColor : Color.Lerp(ConnectionColor, ActiveConnectionColor, fade);
@@ -223,26 +223,22 @@ namespace CleanStateMachine
             float totalLen = Vector3.Distance(start, end);
             if (totalLen < 0.01f) return;
 
-            const float burstDuration = 0.25f;
-            const float burstPeak = 2.5f;
-
-            float burst = 1f;
-            if (elapsed < burstDuration)
+            float burstAmount = 0f;
+            if (elapsed < BurstDuration)
             {
-                float t = (float)(elapsed / burstDuration);
-                burst = 1f + (burstPeak - 1f) * (1f - t) * (1f - t);
+                float t = (float)(elapsed / BurstDuration);
+                burstAmount = (1f - t) * (1f - t);
             }
 
-            float speed = 0.8f * burst;
+            float speed = 0.8f;
             int circleCount = 5;
-            float circleRadius = Mathf.Max(2f, 4f * zoom) * burst;
+            float circleRadius = Mathf.Max(2f, 4f * zoom) * (1f + (BurstCircleSizePeak - 1f) * burstAmount);
 
             Color waveColor = new Color(arrowColor.r, arrowColor.g, arrowColor.b, arrowColor.a * fade);
 
-            if (burst > 1f)
+            if (burstAmount > 0f)
             {
-                float burstAlpha = (burst - 1f) / (burstPeak - 1f);
-                waveColor = Color.Lerp(waveColor, Color.white, burstAlpha * burstAlpha);
+                waveColor = Color.Lerp(waveColor, Color.white, burstAmount * burstAmount);
                 waveColor.a = arrowColor.a * fade;
             }
 
