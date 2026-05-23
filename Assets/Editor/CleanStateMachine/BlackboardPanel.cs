@@ -45,7 +45,7 @@ namespace CleanStateMachine
             addBtn.AddToClassList("add-button");
             addBtn.clicked += () =>
             {
-                var pos = addBtn.worldBound.position + new Vector2(0f, addBtn.worldBound.height);
+                var pos = addBtn.LocalToWorld(new Vector2(0f, addBtn.resolvedStyle.height));
                 MenuDropdown.Show(_window.rootVisualElement, pos, menu =>
                 {
                     foreach (BlackboardVariableType type in System.Enum.GetValues(typeof(BlackboardVariableType)))
@@ -258,7 +258,7 @@ namespace CleanStateMachine
             row.RegisterCallback<ContextClickEvent>(e =>
             {
                 int idx = (int)row.userData;
-                MenuDropdown.Show(_window.rootVisualElement, e.mousePosition, menu =>
+                MenuDropdown.Show(_window.rootVisualElement, row.LocalToWorld(e.localMousePosition), menu =>
                 {
                     menu.AddItem("Delete Variable", () =>
                     {

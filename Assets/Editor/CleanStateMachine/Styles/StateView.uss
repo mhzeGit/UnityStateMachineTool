@@ -5,7 +5,7 @@
 
 .state-view__shadow {
     position: absolute;
-    background-color: rgba(0, 0, 0, 0.20);
+    background-color: rgba(0, 0, 0, 0.50);
 }
 
 .state-view__glow {

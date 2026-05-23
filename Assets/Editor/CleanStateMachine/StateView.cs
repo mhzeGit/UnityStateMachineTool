@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -67,7 +68,7 @@ namespace CleanStateMachine
         private const float GlowExpandPx = 12f;
         private const float GlowPulseSpeed = 2.5f;
         private const int GlowBlurKernel = 4;
-        private const float ShadowOffsetPx = 4f;
+        private const float ShadowBlurRadius = 10f;
 
         public StateView(Vector2 position, string name = "State", bool isEntry = false)
         {
@@ -207,15 +208,22 @@ namespace CleanStateMachine
             _fill.style.borderTopWidth = borderWidth;
             _fill.style.borderBottomWidth = borderWidth;
 
-            float shadowOffset = ShadowOffsetPx * zoom;
-            _shadow.style.left = shadowOffset;
-            _shadow.style.top = shadowOffset;
+            float blurRadius = Mathf.Max(0.5f, ShadowBlurRadius * zoom);
+            _shadow.style.left = 0;
+            _shadow.style.top = 0;
             _shadow.style.width = scaledSize.x;
             _shadow.style.height = scaledSize.y;
             _shadow.style.borderTopLeftRadius = scaledRadius;
             _shadow.style.borderTopRightRadius = scaledRadius;
             _shadow.style.borderBottomLeftRadius = scaledRadius;
             _shadow.style.borderBottomRightRadius = scaledRadius;
+            var blurFilter = new FilterFunction(FilterFunctionType.Blur);
+            blurFilter.AddParameter(new FilterParameter
+            {
+                type = FilterParameterType.Float,
+                floatValue = blurRadius
+            });
+            _shadow.style.filter = new StyleList<FilterFunction>(new List<FilterFunction> { blurFilter });
 
             if (_isActive)
             {

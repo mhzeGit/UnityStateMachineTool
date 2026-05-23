@@ -337,7 +337,7 @@ namespace CleanStateMachine
             pickerBtn.clicked += () =>
             {
                 var filtered = FindFilteredScripts(isValid);
-                var pos = pickerBtn.worldBound.position + new Vector2(0f, pickerBtn.worldBound.height);
+                var pos = pickerBtn.LocalToWorld(new Vector2(0f, pickerBtn.resolvedStyle.height));
                 MenuDropdown.Show(_window.rootVisualElement, pos, menu =>
                 {
                     menu.AddItem("None", () => onAssign(currentScript, null));
@@ -483,7 +483,7 @@ namespace CleanStateMachine
 
                     dropdownBtn.clicked += () =>
                     {
-                        var pos = dropdownBtn.worldBound.position + new Vector2(0f, dropdownBtn.worldBound.height);
+                        var pos = dropdownBtn.LocalToWorld(new Vector2(0f, dropdownBtn.resolvedStyle.height));
                         MenuDropdown.Show(_window.rootVisualElement, pos, menu =>
                         {
                             menu.AddItem("None (direct)", () =>
@@ -596,7 +596,7 @@ namespace CleanStateMachine
 
             modeBtn.clicked += () =>
             {
-                var pos = modeBtn.worldBound.position + new Vector2(0f, modeBtn.worldBound.height);
+                var pos = modeBtn.LocalToWorld(new Vector2(0f, modeBtn.resolvedStyle.height));
                 MenuDropdown.Show(_window.rootVisualElement, pos, menu =>
                 {
                     menu.AddItem("Direct", () =>
