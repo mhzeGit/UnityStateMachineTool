@@ -1409,7 +1409,10 @@ namespace CleanStateMachine
                         cd.ToIndex >= 0 && cd.ToIndex < stateLookup.Count)
                     {
                         var conn = new ConnectionView(
-                            stateLookup[cd.FromIndex], stateLookup[cd.ToIndex]);
+                            stateLookup[cd.FromIndex], stateLookup[cd.ToIndex])
+                        {
+                            DataIndex = i
+                        };
                         if (cd.Conditions != null)
                         {
                             for (int j = 0; j < cd.Conditions.Count; j++)
@@ -1657,11 +1660,22 @@ namespace CleanStateMachine
                         var record = transitions[t];
                         for (int c = 0; c < _connections.Count; c++)
                         {
-                            if (_connections[c].From.DataIndex == record.FromIndex &&
-                                _connections[c].To.DataIndex == record.ToIndex)
+                            if (record.ConnectionIndex >= 0)
                             {
-                                _connections[c].IsActive = true;
-                                _connections[c].ActivationTime = Time.realtimeSinceStartup;
+                                if (_connections[c].DataIndex == record.ConnectionIndex)
+                                {
+                                    _connections[c].IsActive = true;
+                                    _connections[c].ActivationTime = Time.realtimeSinceStartup;
+                                }
+                            }
+                            else
+                            {
+                                if (_connections[c].From.DataIndex == record.FromIndex &&
+                                    _connections[c].To.DataIndex == record.ToIndex)
+                                {
+                                    _connections[c].IsActive = true;
+                                    _connections[c].ActivationTime = Time.realtimeSinceStartup;
+                                }
                             }
                         }
                     }

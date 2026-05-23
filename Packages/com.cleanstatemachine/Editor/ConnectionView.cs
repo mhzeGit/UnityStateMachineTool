@@ -18,6 +18,7 @@ namespace CleanStateMachine
         public bool IsActive { get; set; }
         public double ActivationTime { get; set; }
         public float PerpendicularOffset { get; set; }
+        public int DataIndex { get; set; } = -1;
         public List<ConditionEntryView> ConditionEntries { get; set; } = new List<ConditionEntryView>();
 
         private const float HitTestThreshold = 10f;

@@ -691,7 +691,7 @@
 /* --- Multi-Condition UI --- */
 .condition-entry {
     flex-direction: column;
-    background-color: #1f1f1f;
+    background-color: #161616;
     border: 1px solid #141414;
     border-radius: 3px;
     margin-left: 4px;

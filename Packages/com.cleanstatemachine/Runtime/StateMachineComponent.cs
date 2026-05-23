@@ -167,7 +167,7 @@ namespace CleanStateMachine
 
                 if (allMet)
                 {
-                    TransitionToState(connection.ToIndex);
+                    TransitionToState(connection.ToIndex, c);
                     break;
                 }
             }
@@ -189,7 +189,7 @@ namespace CleanStateMachine
             return null;
         }
 
-        private void TransitionToState(int toIndex)
+        private void TransitionToState(int toIndex, int connectionIndex = -1)
         {
             if (toIndex < 0 || toIndex >= Data.States.Count) return;
 
@@ -205,7 +205,8 @@ namespace CleanStateMachine
             _recentTransitions.Add(new TransitionRecord
             {
                 FromIndex = fromIndex,
-                ToIndex = toIndex
+                ToIndex = toIndex,
+                ConnectionIndex = connectionIndex
             });
 
             var enterBehaviour = GetOrCreateBehaviour(_currentStateIndex);
@@ -392,6 +393,7 @@ namespace CleanStateMachine
         {
             public int FromIndex;
             public int ToIndex;
+            public int ConnectionIndex = -1;
         }
     }
 }
