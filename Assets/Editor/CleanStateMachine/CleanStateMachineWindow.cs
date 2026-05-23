@@ -138,9 +138,6 @@ namespace CleanStateMachine
             _gridBackground.pickingMode = PickingMode.Ignore;
             rootVisualElement.Add(_gridBackground);
 
-            _connectionArrowsLayer = new ConnectionArrowsLayer(_connections, _connectionController);
-            rootVisualElement.Add(_connectionArrowsLayer);
-
             _groupContainer = new VisualElement();
             _groupContainer.style.position = Position.Absolute;
             _groupContainer.style.left = 0f;
@@ -155,6 +152,9 @@ namespace CleanStateMachine
                 "Assets/Editor/CleanStateMachine/Styles/CommentGroupView.uss");
             if (groupStyleSheet != null)
                 _groupContainer.styleSheets.Add(groupStyleSheet);
+
+            _connectionArrowsLayer = new ConnectionArrowsLayer(_connections, _connectionController);
+            rootVisualElement.Add(_connectionArrowsLayer);
 
             _stateLayer = new VisualElement();
             _stateLayer.style.position = Position.Absolute;
