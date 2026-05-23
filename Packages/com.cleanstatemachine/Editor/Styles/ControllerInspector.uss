@@ -5,7 +5,6 @@
 
 .controller-open-button {
     height: 32px;
-    cursor: pointer;
     background-color: #333333;
     color: #bfbfbf;
     font-size: 12px;

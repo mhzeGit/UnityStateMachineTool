@@ -26,7 +26,6 @@
     background-color: transparent;
     border-width: 0;
     margin: 0;
-    cursor: pointer;
     flex-shrink: 0;
     -unity-text-align: middle-left;
 }

@@ -1,7 +1,9 @@
 .side-panel {
     background-color: #1e1e1e;
     flex-direction: column;
-    border-left: 1px solid #141414;
+    border-left-color: #141414;
+    border-left-width: 1px;
+    border-left-style: solid;
 }
 
 .panel-shadow {
@@ -27,7 +29,6 @@
 .side-panel-collapsed {
     justify-content: center;
     align-items: center;
-    cursor: pointer;
 }
 
 .side-panel-collapsed:hover {
@@ -37,7 +38,6 @@
 .collapsed-arrow {
     font-size: 14px;
     color: #999999;
-    cursor: pointer;
 }
 
 .side-panel-expanded {
@@ -50,7 +50,9 @@
 .panel-header {
     height: 36px;
     background-color: #262626;
-    border-bottom: 1px solid #141414;
+    border-bottom-color: #141414;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
     flex-direction: row;
     align-items: center;
     flex-shrink: 0;
@@ -71,7 +73,6 @@
 .toggle-button {
     width: 20px;
     height: 20px;
-    cursor: pointer;
     justify-content: center;
     align-items: center;
     position: absolute;
@@ -131,7 +132,9 @@
 .property-card {
     flex-direction: column;
     background-color: #1f1f1f;
-    border: 1px solid #141414;
+    border-color: #141414;
+    border-width: 1px;
+    border-style: solid;
     border-radius: 2px;
     margin-left: 4px;
     margin-right: 4px;
@@ -177,7 +180,6 @@
 .bb-mode-button {
     width: 72px;
     height: 22px;
-    cursor: pointer;
     background-color: #2a2a2a;
     color: #bfbfbf;
     font-size: 10px;
@@ -238,7 +240,6 @@
 .bb-dropdown-button {
     flex: 1;
     height: 22px;
-    cursor: pointer;
     background-color: #262626;
     color: #bfbfbf;
     font-size: 11px;
@@ -279,8 +280,12 @@
     padding-right: 4px;
     flex-shrink: 0;
     background-color: rgba(255, 255, 255, 0.025);
-    border-top: 1px solid rgba(0, 0, 0, 0.1);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    border-top-color: rgba(255, 255, 255, 0.25);
+    border-top-width: 1px;
+    border-top-style: solid;
+    border-bottom-color: rgba(255, 255, 255, 0.25);
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
 }
 
 .variable-row:hover {
@@ -306,7 +311,6 @@
 .drag-handle {
     width: 22px;
     height: 26px;
-    cursor: grab;
     flex-shrink: 0;
     font-size: 14px;
     color: rgba(255, 255, 255, 0.25);
@@ -459,10 +463,8 @@
 .add-button {
     width: 24px;
     height: 30px;
-    cursor: pointer;
     background-color: transparent;
     background-image: none;
-    -unity-background-image: none;
     font-size: 38px;
     color: #999999;
     justify-content: center;
@@ -494,7 +496,7 @@
     font-size: 12px;
     color: #808080;
     padding: 16px;
-    text-align: center;
+    -unity-text-align: middle-center;
     white-space: normal;
 }
 
@@ -512,28 +514,10 @@
     flex-direction: row;
     align-items: center;
     background-color: #1e1e1e;
-    border-bottom: 1px solid #141414;
+    border-bottom-color: #141414;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
     flex-shrink: 0;
-}
-
-.info-row-label {
-    font-size: 12px;
-    -unity-font-style: bold;
-    color: #f2f2f2;
-    width: 72px;
-    padding-left: 8px;
-    flex-shrink: 0;
-}
-
-.info-row-value {
-    font-size: 12px;
-    color: #bfbfbf;
-    flex-grow: 1;
-    padding-right: 16px;
-    padding-left: 8px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 /* --- Script Row --- */
@@ -541,7 +525,9 @@
     min-height: 54px;
     flex-direction: column;
     background-color: #1e1e1e;
-    border-bottom: 1px solid #141414;
+    border-bottom-color: #141414;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
     flex-shrink: 0;
 }
 
@@ -564,7 +550,6 @@
 .script-picker-button {
     flex-grow: 1;
     height: 26px;
-    cursor: pointer;
     background-color: #262626;
     color: #bfbfbf;
     font-size: 11px;
@@ -599,7 +584,6 @@
 
 .script-field-open-button {
     height: 24px;
-    cursor: pointer;
     background-color: #333333;
     color: #bfbfbf;
     font-size: 11px;
@@ -619,7 +603,7 @@
 
 .script-type-name {
     font-size: 10px;
-    font-style: italic;
+    -unity-font-style: italic;
     color: #808080;
     padding-left: 8px;
     height: 20px;
@@ -692,7 +676,9 @@
 .condition-entry {
     flex-direction: column;
     background-color: #161616;
-    border: 1px solid #141414;
+    border-color: #141414;
+    border-width: 1px;
+    border-style: solid;
     border-radius: 3px;
     margin-left: 4px;
     margin-right: 4px;
@@ -721,7 +707,6 @@
 .condition-remove-button {
     width: 22px;
     height: 22px;
-    cursor: pointer;
     background-color: #3a1a1a;
     color: #e06060;
     font-size: 11px;
@@ -756,7 +741,6 @@
 
 .add-condition-button {
     height: 26px;
-    cursor: pointer;
     background-color: #2a3a2a;
     color: #80d080;
     font-size: 11px;
