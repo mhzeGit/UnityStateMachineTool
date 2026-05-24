@@ -68,5 +68,19 @@
         "*.slnx": "*.csproj"
     },
     "dotnet.defaultSolution": "UnityStateMachineTool.slnx",
-    "dotnet.enableWorkspaceBasedDevelopment": false
+    "dotnet.enableWorkspaceBasedDevelopment": false,
+    "mcpServers": {
+        "CodeGraphContext": {
+            "command": "codegraphcontext",
+            "args": [
+                "mcp",
+                "start"
+            ],
+            "env": {
+                "PYTHONIOENCODING": "utf-8"
+            },
+            "disabled": false,
+            "alwaysAllow": []
+        }
+    }
 }

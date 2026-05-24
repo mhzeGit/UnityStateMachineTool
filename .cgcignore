@@ -1,0 +1,44 @@
+# Unity project files to ignore
+Library/
+Logs/
+Temp/
+obj/
+Build/
+build/
+UserSettings/
+ProjectSettings/
+
+# Binary and asset files
+*.dll
+*.exe
+*.so
+*.dylib
+*.meta
+*.unity
+*.prefab
+*.asset
+*.mat
+*.fbx
+*.FBX
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.psd
+*.tga
+*.tif
+*.wav
+*.mp3
+*.ogg
+
+# Generated files
+*.csproj
+*.sln
+*.slnx
+Assembly-CSharp*
+
+# Dependencies
+Packages/com.cleanstatemachine/Demo/
+
+# TextMesh Pro example scripts (not part of project)
+Assets/TextMesh*/
