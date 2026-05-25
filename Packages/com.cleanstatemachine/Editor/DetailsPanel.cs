@@ -116,16 +116,12 @@ namespace CleanStateMachine
             {
                 AddDivider();
                 AddSectionTitle("Sub State Machine");
-
-                var enterBtn = new Button(() => _window.EnterSubStateMachine(state));
-                enterBtn.text = "Enter Sub State Machine";
-                enterBtn.AddToClassList("enter-sub-button");
-                _scrollView.Add(enterBtn);
+                AddInfoRow("Child States", state.ChildIndices.Count.ToString());
 
                 var clearBtn = new Button(() =>
                 {
-                    state.SubMachineData = null;
                     state.IsSubStateMachine = false;
+                    state.ChildIndices.Clear();
                     _window.NotifySidePanelChanged();
                     UpdateSelection(_selected, _states, _connections, _blackboardVariables);
                 });

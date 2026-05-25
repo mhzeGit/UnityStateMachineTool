@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -10,6 +11,7 @@ namespace CleanStateMachine
         private readonly ConnectionController _connectionController;
         private float _zoom = 1f;
         private Vector2 _panOffset;
+        public Func<ConnectionView, bool> IsConnectionHidden { get; set; }
 
         private static readonly Color ConnectionColor = new Color(0.5f, 0.5f, 0.5f, 1f);
         private static readonly Color SelectedColor = new Color(0.7f, 0.7f, 0.7f, 1f);
@@ -59,6 +61,8 @@ namespace CleanStateMachine
             for (int i = 0; i < _connections.Count; i++)
             {
                 var conn = _connections[i];
+                if (IsConnectionHidden != null && IsConnectionHidden(conn))
+                    continue;
                 GetScreenEndpoints(conn, out Vector3 startPos, out Vector3 endPos);
 
                 float fade = 0f;

@@ -19,13 +19,6 @@ namespace CleanStateMachine
             Bottom = 8,
         }
 
-        private struct NavigationFrame
-        {
-            public SerializableData ParentData;
-            public SerializableData EnteredData;
-            public string StateName;
-        }
-
         [MenuItem("Tools/CleanStateMachine")]
         public static void ShowWindow()
         {
@@ -45,12 +38,13 @@ namespace CleanStateMachine
         [System.Serializable]
         private class CopiedStateData
         {
+            public int sourceDataIndex;
             public Vector2 position;
             public string name;
             public Vector2 size;
             public MonoScript behaviourScript;
             public StateBehaviour behaviourInstance;
-            public SerializableData subMachineData;
+            public List<int> childIndices;
             public bool isSubStateMachine;
         }
 
@@ -90,8 +84,9 @@ namespace CleanStateMachine
         private readonly List<CommentGroupView> _groups = new();
 
         private SerializableData _currentData;
-        private readonly List<NavigationFrame> _navigationPath = new();
-        private VisualElement _breadcrumbBar;
+        private int _expandedSubStateIndex = -1;
+        private VisualElement _expandedModeBar;
+        private Label _expandedModeLabel;
         private Dictionary<ISelectable, Vector2> _preDragPositions;
         private StateView _entryState;
         private StateView _editingState;
@@ -106,9 +101,7 @@ namespace CleanStateMachine
         private CommentGroupView _lastDoubleClickCandidateGroup;
 
         private StateMachineComponent _trackedComponent;
-        private int _activeStateLevelIndex = -1;
-        private int _activeStateDepth = -1;
-        private bool _isAutoNavigating;
+        private int _activeStateIndex = -1;
 
         private static readonly Vector2 EntryStatePosition = new Vector2(50f, 200f);
         private const float CollapsedPanelWidth = 35f;
@@ -199,6 +192,7 @@ namespace CleanStateMachine
                 _groupContainer.styleSheets.Add(groupStyleSheet);
 
             _connectionArrowsLayer = new ConnectionArrowsLayer(_connections, _connectionController);
+            _connectionArrowsLayer.IsConnectionHidden = conn => !IsConnectionVisible(conn);
             rootVisualElement.Add(_connectionArrowsLayer);
 
             _stateLayer = new VisualElement();
@@ -223,22 +217,40 @@ namespace CleanStateMachine
             _graphCanvas.pickingMode = PickingMode.Ignore;
             rootVisualElement.Add(_graphCanvas);
 
-            _breadcrumbBar = new VisualElement();
-            _breadcrumbBar.AddToClassList("breadcrumb-bar");
-            _breadcrumbBar.style.position = Position.Absolute;
-            _breadcrumbBar.style.left = 0f;
-            _breadcrumbBar.style.right = 0f;
-            _breadcrumbBar.style.top = 0f;
-            _breadcrumbBar.style.height = 24f;
-            _breadcrumbBar.style.backgroundColor = new Color(0.08f, 0.08f, 0.08f, 0.85f);
-            _breadcrumbBar.style.flexDirection = FlexDirection.Row;
-            _breadcrumbBar.style.alignItems = Align.Center;
-            _breadcrumbBar.style.paddingLeft = 8f;
-            _breadcrumbBar.style.paddingRight = 8f;
-            _breadcrumbBar.style.borderBottomColor = new Color(0.2f, 0.2f, 0.2f);
-            _breadcrumbBar.style.borderBottomWidth = 1f;
-            _breadcrumbBar.pickingMode = PickingMode.Position;
-            rootVisualElement.Add(_breadcrumbBar);
+            _expandedModeBar = new VisualElement();
+            _expandedModeBar.style.position = Position.Absolute;
+            _expandedModeBar.style.left = 0f;
+            _expandedModeBar.style.right = 0f;
+            _expandedModeBar.style.top = 0f;
+            _expandedModeBar.style.height = 24f;
+            _expandedModeBar.style.backgroundColor = new Color(0.08f, 0.08f, 0.08f, 0.85f);
+            _expandedModeBar.style.flexDirection = FlexDirection.Row;
+            _expandedModeBar.style.alignItems = Align.Center;
+            _expandedModeBar.style.paddingLeft = 8f;
+            _expandedModeBar.style.paddingRight = 8f;
+            _expandedModeBar.style.borderBottomColor = new Color(0.2f, 0.2f, 0.2f);
+            _expandedModeBar.style.borderBottomWidth = 1f;
+            _expandedModeBar.style.display = DisplayStyle.None;
+            _expandedModeBar.pickingMode = PickingMode.Position;
+            rootVisualElement.Add(_expandedModeBar);
+
+            var backButton = new Button(ExitExpandedSubState);
+            backButton.text = "\u25C0 Back";
+            backButton.style.fontSize = 11;
+            backButton.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 0.5f);
+            backButton.style.color = new Color(0.8f, 0.8f, 0.8f);
+            backButton.style.borderLeftWidth = 0f;
+            backButton.style.borderRightWidth = 0f;
+            backButton.style.borderTopWidth = 0f;
+            backButton.style.borderBottomWidth = 0f;
+            backButton.style.unityFontStyleAndWeight = FontStyle.Normal;
+            _expandedModeBar.Add(backButton);
+
+            _expandedModeLabel = new Label();
+            _expandedModeLabel.style.fontSize = 11;
+            _expandedModeLabel.style.color = new Color(0.6f, 0.6f, 0.6f);
+            _expandedModeLabel.style.marginLeft = 8f;
+            _expandedModeBar.Add(_expandedModeLabel);
 
             rootVisualElement.Add(_selectionBox.Element);
 
@@ -274,8 +286,8 @@ namespace CleanStateMachine
             var e = Event.current;
 
             float sideW = _showSidePanel ? _sidePanelWidth : CollapsedPanelWidth;
-            const float breadcrumbH = 24f;
-            Rect graphRect = new Rect(0f, breadcrumbH, position.width - sideW, position.height - breadcrumbH);
+            const float barH = 24f;
+            Rect graphRect = new Rect(0f, barH, position.width - sideW, position.height - barH);
 
             _panController.HandleInput(graphRect, ref _panOffset, ref _zoom);
 
@@ -315,9 +327,9 @@ namespace CleanStateMachine
                     e.Use();
                     Repaint();
                 }
-                else if (_navigationPath.Count > 0 && _editingState == null)
+                else if (_expandedSubStateIndex >= 0 && _editingState == null)
                 {
-                    NavigateBack();
+                    ExitExpandedSubState();
                     e.Use();
                     Repaint();
                 }
@@ -357,6 +369,7 @@ namespace CleanStateMachine
                 {
                     MarkChanged();
                     SyncGroupElements();
+                    SyncStatesWithSubMachines();
                     _sidePanelElement?.UpdateBlackboard();
                     _sidePanelElement?.UpdateSelection();
                     Repaint();
@@ -371,6 +384,7 @@ namespace CleanStateMachine
                 {
                     MarkChanged();
                     SyncGroupElements();
+                    SyncStatesWithSubMachines();
                     _sidePanelElement?.UpdateBlackboard();
                     _sidePanelElement?.UpdateSelection();
                     Repaint();
@@ -510,6 +524,8 @@ namespace CleanStateMachine
                         cmd.Add(new CreateStateCommand(_states, newState));
                         cmd.Add(new CreateConnectionCommand(_connections, new ConnectionView(source, newState)));
                         _undoRedoSystem.Execute(cmd);
+
+                        AddToExpandedContainer(newState);
                         MarkChanged();
                     }
 
@@ -589,7 +605,10 @@ namespace CleanStateMachine
 
                     if (sv.IsSubStateMachine)
                     {
-                        EnterSubStateMachine(sv);
+                        if (_expandedSubStateIndex == sv.DataIndex)
+                            ExitExpandedSubState();
+                        else
+                            EnterExpandSubState(sv);
                         e.Use();
                         return;
                     }
@@ -737,6 +756,7 @@ namespace CleanStateMachine
                 }
                 _resizingGroup = null;
                 SyncStatesWithGroups();
+                SyncStatesWithSubMachines();
                 e.Use();
             }
             else if (_dragController.IsActive)
@@ -753,6 +773,7 @@ namespace CleanStateMachine
                 if (wasMoving)
                     _lastDoubleClickCandidate = null;
                 SyncStatesWithGroups();
+                SyncStatesWithSubMachines();
                 e.Use();
             }
             else if (_selectionBox.IsActive)
@@ -771,14 +792,20 @@ namespace CleanStateMachine
 
             var boxStates = new List<StateView>();
             for (int i = 0; i < _states.Count; i++)
+            {
+                if (!IsStateVisible(_states[i])) continue;
                 if (graphRect.Overlaps(_states[i].GetGraphBounds()))
                     boxStates.Add(_states[i]);
+            }
             _selectionController.SelectRange(boxStates);
 
             var boxConnections = new List<ConnectionView>();
             for (int i = 0; i < _connections.Count; i++)
+            {
+                if (!IsConnectionVisible(_connections[i])) continue;
                 if (_connections[i].BoxOverlaps(graphRect))
                     boxConnections.Add(_connections[i]);
+            }
             _selectionController.SelectRange(boxConnections);
 
             var boxGroups = new List<CommentGroupView>();
@@ -845,12 +872,14 @@ namespace CleanStateMachine
         {
             for (int i = _states.Count - 1; i >= 0; i--)
             {
+                if (!IsStateVisible(_states[i])) continue;
                 if (_states[i].ContainsPoint(graphPos))
                     return _states[i];
             }
 
             for (int i = _connections.Count - 1; i >= 0; i--)
             {
+                if (!IsConnectionVisible(_connections[i])) continue;
                 if (_connections[i].ContainsPoint(graphPos))
                     return _connections[i];
             }
@@ -868,6 +897,7 @@ namespace CleanStateMachine
         {
             for (int i = _states.Count - 1; i >= 0; i--)
             {
+                if (!IsStateVisible(_states[i])) continue;
                 if (_states[i].ContainsPoint(graphPos))
                     return _states[i];
             }
@@ -1008,7 +1038,12 @@ namespace CleanStateMachine
         private void UpdateStateTransforms()
         {
             for (int i = 0; i < _states.Count; i++)
-                _states[i].UpdateTransform(_zoom, _panOffset);
+            {
+                bool visible = IsStateVisible(_states[i]);
+                _states[i].style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
+                if (visible)
+                    _states[i].UpdateTransform(_zoom, _panOffset);
+            }
         }
 
         private void UpdateGroupPositions()
@@ -1078,35 +1113,29 @@ namespace CleanStateMachine
 
             MarkChanged();
             SyncStatesWithGroups();
+            SyncStatesWithSubMachines();
+            AddToExpandedContainer(state);
             Repaint();
         }
 
         private void OnCreateSubStateMachineRequested(Vector2 graphMousePosition)
         {
-            var subData = new SerializableData();
-            subData.States.Add(new StateData
+            var container = new StateView(graphMousePosition, "Sub State Machine")
             {
-                Name = "Sub Entry",
-                Position = new Vector2(50f, 200f),
-                Size = new Vector2(StateView.DefaultWidth, StateView.DefaultHeight),
-                IsEntry = true
-            });
-
-            var state = new StateView(graphMousePosition) { DataIndex = _states.Count };
-            state.SubMachineData = subData;
-            state.IsSubStateMachine = true;
-            state.Name = "Sub State Machine";
+                DataIndex = _states.Count,
+                IsSubStateMachine = true
+            };
 
             if (_entryState != null && GetEntryOutgoingConnection() == null)
             {
                 var cmd = new CompositeCommand("Create Sub State Machine");
-                cmd.Add(new CreateStateCommand(_states, state));
-                cmd.Add(new CreateConnectionCommand(_connections, new ConnectionView(_entryState, state)));
+                cmd.Add(new CreateStateCommand(_states, container));
+                cmd.Add(new CreateConnectionCommand(_connections, new ConnectionView(_entryState, container)));
                 _undoRedoSystem.Execute(cmd);
             }
             else
             {
-                var cmd = new CreateStateCommand(_states, state);
+                var cmd = new CreateStateCommand(_states, container);
                 _undoRedoSystem.Execute(cmd);
             }
 
@@ -1148,20 +1177,48 @@ namespace CleanStateMachine
         private void CopySelectedStates()
         {
             _clipboard = new List<CopiedStateData>();
+
+            var toCopy = new HashSet<int>();
             for (int i = 0; i < _selectionController.Count; i++)
             {
                 if (_selectionController.Selected[i] is StateView s && !s.IsEntry)
+                    CollectCopySet(s, toCopy);
+            }
+
+            var indexToState = new Dictionary<int, StateView>();
+            for (int i = 0; i < _states.Count; i++)
+                indexToState[_states[i].DataIndex] = _states[i];
+
+            foreach (int dataIdx in toCopy)
+            {
+                if (!indexToState.TryGetValue(dataIdx, out var s)) continue;
+
+                _clipboard.Add(new CopiedStateData
                 {
-                    _clipboard.Add(new CopiedStateData
-                    {
-                        position = s.Position,
-                        name = s.Name,
-                        size = s.Size,
-                        behaviourScript = s.BehaviourScript,
-                        behaviourInstance = s.BehaviourInstance,
-                        subMachineData = s.SubMachineData,
-                        isSubStateMachine = s.IsSubStateMachine
-                    });
+                    sourceDataIndex = s.DataIndex,
+                    position = s.Position,
+                    name = s.Name,
+                    size = s.Size,
+                    behaviourScript = s.BehaviourScript,
+                    behaviourInstance = s.BehaviourInstance,
+                    childIndices = new List<int>(s.ChildIndices),
+                    isSubStateMachine = s.IsSubStateMachine
+                });
+            }
+        }
+
+        private void CollectCopySet(StateView state, HashSet<int> set)
+        {
+            if (state.IsEntry) return;
+            if (!set.Add(state.DataIndex)) return;
+
+            if (state.IsSubStateMachine)
+            {
+                for (int i = 0; i < state.ChildIndices.Count; i++)
+                {
+                    var child = GetStateByIndex(state.ChildIndices[i]);
+                    if (child != null)
+                        CollectCopySet(child, set);
                 }
             }
         }
@@ -1190,18 +1247,23 @@ namespace CleanStateMachine
 
             var composite = new CompositeCommand("Paste States");
             var pastedStates = new List<StateView>();
+            var oldToNewIndex = new Dictionary<int, int>();
 
             for (int i = 0; i < _clipboard.Count; i++)
             {
                 var data = _clipboard[i];
+                int newIndex = _states.Count;
+                oldToNewIndex[data.sourceDataIndex] = newIndex;
+
                 var state = new StateView(data.position + offset, data.name)
                 {
                     Size = data.size,
-                    DataIndex = _states.Count,
+                    DataIndex = newIndex,
                     BehaviourScript = data.behaviourScript,
-                    SubMachineData = data.subMachineData,
-                    IsSubStateMachine = data.isSubStateMachine
+                    IsSubStateMachine = data.isSubStateMachine,
+                    IsSubEntry = false
                 };
+                state.ChildIndices.Clear();
 
                 if (data.behaviourScript != null && data.behaviourInstance != null)
                 {
@@ -1221,8 +1283,40 @@ namespace CleanStateMachine
             }
 
             _undoRedoSystem.Execute(composite);
+
             MarkChanged();
             SyncStatesWithGroups();
+            SyncStatesWithSubMachines();
+
+            // Remap child indices after sync so they aren't cleared
+            for (int i = 0; i < _clipboard.Count; i++)
+            {
+                var data = _clipboard[i];
+                if (data.childIndices != null && data.childIndices.Count > 0 && data.isSubStateMachine)
+                {
+                    if (!oldToNewIndex.TryGetValue(data.sourceDataIndex, out int newContainerIndex))
+                        continue;
+
+                    var container = pastedStates.Find(s => s.DataIndex == newContainerIndex);
+                    if (container != null)
+                    {
+                        container.ChildIndices.Clear();
+                        foreach (var oldChildIdx in data.childIndices)
+                        {
+                            if (oldToNewIndex.TryGetValue(oldChildIdx, out int newChildIdx))
+                            {
+                                container.ChildIndices.Add(newChildIdx);
+                                var child = _states.Find(s => s.DataIndex == newChildIdx);
+                                if (child != null)
+                                    child.IsSubEntry = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            for (int i = 0; i < pastedStates.Count; i++)
+                AddToExpandedContainer(pastedStates[i]);
 
             for (int i = 0; i < pastedStates.Count; i++)
                 _selectionController.Select(pastedStates[i]);
@@ -1255,6 +1349,41 @@ namespace CleanStateMachine
             }
 
             if (_selectionController.Count == 0) return;
+
+            var deletedStates = new List<StateView>();
+            for (int i = 0; i < _selectionController.Count; i++)
+            {
+                if (_selectionController.Selected[i] is StateView s)
+                    deletedStates.Add(s);
+            }
+
+            // Remove deleted states from any parent sub-state machine's ChildIndices
+            foreach (var state in _states)
+            {
+                if (state.IsSubStateMachine && state.ChildIndices.Count > 0)
+                {
+                    foreach (var deleted in deletedStates)
+                    {
+                        state.ChildIndices.Remove(deleted.DataIndex);
+                    }
+                }
+            }
+
+            // If the expanded sub-state is being deleted, exit expanded mode
+            if (_expandedSubStateIndex >= 0)
+            {
+                bool expandedBeingDeleted = false;
+                for (int i = 0; i < deletedStates.Count; i++)
+                {
+                    if (deletedStates[i].DataIndex == _expandedSubStateIndex)
+                    {
+                        expandedBeingDeleted = true;
+                        break;
+                    }
+                }
+                if (expandedBeingDeleted)
+                    ExitExpandedSubState();
+            }
 
             var cmd = new DeleteStatesCommand(_states, _connections, _groups, _selectionController);
             _undoRedoSystem.Execute(cmd);
@@ -1418,37 +1547,107 @@ namespace CleanStateMachine
             UpdateTitle();
         }
 
-        // ─── Breadcrumb Navigation ──────────────────────────────────────
+        // ─── Expanded Sub-State Machine View ───────────────────────────
 
-        private void UpdateBreadcrumb()
+        private bool IsStateVisible(StateView state)
         {
-            if (_breadcrumbBar == null) return;
-            _breadcrumbBar.Clear();
-
-            var rootLabel = new Label(_controller != null ? _controller.name : "Untitled");
-            rootLabel.AddToClassList("breadcrumb-item");
-            if (_navigationPath.Count > 0)
+            if (_expandedSubStateIndex >= 0)
             {
-                rootLabel.AddToClassList("breadcrumb-item--clickable");
-                rootLabel.RegisterCallback<ClickEvent>(_ => NavigateToRoot());
+                if (state.DataIndex == _expandedSubStateIndex) return true;
+                var expandedState = GetStateByIndex(_expandedSubStateIndex);
+                if (expandedState != null && expandedState.ChildIndices.Contains(state.DataIndex))
+                    return true;
+                return false;
             }
-            _breadcrumbBar.Add(rootLabel);
 
-            for (int i = 0; i < _navigationPath.Count; i++)
+            if (state.IsEntry) return true;
+
+            for (int i = 0; i < _states.Count; i++)
             {
-                var sep = new Label("\u25B8");
-                sep.AddToClassList("breadcrumb-separator");
-                _breadcrumbBar.Add(sep);
+                var container = _states[i];
+                if (container.IsSubStateMachine && container.ChildIndices.Contains(state.DataIndex))
+                    return false;
+            }
+            return true;
+        }
 
-                var stateLabel = new Label(_navigationPath[i].StateName);
-                stateLabel.AddToClassList("breadcrumb-item");
-                stateLabel.AddToClassList("breadcrumb-item--clickable");
-                int capturedIndex = i;
-                stateLabel.RegisterCallback<ClickEvent>(_ => NavigateToIndex(capturedIndex));
+        private bool IsConnectionVisible(ConnectionView conn)
+        {
+            return IsStateVisible(conn.From) && IsStateVisible(conn.To);
+        }
 
-                _breadcrumbBar.Add(stateLabel);
+        private StateView GetStateByIndex(int index)
+        {
+            for (int i = 0; i < _states.Count; i++)
+            {
+                if (_states[i].DataIndex == index)
+                    return _states[i];
+            }
+            return null;
+        }
+
+        private void EnterExpandSubState(StateView subStateView)
+        {
+            if (subStateView == null || !subStateView.IsSubStateMachine) return;
+
+            _expandedSubStateIndex = subStateView.DataIndex;
+
+            _expandedModeLabel.text = $"Viewing contents of: {subStateView.Name}";
+            _expandedModeBar.style.display = DisplayStyle.Flex;
+        }
+
+        private void ExitExpandedSubState()
+        {
+            _expandedSubStateIndex = -1;
+            _expandedModeBar.style.display = DisplayStyle.None;
+        }
+
+        private void AddToExpandedContainer(StateView state)
+        {
+            if (_expandedSubStateIndex < 0) return;
+            var container = GetStateByIndex(_expandedSubStateIndex);
+            if (container != null && !container.ChildIndices.Contains(state.DataIndex))
+                container.ChildIndices.Add(state.DataIndex);
+        }
+
+        // ─── Sub-State Machine Membership Sync ─────────────────────────
+
+        private void SyncStatesWithSubMachines()
+        {
+            for (int i = 0; i < _states.Count; i++)
+            {
+                var container = _states[i];
+                if (!container.IsSubStateMachine) continue;
+
+                float cLeft = container.Position.x;
+                float cTop = container.Position.y;
+                float cRight = cLeft + container.Size.x;
+                float cBottom = cTop + container.Size.y;
+
+                for (int j = 0; j < _states.Count; j++)
+                {
+                    var child = _states[j];
+                    if (child == container) continue;
+                    if (child.IsEntry) continue;
+
+                    bool alreadyChild = container.ChildIndices.Contains(child.DataIndex);
+
+                    Rect childRect = child.GetGraphBounds();
+                    bool inside = childRect.xMin >= cLeft - 0.001f &&
+                                  childRect.yMin >= cTop - 0.001f &&
+                                  childRect.xMax <= cRight + 0.001f &&
+                                  childRect.yMax <= cBottom + 0.001f;
+
+                    if (inside && !alreadyChild)
+                    {
+                        container.ChildIndices.Add(child.DataIndex);
+                        child.IsSubEntry = true;
+                    }
+                }
             }
         }
+
+        // ─── Save / Load ─────────────────────────────────────────────
 
         private void SaveCurrentData()
         {
@@ -1467,16 +1666,33 @@ namespace CleanStateMachine
                 if (state.BehaviourInstance != null)
                     state.BehaviourInstance.name = $"{state.Name}_Behaviour";
 
+                var childIndices = new List<int>();
+                if (state.IsSubStateMachine)
+                {
+                    foreach (var childDataIdx in state.ChildIndices)
+                    {
+                        for (int si = 0; si < _states.Count; si++)
+                        {
+                            if (_states[si].DataIndex == childDataIdx)
+                            {
+                                childIndices.Add(stateToIndex[_states[si]]);
+                                break;
+                            }
+                        }
+                    }
+                }
+
                 _currentData.States.Add(new StateData
                 {
                     Name = state.Name,
                     Position = state.Position,
                     Size = state.Size,
                     IsEntry = state.IsEntry,
+                    IsSubEntry = state.IsSubEntry,
                     IsSubStateMachine = state.IsSubStateMachine,
+                    ChildIndices = childIndices,
                     BehaviourType = ScriptReferenceUtility.GetTypeName(state.BehaviourScript),
-                    Behaviour = state.BehaviourInstance,
-                    SubMachineData = state.SubMachineData
+                    Behaviour = state.BehaviourInstance
                 });
             }
 
@@ -1528,59 +1744,6 @@ namespace CleanStateMachine
             _currentData.DetailsHeightRatio = _detailsHeightRatio;
         }
 
-        public void EnterSubStateMachine(StateView stateView)
-        {
-            if (stateView?.SubMachineData == null) return;
-
-            SaveCurrentData();
-
-            _navigationPath.Add(new NavigationFrame
-            {
-                ParentData = _currentData,
-                EnteredData = stateView.SubMachineData,
-                StateName = stateView.Name
-            });
-
-            _currentData = stateView.SubMachineData;
-            LoadFromCurrentData();
-            UpdateBreadcrumb();
-        }
-
-        public void NavigateBack()
-        {
-            if (_navigationPath.Count == 0) return;
-
-            SaveCurrentData();
-            _currentData = _navigationPath[_navigationPath.Count - 1].ParentData;
-            _navigationPath.RemoveAt(_navigationPath.Count - 1);
-            LoadFromCurrentData();
-            UpdateBreadcrumb();
-        }
-
-        private void NavigateToRoot()
-        {
-            if (_navigationPath.Count == 0) return;
-
-            SaveCurrentData();
-            _currentData = _navigationPath[0].ParentData;
-            _navigationPath.Clear();
-            LoadFromCurrentData();
-            UpdateBreadcrumb();
-            UpdateTitle();
-        }
-
-        private void NavigateToIndex(int pathIndex)
-        {
-            if (pathIndex < 0 || pathIndex >= _navigationPath.Count) return;
-
-            SaveCurrentData();
-            _currentData = _navigationPath[pathIndex].EnteredData;
-            _navigationPath.RemoveRange(pathIndex + 1, _navigationPath.Count - pathIndex - 1);
-            LoadFromCurrentData();
-            UpdateBreadcrumb();
-            UpdateTitle();
-        }
-
         // ─── Internal accessors for UITK SidePanel ─────────────────────
 
         internal bool GetShowSidePanel() => _showSidePanel;
@@ -1603,7 +1766,6 @@ namespace CleanStateMachine
             _detailsHeightRatio = value;
         }
 
-        internal bool IsAtRootLevel => _navigationPath.Count == 0;
         internal SerializableData CurrentData => _currentData;
 
         internal UndoRedoSystem UndoRedoSystem => _undoRedoSystem;
@@ -1670,10 +1832,8 @@ namespace CleanStateMachine
                 }
             }
 
-            _navigationPath.Clear();
             _controller = controller;
             LoadFromController();
-            UpdateBreadcrumb();
         }
 
         private void LoadFromController()
@@ -1693,8 +1853,10 @@ namespace CleanStateMachine
             _groups.Clear();
             _blackboardVariables.Clear();
             _undoRedoSystem = new UndoRedoSystem();
-            ClearActiveStates();
+            _activeStateIndex = -1;
             _trackedComponent = null;
+            _expandedSubStateIndex = -1;
+            _expandedModeBar.style.display = DisplayStyle.None;
 
             if (_currentData != null)
             {
@@ -1704,13 +1866,12 @@ namespace CleanStateMachine
                 for (int i = 0; i < data.States.Count; i++)
                 {
                     var sd = data.States[i];
-                    bool isSubEntry = sd.IsEntry && _navigationPath.Count > 0;
-                    var state = new StateView(sd.Position, sd.Name, sd.IsEntry, isSubEntry)
+                    var state = new StateView(sd.Position, sd.Name, sd.IsEntry, sd.IsSubEntry)
                     {
                         Size = sd.Size,
                         BehaviourScript = ScriptReferenceUtility.FindScriptByTypeName(sd.BehaviourType),
                         BehaviourInstance = sd.Behaviour,
-                        SubMachineData = sd.SubMachineData,
+                        ChildIndices = new List<int>(sd.ChildIndices),
                         IsSubStateMachine = sd.IsSubStateMachine,
                         DataIndex = i
                     };
@@ -1771,10 +1932,10 @@ namespace CleanStateMachine
 
             EnsureEntryStateExists();
             SyncGroupElements();
+            SyncStatesWithSubMachines();
             _isLoading = false;
             MarkSaved();
             UpdateTitle();
-            UpdateBreadcrumb();
 
             if (_sidePanelElement != null)
             {
@@ -1844,7 +2005,6 @@ namespace CleanStateMachine
 
             _controller = null;
             _currentData = new SerializableData();
-            _navigationPath.Clear();
             _editingState = null;
             _selectionController.Clear();
             _states.Clear();
@@ -1852,12 +2012,14 @@ namespace CleanStateMachine
             _groups.Clear();
             _blackboardVariables.Clear();
             _undoRedoSystem = new UndoRedoSystem();
-            ClearActiveStates();
+            _activeStateIndex = -1;
             _panOffset = Vector2.zero;
             _zoom = 1f;
             _showSidePanel = true;
             _sidePanelWidth = 220f;
             _detailsHeightRatio = 0.5f;
+            _expandedSubStateIndex = -1;
+            _expandedModeBar.style.display = DisplayStyle.None;
 
             EnsureEntryStateExists();
             SyncGroupElements();
@@ -1878,9 +2040,13 @@ namespace CleanStateMachine
         {
             if (!Application.isPlaying)
             {
-                if (_activeStateLevelIndex >= 0)
+                if (_activeStateIndex >= 0)
                 {
-                    ClearActiveStates();
+                    _activeStateIndex = -1;
+                    for (int i = 0; i < _states.Count; i++)
+                        _states[i].IsActive = false;
+                    for (int i = 0; i < _connections.Count; i++)
+                        _connections[i].IsActive = false;
                     Repaint();
                 }
                 return;
@@ -1890,43 +2056,16 @@ namespace CleanStateMachine
 
             if (_trackedComponent != null)
             {
-                bool navigated = AutoNavigateToActiveDepth();
+                int newActiveIndex = _trackedComponent.CurrentStateIndex;
 
-                int viewDepth = _navigationPath.Count;
-                int runtimeDepth = _trackedComponent.ActiveStateDepth;
-
-                if (navigated)
+                if (newActiveIndex != _activeStateIndex)
                 {
-                    _activeStateLevelIndex = -1;
-                    _activeStateDepth = -1;
-                }
+                    _activeStateIndex = newActiveIndex;
 
-                if (viewDepth < runtimeDepth)
-                {
-                    int newActiveIndex = _trackedComponent.GetStateIndexAtDepth(viewDepth);
+                    for (int i = 0; i < _states.Count; i++)
+                        _states[i].IsActive = (_states[i].DataIndex == _activeStateIndex);
 
-                    if (newActiveIndex != _activeStateLevelIndex || viewDepth != _activeStateDepth)
-                    {
-                        _activeStateLevelIndex = newActiveIndex;
-                        _activeStateDepth = viewDepth;
-
-                        for (int i = 0; i < _states.Count; i++)
-                            _states[i].IsActive = (_states[i].DataIndex == _activeStateLevelIndex);
-
-                        Repaint();
-                    }
-                }
-                else
-                {
-                    if (_activeStateLevelIndex >= 0)
-                    {
-                        _activeStateLevelIndex = -1;
-                        _activeStateDepth = viewDepth;
-                        for (int i = 0; i < _states.Count; i++)
-                            _states[i].IsActive = false;
-
-                        Repaint();
-                    }
+                    Repaint();
                 }
 
                 var transitions = _trackedComponent.RecentTransitions;
@@ -1935,8 +2074,6 @@ namespace CleanStateMachine
                     for (int t = 0; t < transitions.Count; t++)
                     {
                         var record = transitions[t];
-                        if (record.Level != viewDepth) continue;
-
                         for (int c = 0; c < _connections.Count; c++)
                         {
                             if (record.ConnectionIndex >= 0)
@@ -1964,62 +2101,15 @@ namespace CleanStateMachine
 
                 Repaint();
             }
-            else if (_activeStateLevelIndex >= 0)
+            else if (_activeStateIndex >= 0)
             {
-                ClearActiveStates();
+                _activeStateIndex = -1;
+                for (int i = 0; i < _states.Count; i++)
+                    _states[i].IsActive = false;
+                for (int i = 0; i < _connections.Count; i++)
+                    _connections[i].IsActive = false;
                 Repaint();
             }
-        }
-
-        private bool AutoNavigateToActiveDepth()
-        {
-            if (_trackedComponent == null) return false;
-            if (_isLoading || _isAutoNavigating) return false;
-
-            _isAutoNavigating = true;
-            bool changed = false;
-
-            int runtimeDepth = _trackedComponent.ActiveStateDepth;
-
-            while (true)
-            {
-                int viewDepth = _navigationPath.Count;
-
-                if (viewDepth + 1 < runtimeDepth)
-                {
-                    int activeIndex = _trackedComponent.GetStateIndexAtDepth(viewDepth);
-                    StateView subMachineView = null;
-                    for (int i = 0; i < _states.Count; i++)
-                    {
-                        if (_states[i].DataIndex == activeIndex && _states[i].IsSubStateMachine
-                            && _states[i].SubMachineData != null)
-                        {
-                            subMachineView = _states[i];
-                            break;
-                        }
-                    }
-                    if (subMachineView == null) break;
-
-                    bool alreadyViewing = _navigationPath.Count > 0
-                        && _navigationPath[^1].EnteredData == subMachineView.SubMachineData;
-                    if (alreadyViewing) break;
-
-                    EnterSubStateMachine(subMachineView);
-                    changed = true;
-                }
-                else if (viewDepth > 0 && viewDepth >= runtimeDepth)
-                {
-                    NavigateBack();
-                    changed = true;
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            _isAutoNavigating = false;
-            return changed;
         }
 
         private void UpdateTrackedComponent()
@@ -2052,16 +2142,6 @@ namespace CleanStateMachine
             {
                 _trackedComponent = null;
             }
-        }
-
-        private void ClearActiveStates()
-        {
-            _activeStateLevelIndex = -1;
-            _activeStateDepth = -1;
-            for (int i = 0; i < _states.Count; i++)
-                _states[i].IsActive = false;
-            for (int i = 0; i < _connections.Count; i++)
-                _connections[i].IsActive = false;
         }
     }
 }

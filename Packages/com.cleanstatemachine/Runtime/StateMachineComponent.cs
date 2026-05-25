@@ -12,18 +12,11 @@ namespace CleanStateMachine
         private List<BlackboardVariable> _runtimeVariables = new List<BlackboardVariable>();
         private float _stateEnterTime;
         private bool _initialized = false;
+        private int _activeStateIndex = -1;
         private List<TransitionRecord> _recentTransitions = new List<TransitionRecord>();
 
         private readonly Dictionary<StateData, StateBehaviour> _behaviourInstances = new Dictionary<StateData, StateBehaviour>();
         private readonly List<ConditionScript> _runtimeConditionInstances = new List<ConditionScript>();
-
-        private readonly List<StateLevel> _activeStatePath = new List<StateLevel>();
-
-        private struct StateLevel
-        {
-            public SerializableData Data;
-            public int StateIndex;
-        }
 
         public StateMachineController Controller
         {
@@ -33,32 +26,17 @@ namespace CleanStateMachine
 
         public SerializableData Data => _controller != null ? _controller.Data : null;
 
-        public int ActiveStateDepth => _activeStatePath.Count;
-
-        public int GetStateIndexAtDepth(int depth)
-        {
-            if (depth < 0 || depth >= _activeStatePath.Count) return -1;
-            return _activeStatePath[depth].StateIndex;
-        }
-
         public string CurrentStateName
         {
             get
             {
-                if (_activeStatePath.Count == 0) return "None";
-                var leaf = _activeStatePath[^1];
-                return leaf.Data.States[leaf.StateIndex].Name;
+                if (Data == null || _activeStateIndex < 0 || _activeStateIndex >= Data.States.Count)
+                    return "None";
+                return Data.States[_activeStateIndex].Name;
             }
         }
 
-        public int CurrentStateIndex
-        {
-            get
-            {
-                if (_activeStatePath.Count == 0) return -1;
-                return _activeStatePath[^1].StateIndex;
-            }
-        }
+        public int CurrentStateIndex => _activeStateIndex;
 
         public float StateEnterTime => _stateEnterTime;
         public List<BlackboardVariable> RuntimeVariables => _runtimeVariables;
@@ -78,18 +56,18 @@ namespace CleanStateMachine
             if (_initialized || _controller == null) return;
 
             CopyVariablesFromController();
-            BuildEntryPath();
+            FindEntryState();
             _initialized = true;
 
-            if (_activeStatePath.Count > 0)
+            if (_activeStateIndex >= 0)
             {
                 _stateEnterTime = Time.time;
                 string initialStateName = CurrentStateName;
-                OnStateChanged?.Invoke(-1, CurrentStateIndex);
+                OnStateChanged?.Invoke(-1, _activeStateIndex);
                 OnStateEntered?.Invoke(initialStateName);
-                var leafBehaviour = GetLeafBehaviour();
-                if (leafBehaviour != null)
-                    leafBehaviour.OnStateEnter(this);
+                var behaviour = GetBehaviour(_activeStateIndex);
+                if (behaviour != null)
+                    behaviour.OnStateEnter(this);
             }
         }
 
@@ -105,32 +83,18 @@ namespace CleanStateMachine
             }
         }
 
-        private void BuildEntryPath()
+        private void FindEntryState()
         {
-            _activeStatePath.Clear();
+            _activeStateIndex = -1;
             if (Data == null) return;
 
-            var currentData = Data;
-            while (currentData != null)
+            for (int i = 0; i < Data.States.Count; i++)
             {
-                int entryIndex = -1;
-                for (int i = 0; i < currentData.States.Count; i++)
+                if (Data.States[i].IsEntry)
                 {
-                    if (currentData.States[i].IsEntry)
-                    {
-                        entryIndex = i;
-                        break;
-                    }
+                    _activeStateIndex = i;
+                    return;
                 }
-                if (entryIndex < 0) break;
-
-                _activeStatePath.Add(new StateLevel { Data = currentData, StateIndex = entryIndex });
-
-                var state = currentData.States[entryIndex];
-                if (state.IsSubStateMachine && state.SubMachineData != null)
-                    currentData = state.SubMachineData;
-                else
-                    break;
             }
         }
 
@@ -141,28 +105,26 @@ namespace CleanStateMachine
 
         private void Update()
         {
-            if (!_initialized || _activeStatePath.Count == 0) return;
+            if (!_initialized || _activeStateIndex < 0) return;
 
-            var leafBehaviour = GetLeafBehaviour();
-            if (leafBehaviour != null)
-                leafBehaviour.OnStateUpdate(this);
+            var behaviour = GetBehaviour(_activeStateIndex);
+            if (behaviour != null)
+                behaviour.OnStateUpdate(this);
 
             CheckTransitions();
         }
 
-        private StateBehaviour GetLeafBehaviour()
+        private StateBehaviour GetBehaviour(int stateIndex)
         {
-            if (_activeStatePath.Count == 0) return null;
-            var leaf = _activeStatePath[^1];
-            var stateData = leaf.Data.States[leaf.StateIndex];
-            return stateData.IsSubStateMachine ? null : GetOrCreateBehaviour(stateData);
+            if (Data == null || stateIndex < 0 || stateIndex >= Data.States.Count)
+                return null;
+
+            var stateData = Data.States[stateIndex];
+            return GetOrCreateBehaviour(stateData);
         }
 
         private StateBehaviour GetOrCreateBehaviour(StateData state)
         {
-            if (state.IsSubStateMachine)
-                return null;
-
             if (state.Behaviour != null)
                 return state.Behaviour;
 
@@ -185,30 +147,17 @@ namespace CleanStateMachine
 
         private void CheckTransitions()
         {
-            if (Data == null || _activeStatePath.Count == 0) return;
+            if (Data == null || _activeStateIndex < 0) return;
 
-            for (int level = _activeStatePath.Count - 1; level >= 0; level--)
+            for (int c = 0; c < Data.Connections.Count; c++)
             {
-                if (level + 1 < _activeStatePath.Count)
+                var connection = Data.Connections[c];
+                if (connection.FromIndex != _activeStateIndex) continue;
+
+                if (EvaluateConditions(connection))
                 {
-                    var childState = _activeStatePath[level + 1].Data.States[_activeStatePath[level + 1].StateIndex];
-                    if (!childState.IsEntry)
-                        continue;
-                }
-
-                var levelData = _activeStatePath[level].Data;
-                var levelIndex = _activeStatePath[level].StateIndex;
-
-                for (int c = 0; c < levelData.Connections.Count; c++)
-                {
-                    var connection = levelData.Connections[c];
-                    if (connection.FromIndex != levelIndex) continue;
-
-                    if (EvaluateConditions(connection))
-                    {
-                        TransitionToState(level, c);
-                        return;
-                    }
+                    TransitionToState(c);
+                    return;
                 }
             }
         }
@@ -243,23 +192,23 @@ namespace CleanStateMachine
             return true;
         }
 
-        private void TransitionToState(int transitionLevel, int connectionIndex)
+        private void TransitionToState(int connectionIndex)
         {
-            var transitionData = _activeStatePath[transitionLevel].Data;
-            var connection = transitionData.Connections[connectionIndex];
+            var connection = Data.Connections[connectionIndex];
             int toIndex = connection.ToIndex;
 
-            if (toIndex < 0 || toIndex >= transitionData.States.Count) return;
+            if (toIndex < 0 || toIndex >= Data.States.Count) return;
 
-            int fromIndex = _activeStatePath[transitionLevel].StateIndex;
+            int fromIndex = _activeStateIndex;
+
             string previousLeafName = CurrentStateName;
 
-            for (int i = _activeStatePath.Count - 1; i >= transitionLevel; i--)
+            if (fromIndex >= 0 && fromIndex < Data.States.Count)
             {
-                var sd = _activeStatePath[i].Data.States[_activeStatePath[i].StateIndex];
-                if (!sd.IsSubStateMachine)
+                var fromState = Data.States[fromIndex];
+                if (!fromState.IsSubStateMachine)
                 {
-                    var behaviour = GetOrCreateBehaviour(sd);
+                    var behaviour = GetOrCreateBehaviour(fromState);
                     if (behaviour != null)
                         behaviour.OnStateExit(this);
                 }
@@ -267,19 +216,7 @@ namespace CleanStateMachine
 
             OnStateExited?.Invoke(previousLeafName);
 
-            while (_activeStatePath.Count > transitionLevel)
-                _activeStatePath.RemoveAt(_activeStatePath.Count - 1);
-
-            _activeStatePath.Add(new StateLevel
-            {
-                Data = transitionData,
-                StateIndex = toIndex
-            });
-
-            var targetState = transitionData.States[toIndex];
-            if (targetState.IsSubStateMachine && targetState.SubMachineData != null)
-                DescendIntoSubMachine(targetState.SubMachineData);
-
+            _activeStateIndex = toIndex;
             _stateEnterTime = Time.time;
 
             string newLeafName = CurrentStateName;
@@ -287,40 +224,15 @@ namespace CleanStateMachine
             {
                 FromIndex = fromIndex,
                 ToIndex = toIndex,
-                ConnectionIndex = connectionIndex,
-                Level = transitionLevel
+                ConnectionIndex = connectionIndex
             });
 
             OnStateChanged?.Invoke(fromIndex, toIndex);
             OnStateEntered?.Invoke(newLeafName);
 
-            var newLeafBehaviour = GetLeafBehaviour();
-            if (newLeafBehaviour != null)
-                newLeafBehaviour.OnStateEnter(this);
-        }
-
-        private void DescendIntoSubMachine(SerializableData subData)
-        {
-            int entryIndex = -1;
-            for (int i = 0; i < subData.States.Count; i++)
-            {
-                if (subData.States[i].IsEntry)
-                {
-                    entryIndex = i;
-                    break;
-                }
-            }
-            if (entryIndex < 0) return;
-
-            _activeStatePath.Add(new StateLevel
-            {
-                Data = subData,
-                StateIndex = entryIndex
-            });
-
-            var entryState = subData.States[entryIndex];
-            if (entryState.IsSubStateMachine && entryState.SubMachineData != null)
-                DescendIntoSubMachine(entryState.SubMachineData);
+            var newBehaviour = GetBehaviour(_activeStateIndex);
+            if (newBehaviour != null)
+                newBehaviour.OnStateEnter(this);
         }
 
         private static Type ResolveType(string typeName)
@@ -519,7 +431,6 @@ namespace CleanStateMachine
             public int FromIndex;
             public int ToIndex;
             public int ConnectionIndex = -1;
-            public int Level;
         }
     }
 }

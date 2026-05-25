@@ -328,6 +328,28 @@ MonoBehaviour:
     ValueType: 2
     DefaultValue: 3
   comparison: 1
+--- !u!114 &-4457444995765923352
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 653525ea9a60cc648bb9b7a9fefeee73, type: 3}
+  m_Name: Sub State Machine->Correct State 1_Condition_0
+  m_EditorClassIdentifier: 
+  conditionBool:
+    UseBlackboard: 1
+    BlackboardVariableName: EnterSubState
+    ValueType: 0
+    DefaultValue: True
+  isInverse:
+    UseBlackboard: 0
+    BlackboardVariableName: 
+    ValueType: 0
+    DefaultValue: True
 --- !u!114 &-4238784106312989180
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -374,6 +396,28 @@ MonoBehaviour:
     ValueType: 2
     DefaultValue: 3
   comparison: 0
+--- !u!114 &-2069322823213849383
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 653525ea9a60cc648bb9b7a9fefeee73, type: 3}
+  m_Name: Correct State 1->Sub State Machine_Condition_0
+  m_EditorClassIdentifier: 
+  conditionBool:
+    UseBlackboard: 1
+    BlackboardVariableName: EnterSubState
+    ValueType: 0
+    DefaultValue: True
+  isInverse:
+    UseBlackboard: 0
+    BlackboardVariableName: 
+    ValueType: 0
+    DefaultValue: False
 --- !u!114 &-2004553713341558884
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -453,224 +497,65 @@ MonoBehaviour:
       Position: {x: 50, y: 200}
       Size: {x: 160, y: 40}
       IsEntry: 1
+      IsSubEntry: 0
       IsSubStateMachine: 0
+      ChildIndices: 
       BehaviourType: 
       Behaviour: {fileID: 0}
-      SubMachineData:
-        States: []
-        Connections: []
-        Groups: []
-        BlackboardVariables: []
-        PanOffset: {x: 0, y: 0}
-        Zoom: 1
-        ShowSidePanel: 1
-        SidePanelWidth: 220
-        DetailsHeightRatio: 0.5
     - Name: WrongState
       Position: {x: 576.82355, y: 57.02684}
       Size: {x: 160, y: 40}
       IsEntry: 0
+      IsSubEntry: 0
       IsSubStateMachine: 0
+      ChildIndices: 
       BehaviourType: DebugLog_StateBehaviour
       Behaviour: {fileID: -4984312468142295952}
-      SubMachineData:
-        States: []
-        Connections: []
-        Groups: []
-        BlackboardVariables: []
-        PanOffset: {x: 0, y: 0}
-        Zoom: 1
-        ShowSidePanel: 1
-        SidePanelWidth: 220
-        DetailsHeightRatio: 0.5
     - Name: State 1
       Position: {x: 165.98784, y: 530.7979}
       Size: {x: 160, y: 40}
       IsEntry: 0
+      IsSubEntry: 0
       IsSubStateMachine: 0
+      ChildIndices: 
       BehaviourType: DebugLog_StateBehaviour
       Behaviour: {fileID: 2093244015773400430}
-      SubMachineData:
-        States: []
-        Connections: []
-        Groups: []
-        BlackboardVariables: []
-        PanOffset: {x: 0, y: 0}
-        Zoom: 1
-        ShowSidePanel: 1
-        SidePanelWidth: 220
-        DetailsHeightRatio: 0.5
     - Name: State 2
       Position: {x: 356.75058, y: 565.9919}
       Size: {x: 160, y: 40}
       IsEntry: 0
+      IsSubEntry: 0
       IsSubStateMachine: 0
+      ChildIndices: 
       BehaviourType: DebugLog_StateBehaviour
       Behaviour: {fileID: 2496552749051755956}
-      SubMachineData:
-        States: []
-        Connections: []
-        Groups: []
-        BlackboardVariables: []
-        PanOffset: {x: 0, y: 0}
-        Zoom: 1
-        ShowSidePanel: 1
-        SidePanelWidth: 220
-        DetailsHeightRatio: 0.5
     - Name: Correct State 2
       Position: {x: 628.26935, y: 282.7644}
       Size: {x: 160, y: 40}
       IsEntry: 0
+      IsSubEntry: 0
       IsSubStateMachine: 0
+      ChildIndices: 
       BehaviourType: DebugLog_StateBehaviour
       Behaviour: {fileID: -5894389830450324287}
-      SubMachineData:
-        States: []
-        Connections: []
-        Groups: []
-        BlackboardVariables: []
-        PanOffset: {x: 0, y: 0}
-        Zoom: 1
-        ShowSidePanel: 1
-        SidePanelWidth: 220
-        DetailsHeightRatio: 0.5
     - Name: Correct State 1
       Position: {x: 303.86215, y: 204.71658}
       Size: {x: 160, y: 40}
       IsEntry: 0
+      IsSubEntry: 0
       IsSubStateMachine: 0
+      ChildIndices: 
       BehaviourType: DebugLog_StateBehaviour
       Behaviour: {fileID: 6480756955754394530}
-      SubMachineData:
-        States:
-        - Name: Entry
-          Position: {x: 50, y: 200}
-          Size: {x: 160, y: 40}
-          IsEntry: 1
-          IsSubStateMachine: 0
-          BehaviourType: 
-          Behaviour: {fileID: 0}
-          SubMachineData:
-            States: []
-            Connections: []
-            Groups: []
-            BlackboardVariables: []
-            PanOffset: {x: 0, y: 0}
-            Zoom: 1
-            ShowSidePanel: 1
-            SidePanelWidth: 220
-            DetailsHeightRatio: 0.5
-        Connections: []
-        Groups: []
-        BlackboardVariables: []
-        PanOffset: {x: 0, y: 0}
-        Zoom: 1
-        ShowSidePanel: 1
-        SidePanelWidth: 220
-        DetailsHeightRatio: 0.5
     - Name: Sub State Machine
-      Position: {x: 519.02985, y: 493.21228}
+      Position: {x: 556.1568, y: 529.3428}
       Size: {x: 160, y: 40}
       IsEntry: 0
+      IsSubEntry: 0
       IsSubStateMachine: 1
+      ChildIndices: 
       BehaviourType: 
       Behaviour: {fileID: 0}
-      SubMachineData:
-        States:
-        - Name: Entry
-          Position: {x: 50, y: 200}
-          Size: {x: 160, y: 40}
-          IsEntry: 1
-          IsSubStateMachine: 0
-          BehaviourType: 
-          Behaviour: {fileID: 0}
-          SubMachineData:
-            States: []
-            Connections: []
-            Groups: []
-            BlackboardVariables: []
-            PanOffset: {x: 0, y: 0}
-            Zoom: 1
-            ShowSidePanel: 1
-            SidePanelWidth: 220
-            DetailsHeightRatio: 0.5
-        - Name: State01
-          Position: {x: 340, y: 253}
-          Size: {x: 160, y: 40}
-          IsEntry: 0
-          IsSubStateMachine: 0
-          BehaviourType: DebugLog_StateBehaviour
-          Behaviour: {fileID: -7023159511462996632}
-          SubMachineData:
-            States: []
-            Connections: []
-            Groups: []
-            BlackboardVariables: []
-            PanOffset: {x: 0, y: 0}
-            Zoom: 1
-            ShowSidePanel: 1
-            SidePanelWidth: 220
-            DetailsHeightRatio: 0.5
-        - Name: State02
-          Position: {x: 478, y: 97}
-          Size: {x: 160, y: 40}
-          IsEntry: 0
-          IsSubStateMachine: 0
-          BehaviourType: DebugLog_StateBehaviour
-          Behaviour: {fileID: 2113626050520997963}
-          SubMachineData:
-            States: []
-            Connections: []
-            Groups: []
-            BlackboardVariables: []
-            PanOffset: {x: 0, y: 0}
-            Zoom: 1
-            ShowSidePanel: 1
-            SidePanelWidth: 220
-            DetailsHeightRatio: 0.5
-        - Name: State03
-          Position: {x: 260, y: 89}
-          Size: {x: 160, y: 40}
-          IsEntry: 0
-          IsSubStateMachine: 0
-          BehaviourType: DebugLog_StateBehaviour
-          Behaviour: {fileID: 4992772155863000491}
-          SubMachineData:
-            States: []
-            Connections: []
-            Groups: []
-            BlackboardVariables: []
-            PanOffset: {x: 0, y: 0}
-            Zoom: 1
-            ShowSidePanel: 1
-            SidePanelWidth: 220
-            DetailsHeightRatio: 0.5
-        Connections:
-        - FromIndex: 3
-          ToIndex: 1
-          Conditions:
-          - TypeName: Timer_ConditionBehaviours
-            Instance: {fileID: 7033260763741961052}
-        - FromIndex: 2
-          ToIndex: 3
-          Conditions:
-          - TypeName: Timer_ConditionBehaviours
-            Instance: {fileID: 8488541119239438812}
-        - FromIndex: 0
-          ToIndex: 1
-          Conditions: []
-        - FromIndex: 1
-          ToIndex: 2
-          Conditions:
-          - TypeName: Timer_ConditionBehaviours
-            Instance: {fileID: -5505361700147888996}
-        Groups: []
-        BlackboardVariables: []
-        PanOffset: {x: 0, y: 0}
-        Zoom: 1
-        ShowSidePanel: 1
-        SidePanelWidth: 220
-        DetailsHeightRatio: 0.7192118
     Connections:
     - FromIndex: 0
       ToIndex: 5
@@ -718,13 +603,13 @@ MonoBehaviour:
     - FromIndex: 5
       ToIndex: 6
       Conditions:
-      - TypeName: CompareNumbers_ConditionBehaviours
-        Instance: {fileID: -3272854633350445534}
+      - TypeName: SimpleBool_ConditionBehaviours
+        Instance: {fileID: -2069322823213849383}
     - FromIndex: 6
       ToIndex: 5
       Conditions:
-      - TypeName: CompareNumbers_ConditionBehaviours
-        Instance: {fileID: -6388373870097427965}
+      - TypeName: SimpleBool_ConditionBehaviours
+        Instance: {fileID: -4457444995765923352}
     Groups: []
     BlackboardVariables:
     - Name: WrongState
@@ -739,11 +624,14 @@ MonoBehaviour:
     - Name: Index
       Type: 1
       StringValue: 0
-    PanOffset: {x: -23.852753, y: -24.808899}
-    Zoom: 0.7376315
+    - Name: EnterSubState
+      Type: 0
+      StringValue: False
+    PanOffset: {x: -167.15222, y: 21.539398}
+    Zoom: 0.6348858
     ShowSidePanel: 1
     SidePanelWidth: 299
-    DetailsHeightRatio: 0.7807882
+    DetailsHeightRatio: 0.5841584
 --- !u!114 &216716156813758117
 MonoBehaviour:
   m_ObjectHideFlags: 1

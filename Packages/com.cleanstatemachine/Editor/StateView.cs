@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -59,7 +60,7 @@ namespace CleanStateMachine
         public string EditingBuffer { get; private set; }
         public MonoScript BehaviourScript { get; set; }
         public StateBehaviour BehaviourInstance { get; set; }
-        public SerializableData SubMachineData { get; set; }
+        public List<int> ChildIndices { get; set; } = new List<int>();
 
         private bool _isActive;
         private double _activatedAtTime;
