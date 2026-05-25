@@ -156,6 +156,7 @@ namespace CleanStateMachine
 
         internal GraphOperations GraphOperations;
         internal GraphInputHandler InputHandler;
+        internal ShortcutGuide ShortcutGuide;
         internal ExpandedViewManager ExpandedView;
         internal GraphSerializer GraphSerializer;
         internal PlayModeTracker PlayModeTracker;
@@ -228,6 +229,7 @@ namespace CleanStateMachine
 
             GraphOperations = new GraphOperations(this);
             InputHandler = new GraphInputHandler(this, GraphOperations);
+            ShortcutGuide = new ShortcutGuide(this);
             ExpandedView = new ExpandedViewManager(this);
             GraphSerializer = new GraphSerializer(this);
             PlayModeTracker = new PlayModeTracker(this, ExpandedView);
@@ -464,6 +466,15 @@ namespace CleanStateMachine
 
             UpdateConnectionOffsets();
 
+            // Show shortcut guide (always available, even during connecting/editing)
+            if (e.type == EventType.KeyDown && e.keyCode == KeyCode.Slash && e.control)
+            {
+                ShortcutGuide.Show();
+                e.Use();
+                Repaint();
+                return;
+            }
+
             LastMouseGraphPos = (e.mousePosition - _panOffset) / _zoom;
 
             if (!ConnectionController.IsConnecting && EditingState == null && EditingGroup == null)
@@ -537,6 +548,14 @@ namespace CleanStateMachine
 
             if (e.type == EventType.KeyDown && e.keyCode == KeyCode.Escape)
             {
+                if (ShortcutGuide.IsVisible)
+                {
+                    ShortcutGuide.Hide();
+                    e.Use();
+                    Repaint();
+                    return;
+                }
+
                 if (ConnectionController.IsConnecting)
                 {
                     ConnectionController.Cancel();

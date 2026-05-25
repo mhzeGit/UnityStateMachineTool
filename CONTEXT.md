@@ -184,6 +184,8 @@ The Editor assembly (`CleanStateMachine.Editor`) contains the entire graph edito
 
 **`MenuDropdown.cs`** — Reusable dropdown menu system built on VisualElement. Static `Show()` method creates a full-screen overlay (click-to-dismiss) and a positioned menu panel. Passes an `IBuilder` interface to the caller for adding items (`AddItem` with label + action), separators (`AddSeparator`), and disabled items (`AddDisabledItem`). Auto-repositions if the menu would overflow screen edges. Used by `GraphContextMenu` and available for extensions.
 
+**`ShortcutGuide.cs`** — Modal overlay that displays all keyboard shortcuts in a clean grouped list. Triggered via `Ctrl+/` or the `?` button on the DetailsPanel header. Shows a dark semi-transparent backdrop with a centered panel listing shortcuts by category (General, States, Navigation). Each entry shows the key combination (bold yellow) and description (light gray). Closes on Escape, clicking the backdrop, or the X button.
+
 **`ScriptReferenceUtility.cs`** — Static utility for resolving type identity to Unity asset references. `GetTypeName(MonoScript)` returns the fully qualified type name. `FindScriptByTypeName(string)` searches all loaded MonoScripts in the AssetDatabase for a matching type (used when deserializing behaviour/condition type strings). `LoadStyleSheet(string)` loads a USS file by name from the package's Styles folder. `FindAssetPath(string)` locates an asset by filename via AssetDatabase search.
 
 ### Custom Inspectors

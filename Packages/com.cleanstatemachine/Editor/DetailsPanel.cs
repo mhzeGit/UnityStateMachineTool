@@ -37,6 +37,12 @@ namespace CleanStateMachine
             var title = new Label("Inspector");
             title.AddToClassList("panel-title");
             header.Add(title);
+
+            var helpBtn = new Button(() => _window.ShortcutGuide.Show());
+            helpBtn.text = "?";
+            helpBtn.AddToClassList("details-help-button");
+            header.Add(helpBtn);
+
             Add(header);
 
             _scrollView = new ScrollView();
