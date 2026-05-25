@@ -854,23 +854,57 @@ namespace CleanStateMachine
             }
             else if (state.ExternalAction == ExternalStateMachineAction.SetBlackboardParameter)
             {
-                var parmNameRow = new VisualElement();
-                parmNameRow.AddToClassList("info-row");
+                var bbVars = GetTargetBlackboardVariables(state);
 
-                var parmLabel = new Label("Parameter Name");
+                var parmRow = new VisualElement();
+                parmRow.AddToClassList("info-row");
+
+                var parmLabel = new Label("Parameter");
                 parmLabel.AddToClassList("info-row-label");
-                parmNameRow.Add(parmLabel);
+                parmRow.Add(parmLabel);
 
-                var parmNameField = new TextField();
-                parmNameField.value = state.ExternalBlackboardParmName ?? "";
-                parmNameField.AddToClassList("info-row-value");
-                parmNameField.RegisterValueChangedCallback(evt =>
+                var currentParmName = state.ExternalBlackboardParmName;
+                var parmBtn = new Button();
+                parmBtn.AddToClassList("script-picker-button");
+                parmBtn.text = string.IsNullOrEmpty(currentParmName) ? "Select variable..." : currentParmName;
+                parmBtn.clicked += () =>
                 {
-                    state.ExternalBlackboardParmName = evt.newValue;
-                    _window.NotifySidePanelChanged();
-                });
-                parmNameRow.Add(parmNameField);
-                _scrollView.Add(parmNameRow);
+                    var pos = _window.rootVisualElement.WorldToLocal(
+                        new Vector2(parmBtn.worldBound.x, parmBtn.worldBound.y + parmBtn.worldBound.height));
+                    MenuDropdown.Show(_window.rootVisualElement, pos, menu =>
+                    {
+                        menu.AddItem("None (manual)", () =>
+                        {
+                            state.ExternalBlackboardParmName = "";
+                            _window.NotifySidePanelChanged();
+                            UpdateSelection(_selected, _states, _connections, _blackboardVariables);
+                        });
+                        if (bbVars != null && bbVars.Count > 0)
+                        {
+                            menu.AddSeparator();
+                            for (int i = 0; i < bbVars.Count; i++)
+                            {
+                                var captured = bbVars[i];
+                                menu.AddItem(captured.Name + " (" + captured.Type + ")", () =>
+                                {
+                                    state.ExternalBlackboardParmName = captured.Name;
+                                    state.ExternalBlackboardParmType = captured.Type;
+                                    _window.NotifySidePanelChanged();
+                                    UpdateSelection(_selected, _states, _connections, _blackboardVariables);
+                                });
+                            }
+                        }
+                        else if (state.ExternalStateMachine != null)
+                        {
+                            menu.AddSeparator();
+                            menu.AddDisabledItem("No variables on target");
+                        }
+                    });
+                };
+                parmRow.Add(parmBtn);
+                _scrollView.Add(parmRow);
+
+                var hasSelectedVar = !string.IsNullOrEmpty(state.ExternalBlackboardParmName);
 
                 var typeRow = new VisualElement();
                 typeRow.AddToClassList("info-row");
@@ -883,6 +917,7 @@ namespace CleanStateMachine
                 var typeBtn = new Button();
                 typeBtn.AddToClassList("script-picker-button");
                 typeBtn.text = bbType.ToString();
+                typeBtn.SetEnabled(!hasSelectedVar);
                 typeBtn.clicked += () =>
                 {
                     var pos = _window.rootVisualElement.WorldToLocal(
@@ -911,15 +946,9 @@ namespace CleanStateMachine
                 valueLabel.AddToClassList("info-row-label");
                 valueRow.Add(valueLabel);
 
-                var valueField = new TextField();
-                valueField.value = state.ExternalBlackboardParmValue ?? "";
-                valueField.AddToClassList("info-row-value");
-                valueField.RegisterValueChangedCallback(evt =>
-                {
-                    state.ExternalBlackboardParmValue = evt.newValue;
-                    _window.NotifySidePanelChanged();
-                });
-                valueRow.Add(valueField);
+                VisualElement valueControl = BuildTypedBlackboardValueEditor(state);
+                valueControl.AddToClassList("info-row-value");
+                valueRow.Add(valueControl);
                 _scrollView.Add(valueRow);
             }
         }
@@ -1345,6 +1374,7 @@ namespace CleanStateMachine
                         so.ApplyModifiedProperties();
                         EditorUtility.SetDirty(so.targetObject);
                         rebuild();
+                        schedule.Execute(() => UpdateSelection(_selected, _states, _connections, _blackboardVariables)).StartingIn(0);
                     });
                     menu.AddSeparator();
                     bool hasMatch = false;
@@ -1359,9 +1389,19 @@ namespace CleanStateMachine
                         {
                             varNameProp.stringValue = captured;
                             valueTypeProp.enumValueIndex = (int)capturedType;
+
+                            var valueProp = so.FindProperty("value");
+                            if (valueProp != null)
+                            {
+                                var valueValueTypeProp = valueProp.FindPropertyRelative("ValueType");
+                                if (valueValueTypeProp != null)
+                                    valueValueTypeProp.enumValueIndex = (int)capturedType;
+                            }
+
                             so.ApplyModifiedProperties();
                             EditorUtility.SetDirty(so.targetObject);
                             rebuild();
+                            schedule.Execute(() => UpdateSelection(_selected, _states, _connections, _blackboardVariables)).StartingIn(0);
                         });
                     }
                     if (!hasMatch)

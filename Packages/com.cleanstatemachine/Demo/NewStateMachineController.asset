@@ -824,10 +824,8 @@ MonoBehaviour:
   m_Name: State02_Behaviour_1
   m_EditorClassIdentifier: 
   target:
-    UseBlackboard: 1
-    BlackboardVariableName: ExternalReference
+    VariableName: EnterSubState02
     ValueType: 0
-    DefaultValue: 
   value:
     UseBlackboard: 0
     BlackboardVariableName: 
@@ -932,23 +930,6 @@ MonoBehaviour:
       ExternalBlackboardParmValue: 
       _legacyBehaviourType: 
       _legacyBehaviour: {fileID: 0}
-    - Name: State 2
-      Position: {x: 356.75058, y: 565.9919}
-      Size: {x: 160, y: 40}
-      IsEntry: 0
-      IsSubEntry: 0
-      IsSubStateMachine: 0
-      IsExternalReference: 0
-      ChildIndices: 
-      Behaviours: []
-      ExternalAction: 0
-      ExternalStateMachine: {fileID: 0}
-      ExternalTargetStateName: 
-      ExternalBlackboardParmName: 
-      ExternalBlackboardParmType: 0
-      ExternalBlackboardParmValue: 
-      _legacyBehaviourType: 
-      _legacyBehaviour: {fileID: 0}
     - Name: State 1
       Position: {x: 165.98784, y: 530.7979}
       Size: {x: 160, y: 40}
@@ -968,19 +949,32 @@ MonoBehaviour:
       ExternalBlackboardParmValue: 
       _legacyBehaviourType: 
       _legacyBehaviour: {fileID: 0}
-    - Name: State02
-      Position: {x: 1689.1455, y: 422.12885}
+    - Name: State03
+      Position: {x: 1619.0258, y: 231.28171}
       Size: {x: 160, y: 40}
       IsEntry: 0
       IsSubEntry: 0
       IsSubStateMachine: 0
       IsExternalReference: 0
       ChildIndices: 
-      Behaviours:
-      - TypeName: DebugLog_StateBehaviour
-        Instance: {fileID: -3314463220110206021}
-      - TypeName: SetVariable_StateBehaviour
-        Instance: {fileID: -49488820213301800}
+      Behaviours: []
+      ExternalAction: 0
+      ExternalStateMachine: {fileID: 0}
+      ExternalTargetStateName: 
+      ExternalBlackboardParmName: 
+      ExternalBlackboardParmType: 0
+      ExternalBlackboardParmValue: 
+      _legacyBehaviourType: 
+      _legacyBehaviour: {fileID: 0}
+    - Name: State 2
+      Position: {x: 356.75058, y: 565.9919}
+      Size: {x: 160, y: 40}
+      IsEntry: 0
+      IsSubEntry: 0
+      IsSubStateMachine: 0
+      IsExternalReference: 0
+      ChildIndices: 
+      Behaviours: []
       ExternalAction: 0
       ExternalStateMachine: {fileID: 0}
       ExternalTargetStateName: 
@@ -1008,15 +1002,19 @@ MonoBehaviour:
       ExternalBlackboardParmValue: 
       _legacyBehaviourType: 
       _legacyBehaviour: {fileID: 0}
-    - Name: State03
-      Position: {x: 1619.0258, y: 231.28171}
+    - Name: State02
+      Position: {x: 1689.1455, y: 422.12885}
       Size: {x: 160, y: 40}
       IsEntry: 0
       IsSubEntry: 0
       IsSubStateMachine: 0
       IsExternalReference: 0
       ChildIndices: 
-      Behaviours: []
+      Behaviours:
+      - TypeName: DebugLog_StateBehaviour
+        Instance: {fileID: -3314463220110206021}
+      - TypeName: SetVariable_StateBehaviour
+        Instance: {fileID: -49488820213301800}
       ExternalAction: 0
       ExternalStateMachine: {fileID: 0}
       ExternalTargetStateName: 
@@ -1049,7 +1047,7 @@ MonoBehaviour:
       IsSubEntry: 0
       IsSubStateMachine: 1
       IsExternalReference: 0
-      ChildIndices: 0900000008000000070000000c000000
+      ChildIndices: 0600000008000000090000000c000000
       Behaviours: []
       ExternalAction: 0
       ExternalStateMachine: {fileID: 0}
@@ -1060,7 +1058,7 @@ MonoBehaviour:
       _legacyBehaviourType: 
       _legacyBehaviour: {fileID: 0}
     - Name: External Reference
-      Position: {x: 1999.6191, y: 427.0469}
+      Position: {x: 1975.5762, y: 427.0469}
       Size: {x: 160, y: 40}
       IsEntry: 0
       IsSubEntry: 0
@@ -1071,49 +1069,49 @@ MonoBehaviour:
       ExternalAction: 2
       ExternalStateMachine: {fileID: 0}
       ExternalTargetStateName: 
-      ExternalBlackboardParmName: 
+      ExternalBlackboardParmName: BoolPar
       ExternalBlackboardParmType: 0
-      ExternalBlackboardParmValue: 
+      ExternalBlackboardParmValue: True
       _legacyBehaviourType: 
       _legacyBehaviour: {fileID: 0}
     Connections:
     - FromIndex: 0
       ToIndex: 3
       Conditions: []
-    - FromIndex: 7
+    - FromIndex: 9
       ToIndex: 8
       Conditions:
       - TypeName: Timer_ConditionBehaviours
         Instance: {fileID: 8482820378430823579}
-    - FromIndex: 9
-      ToIndex: 7
+    - FromIndex: 6
+      ToIndex: 9
       Conditions:
       - TypeName: Timer_ConditionBehaviours
         Instance: {fileID: 4620416368358552924}
     - FromIndex: 8
-      ToIndex: 9
+      ToIndex: 6
       Conditions:
       - TypeName: Timer_ConditionBehaviours
         Instance: {fileID: -56481866994505946}
     - FromIndex: 12
-      ToIndex: 7
+      ToIndex: 9
       Conditions: []
     - FromIndex: 3
-      ToIndex: 6
+      ToIndex: 5
       Conditions:
       - TypeName: UltimateCompare_ConditionBehaviours
         Instance: {fileID: 9171129290656385371}
-    - FromIndex: 6
+    - FromIndex: 5
       ToIndex: 3
       Conditions:
       - TypeName: UltimateCompare_ConditionBehaviours
         Instance: {fileID: 4670883676101672293}
     - FromIndex: 3
-      ToIndex: 5
+      ToIndex: 7
       Conditions:
       - TypeName: UltimateCompare_ConditionBehaviours
         Instance: {fileID: -1446081533388392770}
-    - FromIndex: 5
+    - FromIndex: 7
       ToIndex: 3
       Conditions:
       - TypeName: UltimateCompare_ConditionBehaviours
@@ -1158,7 +1156,7 @@ MonoBehaviour:
       Conditions:
       - TypeName: UltimateCompare_ConditionBehaviours
         Instance: {fileID: -3729689983490442471}
-    - FromIndex: 7
+    - FromIndex: 9
       ToIndex: 12
       Conditions:
       - TypeName: UltimateCompare_ConditionBehaviours
@@ -1198,8 +1196,8 @@ MonoBehaviour:
     - Name: ExternalReference
       Type: 0
       StringValue: False
-    PanOffset: {x: -639.409, y: 210.05965}
-    Zoom: 0.6041292
+    PanOffset: {x: -1189.4988, y: 109.503174}
+    Zoom: 0.79323065
     ShowSidePanel: 1
     SidePanelWidth: 524
     DetailsHeightRatio: 0.5841584

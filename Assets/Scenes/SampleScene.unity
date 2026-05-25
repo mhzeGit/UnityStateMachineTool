@@ -1056,7 +1056,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 22fa058b6c0a2884cb0b2cb0b745cd4d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CleanStateMachine.StateMachineComponent
-  _controller: {fileID: 11400000, guid: 994c37624fc96bf4caffbafd2c784630, type: 2}
+  _controller: {fileID: 11400000, guid: eb97767d0454e95488cc1b777b120273, type: 2}
 --- !u!4 &1257150544
 Transform:
   m_ObjectHideFlags: 0
