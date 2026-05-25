@@ -1830,6 +1830,7 @@ namespace CleanStateMachine
             _expandedSubStateStack.Add(subStateView.DataIndex);
             UpdateExpandedModeBar();
             StartSmoothFocusOnContent();
+            _sidePanelElement?.UpdateSelection();
         }
 
         internal bool IsCurrentExpandedSubState(StateView state)
@@ -1843,6 +1844,7 @@ namespace CleanStateMachine
                 _expandedSubStateStack.RemoveAt(_expandedSubStateStack.Count - 1);
             UpdateExpandedModeBar();
             StartSmoothFocusOnContent();
+            _sidePanelElement?.UpdateSelection();
         }
 
         private Rect ComputeVisibleContentBounds()

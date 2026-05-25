@@ -126,7 +126,7 @@ namespace CleanStateMachine
                     });
                     closeBtn.text = "Close Sub State";
                     closeBtn.AddToClassList("enter-sub-button");
-                    closeBtn.style.backgroundColor = new StyleColor(new Color(0.2f, 0.3f, 0.6f));
+                    closeBtn.style.backgroundColor = new StyleColor(new Color(0.5f, 0.15f, 0.15f));
                     _scrollView.Add(closeBtn);
                 }
                 else
