@@ -241,6 +241,12 @@ namespace CleanStateMachine
             EditorApplication.update -= OnEditorUpdate;
             EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
 
+            if (CurrentData != null)
+            {
+                CurrentData.ExpandedSubStateIndices.Clear();
+                CurrentData.ExpandedSubStateIndices.AddRange(ExpandedSubStateStack);
+            }
+
             if (_controller != null && !_isLoading)
             {
                 if (_hasUnsavedChanges || Application.isPlaying)
@@ -354,6 +360,7 @@ namespace CleanStateMachine
             GraphOperations.SyncGroupElements();
             rootVisualElement.schedule.Execute(() =>
             {
+                ExpandedView?.UpdateExpandedModeBar();
                 SidePanelElement?.SyncFromWindow();
                 SidePanelElement?.UpdateBlackboard();
                 SidePanelElement?.UpdateSelection();

@@ -102,6 +102,7 @@ namespace CleanStateMachine
 
         public void UpdateExpandedModeBar()
         {
+            if (_window.ExpandedModeBar == null) return;
             if (_window.ExpandedSubStateStack.Count > 0)
             {
                 _window.ExpandedModeBar.style.display = DisplayStyle.Flex;

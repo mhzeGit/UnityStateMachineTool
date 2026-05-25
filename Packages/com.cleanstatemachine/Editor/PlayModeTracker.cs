@@ -175,6 +175,7 @@ namespace CleanStateMachine
             }
             else if (change == PlayModeStateChange.EnteredEditMode)
             {
+                _window.WasPlaying = false;
                 if (_window.Controller != null)
                 {
                     _window.CurrentData = _window.Controller.Data;

@@ -143,6 +143,30 @@
     flex: 1;
 }
 
+.controller-open-button {
+    height: 32px;
+    background-color: #333333;
+    color: #bfbfbf;
+    font-size: 12px;
+    justify-content: center;
+    align-items: center;
+    -unity-text-align: middle-center;
+    border-radius: 4px;
+    margin-bottom: 12px;
+    margin-top: 8px;
+    border-color: #141414;
+    border-width: 1px;
+}
+
+.controller-open-button:hover {
+    background-color: #474747;
+    color: #f2f2f2;
+}
+
+.controller-open-button:active {
+    background-color: #3d3d3d;
+}
+
 .help-text {
     font-size: 12px;
     color: #808080;

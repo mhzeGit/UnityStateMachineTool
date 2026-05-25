@@ -659,6 +659,144 @@
     padding-left: 16px;
 }
 
+/* --- Editable Name Field (DetailsPanel) --- */
+.details-name-field {
+    flex: 1;
+    min-width: 0;
+    height: 22px;
+    padding-left: 6px;
+    padding-right: 4px;
+    border-width: 0;
+    background-color: transparent;
+}
+
+.details-name-field > .unity-base-text-field__input,
+.details-name-field > .unity-text-field__input {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.85);
+    -unity-text-align: middle-left;
+    background-color: rgba(0, 0, 0, 0.15);
+    border-color: rgba(255, 255, 255, 0.08);
+    border-width: 1px;
+    padding-left: 6px;
+    padding-right: 4px;
+    height: 22px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.details-name-field > .unity-base-text-field__input:focus,
+.details-name-field > .unity-text-field__input:focus {
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* --- Connection States Row (From → To buttons) --- */
+.conn-states-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    padding-left: 8px;
+    padding-right: 8px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    gap: 6px;
+}
+
+.conn-state-button {
+    flex: 1;
+    height: 26px;
+    background-color: #2a2a2a;
+    color: #d9d9d9;
+    font-size: 11px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    border-color: #333333;
+    border-width: 1px;
+    border-radius: 3px;
+    padding-left: 8px;
+    padding-right: 8px;
+    justify-content: center;
+    transition: background-color 0.1s;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.conn-state-button:hover {
+    background-color: #3d3d3d;
+    color: #f2f2f2;
+    border-color: #4d4d4d;
+}
+
+.conn-state-button:active {
+    background-color: #4a5a6a;
+}
+
+.conn-states-arrow {
+    font-size: 14px;
+    color: #666666;
+    -unity-text-align: middle-center;
+    flex-shrink: 0;
+    width: 20px;
+}
+
+/* --- State Connection Row (compressed, interactive) --- */
+.state-conn-row {
+    flex-direction: row;
+    align-items: center;
+    min-height: 24px;
+    padding-left: 8px;
+    padding-right: 8px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    margin-left: 4px;
+    margin-right: 4px;
+    margin-top: 1px;
+    margin-bottom: 1px;
+    border-radius: 3px;
+    background-color: #1a1a1a;
+    cursor: pointer;
+    transition: background-color 0.1s;
+}
+
+.state-conn-row:hover {
+    background-color: #2a2a2a;
+}
+
+.state-conn-row-selected {
+    background-color: #2a3a4a;
+}
+
+.state-conn-row-selected:hover {
+    background-color: #304a5e;
+}
+
+.state-conn-row-label {
+    font-size: 11px;
+    -unity-font-style: bold;
+    color: #d9d9d9;
+    flex-shrink: 0;
+    margin-right: 8px;
+    white-space: nowrap;
+}
+
+.state-conn-row-conditions {
+    font-size: 10px;
+    color: #808080;
+    -unity-font-style: italic;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+}
+
+.state-conn-row-conditions--empty {
+    color: #555555;
+}
+
 /* --- Section Title --- */
 .section-title {
     font-size: 14px;

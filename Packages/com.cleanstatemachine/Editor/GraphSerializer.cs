@@ -128,6 +128,9 @@ namespace CleanStateMachine
             _window.CurrentData.ShowSidePanel = _window.ShowSidePanel;
             _window.CurrentData.SidePanelWidth = _window.SidePanelWidth;
             _window.CurrentData.DetailsHeightRatio = _window.DetailsHeightRatio;
+
+            _window.CurrentData.ExpandedSubStateIndices.Clear();
+            _window.CurrentData.ExpandedSubStateIndices.AddRange(_window.ExpandedSubStateStack);
         }
 
         public void LoadFromController()
@@ -153,10 +156,6 @@ namespace CleanStateMachine
             _window.LastTransitionFromIndex = -1;
             _window.LastTransitionToIndex = -1;
             _window.LastTransitionConnectionIndex = -1;
-            _window.ExpandedSubStateStack.Clear();
-            if (_window.ExpandedModeBar != null)
-                _window.ExpandedModeBar.style.display = DisplayStyle.None;
-
             if (_window.CurrentData != null)
             {
                 var data = _window.CurrentData;
@@ -242,7 +241,21 @@ namespace CleanStateMachine
                 _window.ShowSidePanel = data.ShowSidePanel;
                 _window.SidePanelWidth = data.SidePanelWidth;
                 _window.DetailsHeightRatio = data.DetailsHeightRatio;
+
+                _window.ExpandedSubStateStack.Clear();
+                if (data.ExpandedSubStateIndices != null && data.ExpandedSubStateIndices.Count > 0)
+                {
+                    for (int i = 0; i < data.ExpandedSubStateIndices.Count; i++)
+                    {
+                        int idx = data.ExpandedSubStateIndices[i];
+                        if (idx >= 0 && idx < _window.States.Count)
+                            _window.ExpandedSubStateStack.Add(idx);
+                    }
+                }
             }
+
+            if (_window.ExpandedModeBar != null)
+                _window.ExpandedView.UpdateExpandedModeBar();
 
             _window.EnsureEntryStateExistsInternal();
             _window.GraphOperations.SyncGroupElements();

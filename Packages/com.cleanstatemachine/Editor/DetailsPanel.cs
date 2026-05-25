@@ -104,10 +104,55 @@ namespace CleanStateMachine
         private void BuildStateContent(StateView state)
         {
             AddSectionTitle("State Information");
-            AddInfoRow("Name", state.Name);
-            AddInfoRow("Position", $"({state.Position.x:F1}, {state.Position.y:F1})");
-            AddInfoRow("Size", $"({state.Size.x:F0} x {state.Size.y:F0})");
-            AddInfoRow("Connections", CountStateConnections(state).ToString());
+
+            var nameRow = new VisualElement();
+            nameRow.AddToClassList("info-row");
+
+            var nameLabelEl = new Label("Name");
+            nameLabelEl.AddToClassList("info-row-label");
+            nameRow.Add(nameLabelEl);
+
+            var nameField = new TextField();
+            nameField.value = state.Name;
+            nameField.AddToClassList("info-row-value");
+            nameField.AddToClassList("details-name-field");
+
+            string oldName = state.Name;
+            nameField.RegisterCallback<FocusOutEvent>(evt =>
+            {
+                string newName = nameField.value;
+                if (newName != oldName && !string.IsNullOrEmpty(newName))
+                {
+                    var cmd = new RenameStateCommand(state, oldName, newName);
+                    _window.UndoRedoSystem.Execute(cmd);
+                    _window.NotifySidePanelChanged();
+                    oldName = newName;
+                }
+                else if (string.IsNullOrEmpty(newName))
+                {
+                    nameField.value = oldName;
+                }
+            });
+
+            nameField.RegisterCallback<KeyDownEvent>(e =>
+            {
+                if (e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter)
+                {
+                    nameField.Blur();
+                    e.StopPropagation();
+                }
+                else if (e.keyCode == KeyCode.Escape)
+                {
+                    nameField.value = oldName;
+                    nameField.Blur();
+                    e.StopPropagation();
+                }
+            });
+
+            nameRow.Add(nameField);
+            _scrollView.Add(nameRow);
+
+            BuildStateConnectionsList(state);
 
             if (state.IsEntry)
                 return;
@@ -328,9 +373,44 @@ namespace CleanStateMachine
         private void BuildConnectionContent(ConnectionView conn)
         {
             _activeConnection = conn;
-            AddSectionTitle("Connection Information");
-            AddInfoRow("From", conn.From?.Name ?? "\u2014");
-            AddInfoRow("To", conn.To?.Name ?? "\u2014");
+            AddSectionTitle("Connection");
+
+            var statesRow = new VisualElement();
+            statesRow.AddToClassList("conn-states-row");
+
+            if (conn.From != null)
+            {
+                var fromBtn = new Button();
+                fromBtn.AddToClassList("conn-state-button");
+                fromBtn.text = conn.From.Name;
+                var fromState = conn.From;
+                fromBtn.clicked += () =>
+                {
+                    _window.SelectionController.Clear();
+                    _window.SelectionController.Select(fromState);
+                };
+                statesRow.Add(fromBtn);
+            }
+
+            var arrowLabel = new Label("\u2192");
+            arrowLabel.AddToClassList("conn-states-arrow");
+            statesRow.Add(arrowLabel);
+
+            if (conn.To != null)
+            {
+                var toBtn = new Button();
+                toBtn.AddToClassList("conn-state-button");
+                toBtn.text = conn.To.Name;
+                var toState = conn.To;
+                toBtn.clicked += () =>
+                {
+                    _window.SelectionController.Clear();
+                    _window.SelectionController.Select(toState);
+                };
+                statesRow.Add(toBtn);
+            }
+
+            _scrollView.Add(statesRow);
 
             AddDivider();
             AddSectionTitle("Transition Conditions");
@@ -390,7 +470,8 @@ namespace CleanStateMachine
             var header = new VisualElement();
             header.AddToClassList("condition-entry-header");
 
-            var headerLabel = new Label($"Condition {index + 1}");
+            string condName = entry.Script != null ? GetConditionDisplayName(entry.Script) : $"Condition {index + 1}";
+            var headerLabel = new Label(condName);
             headerLabel.AddToClassList("condition-entry-label");
             header.Add(headerLabel);
 
@@ -727,6 +808,74 @@ namespace CleanStateMachine
         {
             AddSectionTitle("Inspector");
             AddInfoRow("Type", item.GetType().Name);
+        }
+
+        private void BuildStateConnectionsList(StateView state)
+        {
+            if (_connections == null) return;
+
+            var stateConnections = new List<ConnectionView>();
+            for (int i = 0; i < _connections.Count; i++)
+            {
+                if (_connections[i].From == state || _connections[i].To == state)
+                    stateConnections.Add(_connections[i]);
+            }
+
+            if (stateConnections.Count == 0) return;
+
+            AddDivider();
+            AddSectionTitle(stateConnections.Count == 1 ? "Connection" : $"Connections ({stateConnections.Count})");
+
+            for (int i = 0; i < stateConnections.Count; i++)
+            {
+                var conn = stateConnections[i];
+                bool isFrom = conn.From == state;
+
+                var connRow = new VisualElement();
+                connRow.AddToClassList("state-conn-row");
+
+                bool isSelected = conn.IsSelected;
+                if (isSelected)
+                    connRow.AddToClassList("state-conn-row-selected");
+
+                connRow.RegisterCallback<MouseDownEvent>(evt =>
+                {
+                    _window.SelectionController.Clear();
+                    _window.SelectionController.Select(conn);
+                });
+
+                string dir = isFrom ? "\u2192" : "\u2190";
+                string otherName = isFrom ? (conn.To?.Name ?? "?") : (conn.From?.Name ?? "?");
+
+                var connLabel = new Label($"{dir}  {otherName}");
+                connLabel.AddToClassList("state-conn-row-label");
+                connRow.Add(connLabel);
+
+                if (conn.ConditionEntries.Count > 0)
+                {
+                    var parts = new List<string>();
+                    for (int j = 0; j < conn.ConditionEntries.Count; j++)
+                    {
+                        var ce = conn.ConditionEntries[j];
+                        if (ce.Script != null)
+                            parts.Add(GetConditionDisplayName(ce.Script));
+                        else
+                            parts.Add("?");
+                    }
+                    var condLabel = new Label(string.Join(", ", parts));
+                    condLabel.AddToClassList("state-conn-row-conditions");
+                    connRow.Add(condLabel);
+                }
+                else
+                {
+                    var noCondLabel = new Label("no conditions");
+                    noCondLabel.AddToClassList("state-conn-row-conditions");
+                    noCondLabel.AddToClassList("state-conn-row-conditions--empty");
+                    connRow.Add(noCondLabel);
+                }
+
+                _scrollView.Add(connRow);
+            }
         }
 
         // ─── EXTERNAL REFERENCE CONTENT ────────────────────────────────
@@ -1497,18 +1646,6 @@ namespace CleanStateMachine
         }
 
         // ─── UTILITY ───────────────────────────────────────────────────
-
-        private int CountStateConnections(StateView state)
-        {
-            if (_connections == null) return 0;
-            int count = 0;
-            for (int i = 0; i < _connections.Count; i++)
-            {
-                if (_connections[i].From == state || _connections[i].To == state)
-                    count++;
-            }
-            return count;
-        }
 
         private static List<BlackboardVariable> GetTargetBlackboardVariables(StateView state)
         {

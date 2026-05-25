@@ -98,5 +98,6 @@ namespace CleanStateMachine
         public bool ShowSidePanel = true;
         public float SidePanelWidth = 220f;
         public float DetailsHeightRatio = 0.5f;
+        public List<int> ExpandedSubStateIndices = new List<int>();
     }
 }

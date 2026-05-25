@@ -188,7 +188,7 @@ The Editor assembly (`CleanStateMachine.Editor`) contains the entire graph edito
 
 **`StateMachineControllerEditor.cs`** — Custom `Editor` for `StateMachineController` (`[CustomEditor(typeof(StateMachineController))]`). Replaces the default inspector with a button that opens the graph editor and explanatory text. Exposes `CreateInspectorGUI()` returning a VisualElement.
 
-**`StateMachineComponentEditor.cs`** — Custom `Editor` for `StateMachineComponent` (`[CustomEditor(typeof(StateMachineComponent))]`). Shows the assigned controller, the current state name (live-updating), and an editable list of all blackboard variables with type-appropriate input fields. Uses `EditorApplication.update` for periodic refresh at runtime.
+**`StateMachineComponentEditor.cs`** — Custom `Editor` for `StateMachineComponent` (`[CustomEditor(typeof(StateMachineComponent))]`). Shows the assigned controller with "Open Graph" button to launch the graph editor, the current state name (live-updating), and an editable list of all blackboard variables with type-appropriate input fields. Uses `EditorApplication.update` for periodic refresh at runtime.
 
 **`StateMachineActionEditor.cs`** — Custom `Editor` for `StateMachineAction` and its subclasses (`[CustomEditor(typeof(StateMachineAction), true)]`). Provides a UI to select a `StateMachineComponent` reference, then picks a specific blackboard variable of the type required by the action (determined by `RequiredVariableType`). Shows a variable-type badge and a clear-selection button.
 

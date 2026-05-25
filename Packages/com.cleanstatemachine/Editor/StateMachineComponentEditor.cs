@@ -35,6 +35,23 @@ namespace CleanStateMachine
             var controllerField = new PropertyField(serializedObject.FindProperty("_controller"));
             _root.Add(controllerField);
 
+            var openGraphBtn = new Button(() =>
+            {
+                var controller = _component.Controller;
+                if (controller != null)
+                    CleanStateMachineWindow.OpenWithController(controller);
+            });
+            openGraphBtn.text = "Open Graph";
+            openGraphBtn.SetEnabled(_component.Controller != null);
+            openGraphBtn.AddToClassList("controller-open-button");
+            openGraphBtn.name = "open-graph-btn";
+            _root.Add(openGraphBtn);
+
+            controllerField.RegisterCallback<SerializedPropertyChangeEvent>(_ =>
+            {
+                openGraphBtn.SetEnabled(_component.Controller != null);
+            });
+
             _stateContainer = new VisualElement();
             _stateContainer.AddToClassList("state-container");
 
