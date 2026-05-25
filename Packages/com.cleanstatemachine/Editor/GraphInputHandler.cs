@@ -491,7 +491,8 @@ namespace CleanStateMachine
             }
             else if (_window.SelectionBox.IsActive)
             {
-                PerformBoxSelection(_window.SelectionBox.GetGraphRect(), e.shift);
+                if (_window.SelectionBox.HasValidDrag(_window.Zoom))
+                    PerformBoxSelection(_window.SelectionBox.GetGraphRect(), e.shift);
                 _window.SelectionBox.End();
                 _window.LastDoubleClickCandidate = null;
                 e.Use();

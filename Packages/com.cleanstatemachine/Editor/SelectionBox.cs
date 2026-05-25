@@ -10,6 +10,8 @@ namespace CleanStateMachine
         private Vector2 _startGraphPos;
         private Vector2 _endGraphPos;
 
+        private const float MinDragThreshold = 4f;
+
         public VisualElement Element { get; }
 
         public SelectionBox()
@@ -51,6 +53,13 @@ namespace CleanStateMachine
             Element.style.display = DisplayStyle.None;
         }
 
+        public bool HasValidDrag(float zoom)
+        {
+            Vector2 startScreen = _startGraphPos * zoom;
+            Vector2 endScreen = _endGraphPos * zoom;
+            return Vector2.Distance(startScreen, endScreen) >= MinDragThreshold;
+        }
+
         public Rect GetGraphRect()
         {
             float xMin = Mathf.Min(_startGraphPos.x, _endGraphPos.x);
@@ -64,6 +73,13 @@ namespace CleanStateMachine
         {
             if (!IsActive)
                 return;
+
+            if (!HasValidDrag(zoom))
+            {
+                if (Element.style.display != DisplayStyle.None)
+                    Element.style.display = DisplayStyle.None;
+                return;
+            }
 
             if (Element.style.display == DisplayStyle.None)
                 Element.style.display = DisplayStyle.Flex;

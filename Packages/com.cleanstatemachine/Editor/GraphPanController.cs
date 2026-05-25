@@ -46,7 +46,7 @@ namespace CleanStateMachine
                     e.Use();
                     break;
 
-                case EventType.MouseUp when IsPanning:
+                case EventType.MouseUp when e.button == 1 && IsPanning:
                     IsPanning = false;
                     e.Use();
                     break;
