@@ -1,8 +1,8 @@
-Analyze this entire project codebase thoroughly, then create a file called 
+Analyze this entire project codebase thoroughly, then create a file called
 `CONTEXT.md` in the project root.
 
-This file is a universal AI context document. Any AI agent, in any tool, 
-reading this one file should be able to understand the project completely 
+This file is a universal AI context document. Any AI agent, in any tool,
+reading this one file should be able to understand the project completely
 and start contributing immediately with zero extra explanation.
 
 The file must include:
@@ -11,14 +11,12 @@ The file must include:
 - What this project is and its core purpose in 2-3 sentences
 - Target platform and how it's run or deployed
 
-## Tech Stack
-- Every framework, library and runtime with versions if detectable
-- Build tools, bundlers, dev server
-
 ## File & Folder Structure
 - A concise map of what lives where
 - What the most important files are and why
 - Any non-obvious folder purposes
+- Folders and files to ignore and never read
+- One line description for every script explaining what it is and does
 
 ## Architecture & Patterns
 - How the codebase is organized and why
@@ -26,32 +24,9 @@ The file must include:
 - State management approach
 - Naming conventions used consistently throughout
 
-## Critical Rules
-- Files that must never be modified without explicit instruction
-- Patterns or approaches deliberately avoided in this project
-- Gotchas or traps a fresh AI would likely fall into
-
-## External Dependencies & APIs
-- Any APIs, SDKs or external services in use
-- Where config or credentials live (no actual values)
-
-## Current State
-- What is stable and complete
-- What is actively in progress or incomplete
-- Known bugs or issues
-
-## How to Contribute
-- The correct way to add new features (which patterns to follow, which base 
-  classes to extend, which files to reference first)
-- How to run, build and test locally
-
 ---
 Rules for writing this file:
 - Bullet points only, no paragraphs
 - Every line must be something a fresh AI session actually needs
 - No filler, no summaries of obvious things
-- Under 150 lines total
 - Written for an AI reader, not a human
-
-After creating the file, give me a short summary of what you found and flag 
-anything that looks inconsistent, unclear or potentially problematic.
