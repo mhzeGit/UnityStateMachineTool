@@ -104,10 +104,15 @@ namespace CleanStateMachine
         private StateMachineComponent _trackedComponent;
         private int _activeStateIndex = -1;
         private bool _isAutoNavigating;
+        private bool _wasPlaying;
 
         private List<int> _pendingExpandStack;
         private double _pendingExpandTime;
         private const float AutoExpandDelay = 0.35f;
+
+        private int _lastTransitionFromIndex = -1;
+        private int _lastTransitionToIndex = -1;
+        private int _lastTransitionConnectionIndex = -1;
 
         private bool _isAnimatingView;
         private Vector2 _animFromPan;
@@ -192,6 +197,9 @@ namespace CleanStateMachine
                 }
                 _expandedSubStateStack.Clear();
                 _pendingExpandStack = null;
+                _lastTransitionFromIndex = -1;
+                _lastTransitionToIndex = -1;
+                _lastTransitionConnectionIndex = -1;
             }
             else if (change == PlayModeStateChange.EnteredEditMode)
             {
@@ -2187,6 +2195,9 @@ namespace CleanStateMachine
             _activeStateIndex = -1;
             _trackedComponent = null;
             _pendingExpandStack = null;
+            _lastTransitionFromIndex = -1;
+            _lastTransitionToIndex = -1;
+            _lastTransitionConnectionIndex = -1;
             _expandedSubStateStack.Clear();
             if (_expandedModeBar != null)
                 _expandedModeBar.style.display = DisplayStyle.None;
@@ -2353,6 +2364,9 @@ namespace CleanStateMachine
             _detailsHeightRatio = 0.5f;
             _expandedSubStateStack.Clear();
             _pendingExpandStack = null;
+            _lastTransitionFromIndex = -1;
+            _lastTransitionToIndex = -1;
+            _lastTransitionConnectionIndex = -1;
             if (_expandedModeBar != null)
                 _expandedModeBar.style.display = DisplayStyle.None;
 
@@ -2375,11 +2389,15 @@ namespace CleanStateMachine
         {
             if (!Application.isPlaying)
             {
-                if (_activeStateIndex >= 0 || _expandedSubStateStack.Count > 0)
+                if (_wasPlaying)
                 {
+                    _wasPlaying = false;
                     _activeStateIndex = -1;
                     _expandedSubStateStack.Clear();
                     _pendingExpandStack = null;
+                    _lastTransitionFromIndex = -1;
+                    _lastTransitionToIndex = -1;
+                    _lastTransitionConnectionIndex = -1;
                     for (int i = 0; i < _states.Count; i++)
                         _states[i].IsActive = false;
                     for (int i = 0; i < _connections.Count; i++)
@@ -2389,6 +2407,8 @@ namespace CleanStateMachine
                 }
                 return;
             }
+
+            _wasPlaying = true;
 
             UpdateTrackedComponent();
 
@@ -2450,6 +2470,9 @@ namespace CleanStateMachine
                         UpdateExpandedModeBar();
                         if (!_isAnimatingView)
                             StartSmoothFocusOnContent();
+
+                        PlayDeferredTransitionEffects();
+
                         Repaint();
                     }
                 }
@@ -2460,6 +2483,9 @@ namespace CleanStateMachine
                     for (int t = 0; t < transitions.Count; t++)
                     {
                         var record = transitions[t];
+                        _lastTransitionFromIndex = record.FromIndex;
+                        _lastTransitionToIndex = record.ToIndex;
+                        _lastTransitionConnectionIndex = record.ConnectionIndex;
                         for (int c = 0; c < _connections.Count; c++)
                         {
                             if (record.ConnectionIndex >= 0)
@@ -2491,11 +2517,38 @@ namespace CleanStateMachine
             {
                 _activeStateIndex = -1;
                 _pendingExpandStack = null;
+                _lastTransitionFromIndex = -1;
+                _lastTransitionToIndex = -1;
+                _lastTransitionConnectionIndex = -1;
                 for (int i = 0; i < _states.Count; i++)
                     _states[i].IsActive = false;
                 for (int i = 0; i < _connections.Count; i++)
                     _connections[i].IsActive = false;
                 Repaint();
+            }
+        }
+
+        private void PlayDeferredTransitionEffects()
+        {
+            if (_activeStateIndex < 0) return;
+
+            for (int c = 0; c < _connections.Count; c++)
+            {
+                if (_connections[c].To.DataIndex == _activeStateIndex)
+                {
+                    _connections[c].IsActive = true;
+                    _connections[c].ActivationTime = Time.realtimeSinceStartup;
+                    break;
+                }
+            }
+
+            for (int i = 0; i < _states.Count; i++)
+            {
+                if (_states[i].DataIndex == _activeStateIndex)
+                {
+                    _states[i].ReactivateFlash();
+                    break;
+                }
             }
         }
 

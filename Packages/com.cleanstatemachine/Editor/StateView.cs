@@ -382,6 +382,12 @@ namespace CleanStateMachine
                 CommitEditing();
         }
 
+        public void ReactivateFlash()
+        {
+            if (_isActive)
+                _activatedAtTime = Time.realtimeSinceStartup;
+        }
+
         public void UpdateSubStateMachineVisual()
         {
             if (_fill != null)
@@ -400,10 +406,20 @@ namespace CleanStateMachine
             {
                 if (_isActive)
                 {
+                    float flashElapsed = (float)(Time.realtimeSinceStartup - _activatedAtTime);
+                    float flashDuration = 0.25f;
+                    float flashBoost = 0f;
+                    if (flashElapsed < flashDuration)
+                    {
+                        float t = flashElapsed / flashDuration;
+                        flashBoost = (1f - t) * (1f - t);
+                    }
+
                     float pulse = (Mathf.Sin((float)(Time.realtimeSinceStartup * GlowPulseSpeed)) + 1f) * 0.5f;
                     float minAlpha = 0.35f;
                     float maxAlpha = 0.85f;
-                    _glow.style.opacity = minAlpha + pulse * (maxAlpha - minAlpha);
+                    float baseAlpha = minAlpha + pulse * (maxAlpha - minAlpha);
+                    _glow.style.opacity = Mathf.Min(1f, baseAlpha + flashBoost * (1f - baseAlpha));
                 }
                 else if (_wasBriefActive)
                 {
