@@ -69,6 +69,19 @@
     background-color: rgb(180, 130, 70);
 }
 
+.state-view__fill--sub-entry {
+    background-color: rgb(200, 140, 40);
+    border-color: rgb(255, 200, 100);
+}
+
+.state-view__fill--sub-entry.state-view__fill--selected {
+    border-color: rgb(137, 180, 250);
+}
+
+.state-view__fill--sub-entry.state-view__fill--active {
+    background-color: rgb(220, 160, 60);
+}
+
 .state-view__sub-icon {
     position: absolute;
     color: rgba(255, 255, 255, 0.7);

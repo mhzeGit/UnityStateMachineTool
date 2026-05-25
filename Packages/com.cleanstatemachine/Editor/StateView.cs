@@ -35,6 +35,16 @@ namespace CleanStateMachine
         }
 
         public bool IsEntry { get; }
+        private bool _isSubEntry;
+        public bool IsSubEntry
+        {
+            get => _isSubEntry;
+            set
+            {
+                _isSubEntry = value;
+                UpdateSubStateMachineVisual();
+            }
+        }
         private bool _isSubStateMachine;
         public bool IsSubStateMachine
         {
@@ -100,12 +110,13 @@ namespace CleanStateMachine
         private const float GlowPulseSpeed = 2.5f;
         private const int GlowBlurKernel = 4;
 
-        public StateView(Vector2 position, string name = "State", bool isEntry = false)
+        public StateView(Vector2 position, string name = "State", bool isEntry = false, bool isSubEntry = false)
         {
             Position = position;
             Size = new Vector2(DefaultWidth, DefaultHeight);
             _name = name;
             IsEntry = isEntry;
+            _isSubEntry = isSubEntry;
 
             pickingMode = PickingMode.Ignore;
             style.position = UnityEngine.UIElements.Position.Absolute;
@@ -136,7 +147,9 @@ namespace CleanStateMachine
             _fill.style.top = 0f;
             _fill.style.right = 0f;
             _fill.style.bottom = 0f;
-            if (IsEntry)
+            if (IsSubEntry)
+                _fill.AddToClassList("state-view__fill--sub-entry");
+            else if (IsEntry)
                 _fill.AddToClassList("state-view__fill--entry");
             UpdateSubStateMachineVisual();
             Add(_fill);
@@ -371,7 +384,11 @@ namespace CleanStateMachine
         public void UpdateSubStateMachineVisual()
         {
             if (_fill != null)
+            {
                 _fill.EnableInClassList("state-view__fill--sub", IsSubStateMachine);
+                _fill.EnableInClassList("state-view__fill--sub-entry", IsSubEntry);
+                _fill.EnableInClassList("state-view__fill--entry", IsEntry && !IsSubEntry);
+            }
             if (_subIcon != null)
                 _subIcon.style.display = IsSubStateMachine ? DisplayStyle.Flex : DisplayStyle.None;
         }

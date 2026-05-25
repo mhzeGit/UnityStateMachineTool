@@ -106,7 +106,9 @@ namespace CleanStateMachine
         private CommentGroupView _lastDoubleClickCandidateGroup;
 
         private StateMachineComponent _trackedComponent;
-        private int _activeStateDataIndex = -1;
+        private int _activeStateLevelIndex = -1;
+        private int _activeStateDepth = -1;
+        private bool _isAutoNavigating;
 
         private static readonly Vector2 EntryStatePosition = new Vector2(50f, 200f);
         private const float CollapsedPanelWidth = 35f;
@@ -471,7 +473,8 @@ namespace CleanStateMachine
 
                     if (target != null)
                     {
-                        if (target == source || target.IsEntry)
+                        bool targetIsBlockedEntry = target.IsEntry && !target.IsSubEntry;
+                        if (target == source || targetIsBlockedEntry)
                         {
                             _connectionController.Cancel();
                             e.Use();
@@ -572,7 +575,7 @@ namespace CleanStateMachine
 
             ISelectable hit = HitTest(graphPos);
 
-            if (hit is StateView sv && !sv.IsEntry)
+            if (hit is StateView sv)
             {
                 long now = _clickStopwatch.ElapsedMilliseconds;
                 long elapsed = now - _lastClickTimestamp;
@@ -650,7 +653,7 @@ namespace CleanStateMachine
                     _selectionController.SelectOnly(hit);
                 }
 
-                    if (!(hit is StateView s && s.IsEntry) && _editingState == null && _editingGroup == null)
+                    if (_editingState == null && _editingGroup == null)
                 {
                     var dragItems = GetDragItems();
                     CapturePreDragPositions(dragItems);
@@ -800,7 +803,7 @@ namespace CleanStateMachine
 
             for (int i = selected.Count - 1; i >= 0; i--)
             {
-                if (selected[i] is StateView s && (groupMembers.Contains(s) || s.IsEntry))
+                if (selected[i] is StateView s && groupMembers.Contains(s))
                     selected.RemoveAt(i);
             }
 
@@ -1083,7 +1086,7 @@ namespace CleanStateMachine
             var subData = new SerializableData();
             subData.States.Add(new StateData
             {
-                Name = "Entry",
+                Name = "Sub Entry",
                 Position = new Vector2(50f, 200f),
                 Size = new Vector2(StateView.DefaultWidth, StateView.DefaultHeight),
                 IsEntry = true
@@ -1701,7 +1704,8 @@ namespace CleanStateMachine
                 for (int i = 0; i < data.States.Count; i++)
                 {
                     var sd = data.States[i];
-                    var state = new StateView(sd.Position, sd.Name, sd.IsEntry)
+                    bool isSubEntry = sd.IsEntry && _navigationPath.Count > 0;
+                    var state = new StateView(sd.Position, sd.Name, sd.IsEntry, isSubEntry)
                     {
                         Size = sd.Size,
                         BehaviourScript = ScriptReferenceUtility.FindScriptByTypeName(sd.BehaviourType),
@@ -1874,7 +1878,7 @@ namespace CleanStateMachine
         {
             if (!Application.isPlaying)
             {
-                if (_activeStateDataIndex >= 0)
+                if (_activeStateLevelIndex >= 0)
                 {
                     ClearActiveStates();
                     Repaint();
@@ -1886,16 +1890,43 @@ namespace CleanStateMachine
 
             if (_trackedComponent != null)
             {
-                int newActiveIndex = _trackedComponent.CurrentStateIndex;
+                bool navigated = AutoNavigateToActiveDepth();
 
-                if (newActiveIndex != _activeStateDataIndex)
+                int viewDepth = _navigationPath.Count;
+                int runtimeDepth = _trackedComponent.ActiveStateDepth;
+
+                if (navigated)
                 {
-                    _activeStateDataIndex = newActiveIndex;
+                    _activeStateLevelIndex = -1;
+                    _activeStateDepth = -1;
+                }
 
-                    for (int i = 0; i < _states.Count; i++)
-                        _states[i].IsActive = (_states[i].DataIndex == _activeStateDataIndex);
+                if (viewDepth < runtimeDepth)
+                {
+                    int newActiveIndex = _trackedComponent.GetStateIndexAtDepth(viewDepth);
 
-                    Repaint();
+                    if (newActiveIndex != _activeStateLevelIndex || viewDepth != _activeStateDepth)
+                    {
+                        _activeStateLevelIndex = newActiveIndex;
+                        _activeStateDepth = viewDepth;
+
+                        for (int i = 0; i < _states.Count; i++)
+                            _states[i].IsActive = (_states[i].DataIndex == _activeStateLevelIndex);
+
+                        Repaint();
+                    }
+                }
+                else
+                {
+                    if (_activeStateLevelIndex >= 0)
+                    {
+                        _activeStateLevelIndex = -1;
+                        _activeStateDepth = viewDepth;
+                        for (int i = 0; i < _states.Count; i++)
+                            _states[i].IsActive = false;
+
+                        Repaint();
+                    }
                 }
 
                 var transitions = _trackedComponent.RecentTransitions;
@@ -1904,6 +1935,8 @@ namespace CleanStateMachine
                     for (int t = 0; t < transitions.Count; t++)
                     {
                         var record = transitions[t];
+                        if (record.Level != viewDepth) continue;
+
                         for (int c = 0; c < _connections.Count; c++)
                         {
                             if (record.ConnectionIndex >= 0)
@@ -1931,11 +1964,62 @@ namespace CleanStateMachine
 
                 Repaint();
             }
-            else if (_activeStateDataIndex >= 0)
+            else if (_activeStateLevelIndex >= 0)
             {
                 ClearActiveStates();
                 Repaint();
             }
+        }
+
+        private bool AutoNavigateToActiveDepth()
+        {
+            if (_trackedComponent == null) return false;
+            if (_isLoading || _isAutoNavigating) return false;
+
+            _isAutoNavigating = true;
+            bool changed = false;
+
+            int runtimeDepth = _trackedComponent.ActiveStateDepth;
+
+            while (true)
+            {
+                int viewDepth = _navigationPath.Count;
+
+                if (viewDepth + 1 < runtimeDepth)
+                {
+                    int activeIndex = _trackedComponent.GetStateIndexAtDepth(viewDepth);
+                    StateView subMachineView = null;
+                    for (int i = 0; i < _states.Count; i++)
+                    {
+                        if (_states[i].DataIndex == activeIndex && _states[i].IsSubStateMachine
+                            && _states[i].SubMachineData != null)
+                        {
+                            subMachineView = _states[i];
+                            break;
+                        }
+                    }
+                    if (subMachineView == null) break;
+
+                    bool alreadyViewing = _navigationPath.Count > 0
+                        && _navigationPath[^1].EnteredData == subMachineView.SubMachineData;
+                    if (alreadyViewing) break;
+
+                    EnterSubStateMachine(subMachineView);
+                    changed = true;
+                }
+                else if (viewDepth > 0 && viewDepth >= runtimeDepth)
+                {
+                    NavigateBack();
+                    changed = true;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            _isAutoNavigating = false;
+            return changed;
         }
 
         private void UpdateTrackedComponent()
@@ -1972,7 +2056,8 @@ namespace CleanStateMachine
 
         private void ClearActiveStates()
         {
-            _activeStateDataIndex = -1;
+            _activeStateLevelIndex = -1;
+            _activeStateDepth = -1;
             for (int i = 0; i < _states.Count; i++)
                 _states[i].IsActive = false;
             for (int i = 0; i < _connections.Count; i++)
