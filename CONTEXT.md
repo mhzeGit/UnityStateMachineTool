@@ -172,7 +172,7 @@ The Editor assembly (`CleanStateMachine.Editor`) contains the entire graph edito
 
 **`ExpandedViewManager.cs`** — Manages the sub-state-machine drill-down feature. Maintains an expansion stack; `EnterExpandSubState()` pushes a sub-machine state and animates focus to its children. `ExitExpandedSubState()` pops and animates back. `IsStateVisible()` and `IsConnectionVisible()` filter what's rendered based on the current expansion context. `ComputeVisibleContentBounds()` calculates the bounding rect of visible states for camera animations. `UpdateExpandedModeBar()` builds/hides the breadcrumb navigation bar. `FindActiveStateHierarchy()` traces the parent chain from a leaf state through sub-machine containers (used during play mode auto-expand).
 
-**`PlayModeTracker.cs`** — Bridges the editor graph view with runtime play-mode state. `OnEditorUpdate()` (called each editor frame) polls the active `StateMachineComponent`, detects active state changes via `StateEnterTime`, updates the `IsActive` flag on StateViews (triggering glow animations), highlights recently-active connections (triggering wave effects), auto-expands into the correct sub-state hierarchy when the active state is nested, and tracks `RecentTransitions` for deferred visual effects. `OnPlayModeStateChanged()` handles enter/exit play mode: saves data before entering, clears play-mode visual state on exit.
+**`PlayModeTracker.cs`** — Bridges the editor graph view with runtime play-mode state. `OnEditorUpdate()` (called each editor frame) polls the active `StateMachineComponent`, detects active state changes via `StateEnterTime`, updates the `IsActive` flag on StateViews (triggering glow animations), highlights recently-active connections (triggering wave effects), auto-expands into the correct sub-state hierarchy when the active state is nested, and tracks `RecentTransitions` for deferred visual effects. `OnPlayModeStateChanged()` handles enter/exit play mode: saves data before entering, clears play-mode visual state on exit. Subscribes to `StateMachineComponent.OnStateEnteredGlobal` for breakpoint detection — when a breakpoint state is entered, pauses the editor, selects the corresponding GameObject, and opens/focuses the graph window.
 
 **`GraphViewAnimator.cs`** — Smooth animated camera transitions using cubic ease-in-out interpolation. `StartSmoothFocusOnContent()` computes target pan/zoom to frame given content bounds. `UpdateAnimation()` advances the animation each frame, interpolating pan offset and zoom between current and target values. Used when entering/exiting sub-state-machines and after loading a controller.
 
@@ -233,6 +233,31 @@ The undo/redo system uses the classic Command pattern. Every reversible graph mu
 **`ResizeGroupCommand.cs`** — Captures old and new `Rect` for a `CommentGroupView`. `Execute()` calls `SetRect(newRect)`; `Undo()` calls `SetRect(oldRect)`. Description: "Resize '<label>'".
 
 **`UngroupCommand.cs`** — Removes a `CommentGroupView` from the list without deleting its member states. `Undo()` re-adds the group. Description: "Ungroup '<label>'".
+
+**`ToggleBreakpointCommand.cs`** — Toggles a breakpoint on a state by adding/removing its DataIndex from the window's `BreakpointStateIndices` set and syncing visual indicators. Supports undo/redo with descriptions "Add Breakpoint (N)" / "Remove Breakpoint (N)".
+
+---
+
+## BREAKPOINT SYSTEM
+
+The breakpoint system allows users to pause the Unity Editor when a specific state is entered during play mode. Breakpoints are persisted with the controller asset and support undo/redo.
+
+### Data Model
+- `BreakpointData` (`Runtime/BreakpointData.cs`) stores a `StateIndex` (index in the serialized `Data.States` list) and an optional `ParentPath` for future hierarchical support.
+- Breakpoints are stored in `SerializableData.Breakpoints` as a `List<BreakpointData>`.
+
+### Editor UI
+- Right-click a state in the graph → "Add Breakpoint" / "Remove Breakpoint" toggles a breakpoint.
+- A red circular indicator appears at the top-left corner of the state node when a breakpoint is set (USS class `state-view__breakpoint`).
+- Breakpoint toggling is handled by `ToggleBreakpointCommand` (undo/redo support).
+- Breakpoints are tracked in `CleanStateMachineWindow.BreakpointStateIndices` (HashSet of DataIndex values).
+
+### Play Mode Pausing
+- `StateMachineComponent` fires a static `OnStateEnteredGlobal` event whenever a state is entered (in `TransitionToState`, `TransitionToStateDirect`, and `Initialize`).
+- `PlayModeTracker` subscribes to this event on window creation and checks if the entered state has a breakpoint.
+- When a breakpoint hits: the editor pauses (`EditorApplication.isPaused = true`), the correct GameObject is selected, and the graph window opens/focuses.
+- A `TriggeredBreakpointIndices` HashSet prevents re-pausing when the user resumes while on the same state. It is cleared when `ActiveStateIndex` changes (state transition detected in `OnEditorUpdate`).
+- Breakpoints for deleted states are cleaned up in `GraphOperations.DeleteSelected()` and during `GraphSerializer.SaveCurrentData()` (by only saving breakpoints matching existing states).
 
 ---
 
