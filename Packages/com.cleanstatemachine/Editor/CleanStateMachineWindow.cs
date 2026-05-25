@@ -102,6 +102,7 @@ namespace CleanStateMachine
 
         private StateMachineComponent _trackedComponent;
         private int _activeStateIndex = -1;
+        private bool _isAutoNavigating;
 
         private static readonly Vector2 EntryStatePosition = new Vector2(50f, 200f);
         private const float CollapsedPanelWidth = 35f;
@@ -1929,7 +1930,8 @@ namespace CleanStateMachine
             _activeStateIndex = -1;
             _trackedComponent = null;
             _expandedSubStateIndex = -1;
-            _expandedModeBar.style.display = DisplayStyle.None;
+            if (_expandedModeBar != null)
+                _expandedModeBar.style.display = DisplayStyle.None;
 
             if (_currentData != null)
             {
@@ -2092,7 +2094,8 @@ namespace CleanStateMachine
             _sidePanelWidth = 220f;
             _detailsHeightRatio = 0.5f;
             _expandedSubStateIndex = -1;
-            _expandedModeBar.style.display = DisplayStyle.None;
+            if (_expandedModeBar != null)
+                _expandedModeBar.style.display = DisplayStyle.None;
 
             EnsureEntryStateExists();
             SyncGroupElements();
@@ -2137,6 +2140,40 @@ namespace CleanStateMachine
 
                     for (int i = 0; i < _states.Count; i++)
                         _states[i].IsActive = (_states[i].DataIndex == _activeStateIndex);
+
+                    _isAutoNavigating = true;
+                    var activeState = GetStateByIndex(_activeStateIndex);
+                    if (activeState != null)
+                    {
+                        if (activeState.IsSubStateMachine)
+                        {
+                            EnterExpandSubState(activeState);
+                        }
+                        else
+                        {
+                            // Find which sub-state machine this active state belongs to
+                            StateView parentSubState = null;
+                            for (int i = 0; i < _states.Count; i++)
+                            {
+                                if (_states[i].IsSubStateMachine && _states[i].ChildIndices.Contains(_activeStateIndex))
+                                {
+                                    parentSubState = _states[i];
+                                    break;
+                                }
+                            }
+
+                            if (parentSubState != null)
+                            {
+                                if (_expandedSubStateIndex != parentSubState.DataIndex)
+                                    EnterExpandSubState(parentSubState);
+                            }
+                            else if (_expandedSubStateIndex >= 0)
+                            {
+                                ExitExpandedSubState();
+                            }
+                        }
+                    }
+                    _isAutoNavigating = false;
 
                     Repaint();
                 }
