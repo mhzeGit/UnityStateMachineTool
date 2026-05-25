@@ -810,24 +810,6 @@ MonoBehaviour:
       ChildIndices: 
       BehaviourType: DebugLog_StateBehaviour
       Behaviour: {fileID: -1624701279358024294}
-    - Name: Sub State Machine
-      Position: {x: 554.89056, y: 489.91144}
-      Size: {x: 160, y: 40}
-      IsEntry: 0
-      IsSubEntry: 0
-      IsSubStateMachine: 1
-      ChildIndices: 0600000007000000080000000a000000
-      BehaviourType: 
-      Behaviour: {fileID: 0}
-    - Name: Sub State Machine
-      Position: {x: 1268.0203, y: 553.404}
-      Size: {x: 160, y: 40}
-      IsEntry: 0
-      IsSubEntry: 0
-      IsSubStateMachine: 1
-      ChildIndices: 0c0000000b000000
-      BehaviourType: 
-      Behaviour: {fileID: 0}
     - Name: State01
       Position: {x: 1601.6891, y: 586.30615}
       Size: {x: 160, y: 40}
@@ -847,14 +829,32 @@ MonoBehaviour:
       BehaviourType: DebugLog_StateBehaviour
       Behaviour: {fileID: 7727544931764208569}
     - Name: State02
-      Position: {x: 1844.2191, y: 665.7258}
+      Position: {x: 1819.9469, y: 597.2039}
       Size: {x: 160, y: 40}
       IsEntry: 0
       IsSubEntry: 0
       IsSubStateMachine: 0
       ChildIndices: 
       BehaviourType: DebugLog_StateBehaviour
-      Behaviour: {fileID: -4423957546841865052}
+      Behaviour: {fileID: 8653645538066986706}
+    - Name: Sub State Machine
+      Position: {x: 554.89056, y: 489.91144}
+      Size: {x: 160, y: 40}
+      IsEntry: 0
+      IsSubEntry: 0
+      IsSubStateMachine: 1
+      ChildIndices: 0600000007000000080000000d000000
+      BehaviourType: 
+      Behaviour: {fileID: 0}
+    - Name: Sub State Machine
+      Position: {x: 1268.0203, y: 553.404}
+      Size: {x: 160, y: 40}
+      IsEntry: 0
+      IsSubEntry: 0
+      IsSubStateMachine: 1
+      ChildIndices: 0a000000090000000b000000
+      BehaviourType: 
+      Behaviour: {fileID: 0}
     Connections:
     - FromIndex: 0
       ToIndex: 4
@@ -910,11 +910,11 @@ MonoBehaviour:
       - TypeName: Timer_ConditionBehaviours
         Instance: {fileID: 1600089491654748903}
     - FromIndex: 6
-      ToIndex: 10
+      ToIndex: 13
       Conditions:
       - TypeName: SimpleBool_ConditionBehaviours
         Instance: {fileID: 1243014222252080705}
-    - FromIndex: 10
+    - FromIndex: 13
       ToIndex: 6
       Conditions:
       - TypeName: SimpleBool_ConditionBehaviours
@@ -924,51 +924,51 @@ MonoBehaviour:
       Conditions:
       - TypeName: Timer_ConditionBehaviours
         Instance: {fileID: -3547766199571372246}
-    - FromIndex: 9
+    - FromIndex: 12
       ToIndex: 4
       Conditions:
       - TypeName: SimpleBool_ConditionBehaviours
         Instance: {fileID: -4457444995765923352}
-    - FromIndex: 4
-      ToIndex: 9
-      Conditions:
-      - TypeName: SimpleBool_ConditionBehaviours
-        Instance: {fileID: -2069322823213849383}
     - FromIndex: 8
-      ToIndex: 9
+      ToIndex: 12
       Conditions:
       - TypeName: SimpleBool_ConditionBehaviours
         Instance: {fileID: 7543197076490117392}
-    - FromIndex: 9
+    - FromIndex: 12
       ToIndex: 8
       Conditions:
       - TypeName: SimpleBool_ConditionBehaviours
         Instance: {fileID: 3928885333398009180}
-    - FromIndex: 10
-      ToIndex: 11
-      Conditions:
-      - TypeName: SimpleBool_ConditionBehaviours
-        Instance: {fileID: -5645134060800224659}
-    - FromIndex: 11
-      ToIndex: 10
-      Conditions:
-      - TypeName: SimpleBool_ConditionBehaviours
-        Instance: {fileID: 8396886892944620379}
-    - FromIndex: 11
+    - FromIndex: 4
       ToIndex: 12
+      Conditions:
+      - TypeName: SimpleBool_ConditionBehaviours
+        Instance: {fileID: -2069322823213849383}
+    - FromIndex: 9
+      ToIndex: 10
       Conditions:
       - TypeName: Timer_ConditionBehaviours
         Instance: {fileID: -56481866994505946}
-    - FromIndex: 12
-      ToIndex: 13
-      Conditions:
-      - TypeName: Timer_ConditionBehaviours
-        Instance: {fileID: -7095464309305823165}
-    - FromIndex: 13
+    - FromIndex: 10
       ToIndex: 11
       Conditions:
       - TypeName: Timer_ConditionBehaviours
-        Instance: {fileID: 6243722248511052256}
+        Instance: {fileID: 4620416368358552924}
+    - FromIndex: 11
+      ToIndex: 9
+      Conditions:
+      - TypeName: Timer_ConditionBehaviours
+        Instance: {fileID: 8482820378430823579}
+    - FromIndex: 9
+      ToIndex: 13
+      Conditions:
+      - TypeName: SimpleBool_ConditionBehaviours
+        Instance: {fileID: 8396886892944620379}
+    - FromIndex: 13
+      ToIndex: 9
+      Conditions:
+      - TypeName: SimpleBool_ConditionBehaviours
+        Instance: {fileID: -5645134060800224659}
     Groups: []
     BlackboardVariables:
     - Name: WrongState
@@ -985,9 +985,9 @@ MonoBehaviour:
       StringValue: 0
     - Name: EnterSubState
       Type: 0
-      StringValue: False
-    PanOffset: {x: 44.748962, y: 199.15254}
-    Zoom: 0.67222077
+      StringValue: True
+    PanOffset: {x: -1035.0276, y: -50.334686}
+    Zoom: 0.8956541
     ShowSidePanel: 1
     SidePanelWidth: 299
     DetailsHeightRatio: 0.5841584
@@ -1204,6 +1204,23 @@ MonoBehaviour:
     BlackboardVariableName: 
     ValueType: 0
     DefaultValue: False
+--- !u!114 &4620416368358552924
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d24e1c4c976021a42992b2297f2d1a25, type: 3}
+  m_Name: State03->State02_Condition_0
+  m_EditorClassIdentifier: 
+  duration:
+    UseBlackboard: 0
+    BlackboardVariableName: 
+    ValueType: 2
+    DefaultValue: 1
 --- !u!114 &4884205063601903858
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1495,6 +1512,23 @@ MonoBehaviour:
     BlackboardVariableName: 
     ValueType: 0
     DefaultValue: False
+--- !u!114 &8482820378430823579
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d24e1c4c976021a42992b2297f2d1a25, type: 3}
+  m_Name: State02->State01_Condition_0
+  m_EditorClassIdentifier: 
+  duration:
+    UseBlackboard: 0
+    BlackboardVariableName: 
+    ValueType: 2
+    DefaultValue: 1
 --- !u!114 &8488541119239438812
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1512,3 +1546,20 @@ MonoBehaviour:
     BlackboardVariableName: 
     ValueType: 2
     DefaultValue: 0.2
+--- !u!114 &8653645538066986706
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9ff187ff1290df4ebe8ec3d6a1913d7, type: 3}
+  m_Name: State02_Behaviour
+  m_EditorClassIdentifier: 
+  message:
+    UseBlackboard: 0
+    BlackboardVariableName: 
+    ValueType: 3
+    DefaultValue: 2

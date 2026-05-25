@@ -1928,11 +1928,21 @@ namespace CleanStateMachine
                     if (inside && !alreadyChild)
                     {
                         container.ChildIndices.Add(child.DataIndex);
-                        child.IsSubEntry = true;
+                        bool hasSubEntry = false;
+                        for (int k = 0; k < container.ChildIndices.Count; k++)
+                        {
+                            int ci = container.ChildIndices[k];
+                            if (ci >= 0 && ci < _states.Count && _states[ci].IsSubEntry)
+                            {
+                                hasSubEntry = true;
+                                break;
+                            }
+                        }
+                        if (!hasSubEntry)
+                            child.IsSubEntry = true;
                     }
                 }
             }
-
         }
 
         // ─── Save / Load ─────────────────────────────────────────────
@@ -2333,10 +2343,12 @@ namespace CleanStateMachine
                 if (_activeStateIndex >= 0)
                 {
                     _activeStateIndex = -1;
+                    _expandedSubStateStack.Clear();
                     for (int i = 0; i < _states.Count; i++)
                         _states[i].IsActive = false;
                     for (int i = 0; i < _connections.Count; i++)
                         _connections[i].IsActive = false;
+                    UpdateExpandedModeBar();
                     Repaint();
                 }
                 return;

@@ -307,11 +307,36 @@ namespace CleanStateMachine
             int fromLeaf = CurrentStateIndex;
             string previousLeafName = CurrentStateName;
 
-            ExitPathBehaviours();
-
-            OnStateExited?.Invoke(previousLeafName);
+            var oldPath = new List<int>(_activeStatePath);
 
             BuildFullPath(toIndex);
+
+            int commonDepth = 0;
+            while (commonDepth < oldPath.Count &&
+                   commonDepth < _activeStatePath.Count &&
+                   oldPath[commonDepth] == _activeStatePath[commonDepth])
+                commonDepth++;
+
+            if (commonDepth == oldPath.Count && commonDepth == _activeStatePath.Count)
+            {
+                if (connection.FromIndex != connection.ToIndex)
+                    return;
+                commonDepth = _activeStatePath.Count - 1;
+            }
+
+            for (int i = oldPath.Count - 1; i >= commonDepth; i--)
+            {
+                int idx = oldPath[i];
+                if (idx >= 0 && idx < Data.States.Count)
+                {
+                    var stateData = Data.States[idx];
+                    var behaviour = GetOrCreateBehaviour(stateData);
+                    if (behaviour != null)
+                        behaviour.OnStateExit(this);
+                }
+            }
+
+            OnStateExited?.Invoke(previousLeafName);
 
             _stateEnterTime = Time.time;
 
@@ -327,7 +352,17 @@ namespace CleanStateMachine
             OnStateChanged?.Invoke(fromLeaf, newLeaf);
             OnStateEntered?.Invoke(newLeafName);
 
-            EnterPathBehaviours();
+            for (int i = commonDepth; i < _activeStatePath.Count; i++)
+            {
+                int idx = _activeStatePath[i];
+                if (idx >= 0 && idx < Data.States.Count)
+                {
+                    var stateData = Data.States[idx];
+                    var behaviour = GetOrCreateBehaviour(stateData);
+                    if (behaviour != null)
+                        behaviour.OnStateEnter(this);
+                }
+            }
         }
 
         private void EnterPathBehaviours()
