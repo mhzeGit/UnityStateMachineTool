@@ -15,9 +15,12 @@ namespace CleanStateMachine
         private readonly List<int> _activeStatePath = new List<int>();
         private List<TransitionRecord> _recentTransitions = new List<TransitionRecord>();
         private bool _isTransitioning;
+        private bool _running;
 
         private readonly Dictionary<StateData, List<StateBehaviour>> _behaviourInstances = new Dictionary<StateData, List<StateBehaviour>>();
         private readonly List<ConditionScript> _runtimeConditionInstances = new List<ConditionScript>();
+
+        public static event System.Action<StateMachineComponent> OnStateEnteredGlobal;
 
         public StateMachineController Controller
         {
@@ -72,13 +75,32 @@ namespace CleanStateMachine
 
             if (_activeStatePath.Count > 0)
             {
+                if (!GetEntryStateAutoRun())
+                {
+                    _running = false;
+                    return;
+                }
+
+                _running = true;
                 _stateEnterTime = Time.time;
                 int leafIndex = CurrentStateIndex;
                 string initialStateName = CurrentStateName;
                 OnStateChanged?.Invoke(-1, leafIndex);
                 OnStateEntered?.Invoke(initialStateName);
                 EnterPathBehaviours();
+                OnStateEnteredGlobal?.Invoke(this);
             }
+        }
+
+        private bool GetEntryStateAutoRun()
+        {
+            if (Data == null) return true;
+            for (int i = 0; i < Data.States.Count; i++)
+            {
+                if (Data.States[i].IsEntry)
+                    return Data.States[i].AutoRun;
+            }
+            return true;
         }
 
         private void CopyVariablesFromController()
@@ -179,7 +201,7 @@ namespace CleanStateMachine
 
         private void Update()
         {
-            if (!_initialized || _activeStatePath.Count == 0) return;
+            if (!_initialized || !_running || _activeStatePath.Count == 0) return;
 
             int leafIndex = CurrentStateIndex;
             var behaviours = GetBehaviours(leafIndex);
@@ -404,6 +426,7 @@ namespace CleanStateMachine
                     ExecuteExternalAction(stateData);
                 }
             }
+            OnStateEnteredGlobal?.Invoke(this);
         }
 
         private void EnterPathBehaviours()
@@ -697,9 +720,10 @@ namespace CleanStateMachine
                             for (int j = 0; j < behaviours.Count; j++)
                                 behaviours[j]?.OnStateEnter(this);
                         }
-                        ExecuteExternalAction(stateData);
-                    }
+                    ExecuteExternalAction(stateData);
                 }
+            }
+            OnStateEnteredGlobal?.Invoke(this);
             }
             finally
             {
@@ -793,10 +817,27 @@ namespace CleanStateMachine
             return new Vector3(x, y, z);
         }
 
+        public void StartRunning()
+        {
+            if (!_initialized)
+                Initialize();
+
+            if (_running || _activeStatePath.Count == 0) return;
+
+            _running = true;
+            _stateEnterTime = Time.time;
+            int leafIndex = CurrentStateIndex;
+            string initialStateName = CurrentStateName;
+            OnStateChanged?.Invoke(-1, leafIndex);
+            OnStateEntered?.Invoke(initialStateName);
+            EnterPathBehaviours();
+        }
+
         public void ResetStateMachine()
         {
             DestroyRuntimeInstances();
             _initialized = false;
+            _running = false;
             _recentTransitions.Clear();
             Initialize();
         }

@@ -155,7 +155,30 @@ namespace CleanStateMachine
             BuildStateConnectionsList(state);
 
             if (state.IsEntry)
+            {
+                AddDivider();
+                AddSectionTitle("Entry Settings");
+
+                var autoRunRow = new VisualElement();
+                autoRunRow.AddToClassList("info-row");
+
+                var autoRunLabel = new Label("Auto Run State Machine");
+                autoRunLabel.AddToClassList("info-row-label");
+                autoRunRow.Add(autoRunLabel);
+
+                var autoRunToggle = new Toggle();
+                autoRunToggle.value = state.AutoRun;
+                autoRunToggle.AddToClassList("info-row-value");
+                autoRunToggle.RegisterValueChangedCallback(evt =>
+                {
+                    state.AutoRun = evt.newValue;
+                    _window.NotifySidePanelChanged();
+                });
+                autoRunRow.Add(autoRunToggle);
+                _scrollView.Add(autoRunRow);
+
                 return;
+            }
 
             if (state.IsSubStateMachine)
             {

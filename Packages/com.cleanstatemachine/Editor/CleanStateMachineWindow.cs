@@ -36,6 +36,13 @@ namespace CleanStateMachine
         public string externalBlackboardParmValue;
     }
 
+    internal class CopiedConnectionData
+    {
+        public int fromSourceIndex;
+        public int toSourceIndex;
+        public List<ConditionEntryView> conditionEntries;
+    }
+
     public class CleanStateMachineWindow : EditorWindow
     {
         [MenuItem("Tools/CleanStateMachine")]
@@ -89,6 +96,7 @@ namespace CleanStateMachine
         }
 
         internal List<CopiedStateData> Clipboard;
+        internal List<CopiedConnectionData> CopiedConnections;
 
         internal readonly List<StateView> States = new();
         internal readonly List<ConnectionView> Connections = new();
@@ -117,6 +125,9 @@ namespace CleanStateMachine
         internal int LastTransitionFromIndex = -1;
         internal int LastTransitionToIndex = -1;
         internal int LastTransitionConnectionIndex = -1;
+
+        internal HashSet<int> BreakpointStateIndices = new HashSet<int>();
+        internal HashSet<int> TriggeredBreakpointIndices = new HashSet<int>();
 
         internal bool IsAnimatingView;
         internal Vector2 AnimFromPan;
@@ -165,7 +176,7 @@ namespace CleanStateMachine
 
         // ─── Private Helpers ──────────────────────────────────────────
 
-        private StateMachineController _pendingController;
+        internal StateMachineController _pendingController;
         private bool _pendingFocusOnContent;
         private bool _hasUnsavedChanges;
         private bool _isLoading;
@@ -224,6 +235,7 @@ namespace CleanStateMachine
 
             EditorApplication.update += OnEditorUpdate;
             EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+            PlayModeTracker.SubscribeToGlobalEvents();
 
             if (_controller != null)
             {
@@ -245,6 +257,7 @@ namespace CleanStateMachine
             ContextMenu.CopyRequested += CopySelectedStates;
             ContextMenu.PasteRequested += PasteStates;
             ContextMenu.DeleteRequested += DeleteSelected;
+            ContextMenu.ToggleBreakpointRequested += OnToggleBreakpointRequested;
             SelectionController.SelectionChanged += OnSelectionChanged;
         }
 
@@ -259,10 +272,12 @@ namespace CleanStateMachine
             ContextMenu.CopyRequested -= CopySelectedStates;
             ContextMenu.PasteRequested -= PasteStates;
             ContextMenu.DeleteRequested -= DeleteSelected;
+            ContextMenu.ToggleBreakpointRequested -= OnToggleBreakpointRequested;
             SelectionController.SelectionChanged -= OnSelectionChanged;
 
             EditorApplication.update -= OnEditorUpdate;
             EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+            PlayModeTracker.UnsubscribeFromGlobalEvents();
 
             if (CurrentData != null)
             {
@@ -466,7 +481,8 @@ namespace CleanStateMachine
                 CommentGroupView hitGroup = hit as CommentGroupView;
                 ContextMenu.Show(rootVisualElement, e.mousePosition, graphMousePosition, hitState, hitGroup,
                     SelectionController.Count > 0,
-                    Clipboard is { Count: > 0 });
+                    Clipboard is { Count: > 0 },
+                    hitState != null && BreakpointStateIndices.Contains(hitState.DataIndex));
                 e.Use();
             }
 
@@ -615,6 +631,20 @@ namespace CleanStateMachine
         private void CopySelectedStates() => GraphOperations.CopySelectedStates();
         private void PasteStates() => GraphOperations.PasteStates();
         private void DeleteSelected() => GraphOperations.DeleteSelected();
+        private void OnToggleBreakpointRequested(StateView state)
+        {
+            bool hasBp = BreakpointStateIndices.Contains(state.DataIndex);
+            var cmd = new ToggleBreakpointCommand(this, state.DataIndex, !hasBp);
+            UndoRedoSystem.Execute(cmd);
+            MarkChangedInternal();
+            Repaint();
+        }
+
+        internal void SyncStateBreakpointVisuals()
+        {
+            for (int i = 0; i < States.Count; i++)
+                States[i].HasBreakpoint = BreakpointStateIndices.Contains(States[i].DataIndex);
+        }
 
         // ─── Selection Changed ────────────────────────────────────────
 

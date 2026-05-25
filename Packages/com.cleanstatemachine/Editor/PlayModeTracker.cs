@@ -28,6 +28,7 @@ namespace CleanStateMachine
                     _window.LastTransitionFromIndex = -1;
                     _window.LastTransitionToIndex = -1;
                     _window.LastTransitionConnectionIndex = -1;
+                    _window.TriggeredBreakpointIndices.Clear();
                     for (int i = 0; i < _window.States.Count; i++)
                         _window.States[i].IsActive = false;
                     for (int i = 0; i < _window.Connections.Count; i++)
@@ -49,6 +50,7 @@ namespace CleanStateMachine
                 if (newActiveIndex != _window.ActiveStateIndex)
                 {
                     _window.ActiveStateIndex = newActiveIndex;
+                    _window.TriggeredBreakpointIndices.Clear();
 
                     for (int i = 0; i < _window.States.Count; i++)
                         _window.States[i].IsActive = (_window.States[i].DataIndex == _window.ActiveStateIndex);
@@ -150,6 +152,7 @@ namespace CleanStateMachine
                 _window.LastTransitionFromIndex = -1;
                 _window.LastTransitionToIndex = -1;
                 _window.LastTransitionConnectionIndex = -1;
+                _window.TriggeredBreakpointIndices.Clear();
                 for (int i = 0; i < _window.States.Count; i++)
                     _window.States[i].IsActive = false;
                 for (int i = 0; i < _window.Connections.Count; i++)
@@ -158,10 +161,21 @@ namespace CleanStateMachine
             }
         }
 
+        public void SubscribeToGlobalEvents()
+        {
+            StateMachineComponent.OnStateEnteredGlobal += OnGlobalStateEntered;
+        }
+
+        public void UnsubscribeFromGlobalEvents()
+        {
+            StateMachineComponent.OnStateEnteredGlobal -= OnGlobalStateEntered;
+        }
+
         public void OnPlayModeStateChanged(PlayModeStateChange change)
         {
             if (change == PlayModeStateChange.ExitingPlayMode)
             {
+                _window.TriggeredBreakpointIndices.Clear();
                 if (_window.Controller != null)
                 {
                     _window.GraphSerializer.SaveCurrentData();
@@ -173,9 +187,14 @@ namespace CleanStateMachine
                 _window.LastTransitionToIndex = -1;
                 _window.LastTransitionConnectionIndex = -1;
             }
+            else if (change == PlayModeStateChange.EnteredPlayMode)
+            {
+                _window.TriggeredBreakpointIndices.Clear();
+            }
             else if (change == PlayModeStateChange.EnteredEditMode)
             {
                 _window.WasPlaying = false;
+                _window.TriggeredBreakpointIndices.Clear();
                 if (_window.Controller != null)
                 {
                     _window.CurrentData = _window.Controller.Data;
@@ -184,6 +203,43 @@ namespace CleanStateMachine
                 }
                 _window.Repaint();
             }
+        }
+
+        private void OnGlobalStateEntered(StateMachineComponent component)
+        {
+            if (component == null || component.Controller == null) return;
+            if (component.Controller != _window.Controller) return;
+            if (EditorApplication.isPaused) return;
+
+            var data = component.Data;
+            if (data == null || data.Breakpoints == null || data.Breakpoints.Count == 0) return;
+
+            int leafIndex = component.CurrentStateIndex;
+
+            bool hasBreakpoint = false;
+            for (int i = 0; i < data.Breakpoints.Count; i++)
+            {
+                if (data.Breakpoints[i].StateIndex == leafIndex)
+                {
+                    hasBreakpoint = true;
+                    break;
+                }
+            }
+
+            if (!hasBreakpoint) return;
+
+            if (_window.TriggeredBreakpointIndices.Contains(leafIndex)) return;
+            _window.TriggeredBreakpointIndices.Add(leafIndex);
+
+            Selection.activeGameObject = component.gameObject;
+
+            var window = EditorWindow.GetWindow<CleanStateMachineWindow>();
+            if (window.Controller != component.Controller)
+                window._pendingController = component.Controller;
+            window.Show();
+            window.Focus();
+
+            EditorApplication.isPaused = true;
         }
 
         public void PlayDeferredTransitionEffects()

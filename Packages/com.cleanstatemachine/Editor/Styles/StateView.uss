@@ -155,6 +155,19 @@
     background-color: rgb(110, 110, 100);
 }
 
+.state-view__breakpoint {
+    position: absolute;
+    background-color: rgb(220, 40, 40);
+    border-left-color: rgb(255, 60, 60);
+    border-right-color: rgb(255, 60, 60);
+    border-top-color: rgb(255, 60, 60);
+    border-bottom-color: rgb(255, 60, 60);
+    border-left-width: 1.5px;
+    border-right-width: 1.5px;
+    border-top-width: 1.5px;
+    border-bottom-width: 1.5px;
+}
+
 .state-view__label {
     position: absolute;
     left: 0;

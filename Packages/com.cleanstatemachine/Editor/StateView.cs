@@ -72,6 +72,7 @@ namespace CleanStateMachine
                 UpdateSubStateMachineVisual();
             }
         }
+        public bool AutoRun { get; set; } = true;
         public bool IsEditing { get; private set; }
         public string EditingBuffer { get; private set; }
         public List<BehaviourEntryView> BehaviourEntries { get; set; } = new List<BehaviourEntryView>();
@@ -116,6 +117,18 @@ namespace CleanStateMachine
 
         public event Action<StateView, string, string> EditingCommitted; // state, oldName, newName
 
+        private bool _hasBreakpoint;
+        public bool HasBreakpoint
+        {
+            get => _hasBreakpoint;
+            set
+            {
+                _hasBreakpoint = value;
+                if (_breakpointIcon != null)
+                    _breakpointIcon.style.display = value ? DisplayStyle.Flex : DisplayStyle.None;
+            }
+        }
+
         private VisualElement _shadow;
         private VisualElement _glow;
         private VisualElement _fill;
@@ -124,6 +137,7 @@ namespace CleanStateMachine
         private VisualElement _editFieldInput;
         private VisualElement _subIcon;
         private VisualElement _externalIcon;
+        private VisualElement _breakpointIcon;
 
         public const float DefaultWidth = 160f;
         public const float DefaultHeight = 40f;
@@ -215,6 +229,13 @@ namespace CleanStateMachine
             _externalIcon.style.position = UnityEngine.UIElements.Position.Absolute;
             _externalIcon.style.display = DisplayStyle.None;
             Add(_externalIcon);
+
+            _breakpointIcon = new VisualElement();
+            _breakpointIcon.AddToClassList("state-view__breakpoint");
+            _breakpointIcon.pickingMode = PickingMode.Ignore;
+            _breakpointIcon.style.position = UnityEngine.UIElements.Position.Absolute;
+            _breakpointIcon.style.display = DisplayStyle.None;
+            Add(_breakpointIcon);
 
             InitializeGlowAnimation();
         }
@@ -334,6 +355,19 @@ namespace CleanStateMachine
                 _externalIcon.style.right = Mathf.RoundToInt(4 * zoom);
                 _externalIcon.style.top = Mathf.RoundToInt(2 * zoom);
                 _externalIcon.style.fontSize = iconSize;
+            }
+
+            if (HasBreakpoint)
+            {
+                int dotSize = Mathf.RoundToInt(10 * zoom);
+                _breakpointIcon.style.left = Mathf.RoundToInt(-6 * zoom);
+                _breakpointIcon.style.top = Mathf.RoundToInt(-6 * zoom);
+                _breakpointIcon.style.width = dotSize;
+                _breakpointIcon.style.height = dotSize;
+                _breakpointIcon.style.borderTopLeftRadius = dotSize / 2;
+                _breakpointIcon.style.borderTopRightRadius = dotSize / 2;
+                _breakpointIcon.style.borderBottomLeftRadius = dotSize / 2;
+                _breakpointIcon.style.borderBottomRightRadius = dotSize / 2;
             }
 
             if (IsEditing)

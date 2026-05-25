@@ -127,6 +127,7 @@ namespace CleanStateMachine
         public void CopySelectedStates()
         {
             _window.Clipboard = new List<CopiedStateData>();
+            _window.CopiedConnections = new List<CopiedConnectionData>();
 
             var toCopy = new HashSet<int>();
             for (int i = 0; i < _window.SelectionController.Count; i++)
@@ -171,6 +172,32 @@ namespace CleanStateMachine
                     externalBlackboardParmType = s.ExternalBlackboardParmType,
                     externalBlackboardParmValue = s.ExternalBlackboardParmValue
                 });
+            }
+
+            for (int i = 0; i < _window.Connections.Count; i++)
+            {
+                var conn = _window.Connections[i];
+                if (conn.From == null || conn.To == null) continue;
+                if (toCopy.Contains(conn.From.DataIndex) && toCopy.Contains(conn.To.DataIndex))
+                {
+                    var copiedConditions = new List<ConditionEntryView>();
+                    for (int j = 0; j < conn.ConditionEntries.Count; j++)
+                    {
+                        var ce = conn.ConditionEntries[j];
+                        copiedConditions.Add(new ConditionEntryView
+                        {
+                            Script = ce.Script,
+                            Instance = ce.Instance
+                        });
+                    }
+
+                    _window.CopiedConnections.Add(new CopiedConnectionData
+                    {
+                        fromSourceIndex = conn.From.DataIndex,
+                        toSourceIndex = conn.To.DataIndex,
+                        conditionEntries = copiedConditions
+                    });
+                }
             }
         }
 
@@ -263,6 +290,41 @@ namespace CleanStateMachine
 
                 composite.Add(new CreateStateCommand(_window.States, state));
                 pastedStates.Add(state);
+            }
+
+            for (int i = 0; i < (_window.CopiedConnections?.Count ?? 0); i++)
+            {
+                var cd = _window.CopiedConnections[i];
+                if (!oldToNewIndex.TryGetValue(cd.fromSourceIndex, out int newFrom)) continue;
+                if (!oldToNewIndex.TryGetValue(cd.toSourceIndex, out int newTo)) continue;
+
+                var fromState = pastedStates.Find(s => s.DataIndex == newFrom);
+                var toState = pastedStates.Find(s => s.DataIndex == newTo);
+                if (fromState == null || toState == null) continue;
+
+                var connView = new ConnectionView(fromState, toState);
+                if (cd.conditionEntries != null)
+                {
+                    for (int j = 0; j < cd.conditionEntries.Count; j++)
+                    {
+                        var src = cd.conditionEntries[j];
+                        var clonedCe = new ConditionEntryView { Script = src.Script };
+                        if (src.Instance != null)
+                        {
+                            var type = src.Script?.GetClass();
+                            if (type != null && type.IsSubclassOf(typeof(ConditionScript)))
+                            {
+                                var instance = (ConditionScript)ScriptableObject.CreateInstance(type);
+                                EditorUtility.CopySerialized(src.Instance, instance);
+                                instance.hideFlags = HideFlags.HideInHierarchy;
+                                clonedCe.Instance = instance;
+                            }
+                        }
+                        connView.ConditionEntries.Add(clonedCe);
+                    }
+                }
+
+                composite.Add(new CreateConnectionCommand(_window.Connections, connView));
             }
 
             _window.UndoRedoSystem.Execute(composite);
@@ -378,9 +440,13 @@ namespace CleanStateMachine
                 }
             }
 
+            for (int i = 0; i < deletedStates.Count; i++)
+                _window.BreakpointStateIndices.Remove(deletedStates[i].DataIndex);
+
             var cmd = new DeleteStatesCommand(_window.States, _window.Connections, _window.Groups, _window.SelectionController);
             _window.UndoRedoSystem.Execute(cmd);
             _window.MarkChangedInternal();
+            _window.SyncStateBreakpointVisuals();
             SyncGroupElements();
 
             _window.SelectionController.Clear();

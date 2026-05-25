@@ -29,6 +29,7 @@ namespace CleanStateMachine
         public bool IsSubEntry;
         public bool IsSubStateMachine;
         public bool IsExternalReference;
+        public bool AutoRun = true;
         public List<int> ChildIndices = new List<int>();
         public List<BehaviourEntry> Behaviours = new List<BehaviourEntry>();
         public ExternalStateMachineAction ExternalAction;
@@ -93,6 +94,7 @@ namespace CleanStateMachine
         public List<ConnectionData> Connections = new List<ConnectionData>();
         public List<GroupData> Groups = new List<GroupData>();
         public List<BlackboardVariable> BlackboardVariables = new List<BlackboardVariable>();
+        public List<BreakpointData> Breakpoints = new List<BreakpointData>();
         public Vector2 PanOffset;
         public float Zoom = 1f;
         public List<int> ExpandedSubStateIndices = new List<int>();

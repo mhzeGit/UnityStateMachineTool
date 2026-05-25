@@ -60,6 +60,7 @@ namespace CleanStateMachine
                     IsSubEntry = state.IsSubEntry,
                     IsSubStateMachine = state.IsSubStateMachine,
                     IsExternalReference = state.IsExternalReference,
+                    AutoRun = state.AutoRun,
                     ChildIndices = childIndices,
                     ExternalAction = state.ExternalAction,
                     ExternalStateMachine = state.ExternalStateMachine,
@@ -138,6 +139,22 @@ namespace CleanStateMachine
                     }
                 }
             }
+
+            _window.CurrentData.Breakpoints.Clear();
+            foreach (int bpDataIdx in _window.BreakpointStateIndices)
+            {
+                for (int si = 0; si < _window.States.Count; si++)
+                {
+                    if (_window.States[si].DataIndex == bpDataIdx)
+                    {
+                        _window.CurrentData.Breakpoints.Add(new BreakpointData
+                        {
+                            StateIndex = stateToIndex[_window.States[si]]
+                        });
+                        break;
+                    }
+                }
+            }
         }
 
         public void LoadFromController()
@@ -174,6 +191,7 @@ namespace CleanStateMachine
                     var state = new StateView(sd.Position, sd.Name, sd.IsEntry, sd.IsSubEntry)
                     {
                         Size = sd.Size,
+                        AutoRun = sd.AutoRun,
                         ChildIndices = new List<int>(sd.ChildIndices),
                         IsSubStateMachine = sd.IsSubStateMachine,
                         IsExternalReference = sd.IsExternalReference,
@@ -256,11 +274,23 @@ namespace CleanStateMachine
                             _window.ExpandedSubStateStack.Add(idx);
                     }
                 }
+
+                _window.BreakpointStateIndices.Clear();
+                if (data.Breakpoints != null && data.Breakpoints.Count > 0)
+                {
+                    for (int i = 0; i < data.Breakpoints.Count; i++)
+                    {
+                        int si = data.Breakpoints[i].StateIndex;
+                        if (si >= 0 && si < _window.States.Count)
+                            _window.BreakpointStateIndices.Add(_window.States[si].DataIndex);
+                    }
+                }
             }
 
             if (_window.ExpandedModeBar != null)
                 _window.ExpandedView.UpdateExpandedModeBar();
 
+            _window.SyncStateBreakpointVisuals();
             _window.EnsureEntryStateExistsInternal();
             _window.GraphOperations.SyncGroupElements();
             _window.GraphOperations.SyncStatesWithSubMachines();
@@ -347,6 +377,7 @@ namespace CleanStateMachine
             _window.PanOffset = Vector2.zero;
             _window.Zoom = 1f;
             _window.ExpandedSubStateStack.Clear();
+            _window.BreakpointStateIndices.Clear();
             _window.PendingExpandStack = null;
             _window.LastTransitionFromIndex = -1;
             _window.LastTransitionToIndex = -1;
