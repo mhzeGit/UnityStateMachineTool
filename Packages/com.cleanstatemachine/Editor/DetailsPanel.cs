@@ -936,9 +936,13 @@ namespace CleanStateMachine
 
                 var valueRow = new VisualElement();
                 valueRow.AddToClassList("info-row");
+                valueRow.style.height = StyleKeyword.Auto;
+                valueRow.style.minHeight = 32;
 
                 var valueLabel = new Label("Value");
                 valueLabel.AddToClassList("info-row-label");
+                valueLabel.style.alignSelf = Align.FlexStart;
+                valueLabel.style.marginTop = 6;
                 valueRow.Add(valueLabel);
 
                 VisualElement valueControl = BuildTypedBlackboardValueEditor(state);
@@ -1538,6 +1542,13 @@ namespace CleanStateMachine
             var bbType = state.ExternalBlackboardParmType;
             var currentValue = state.ExternalBlackboardParmValue ?? "";
 
+            VisualElement MakeFlexField(VisualElement field)
+            {
+                field.style.flexGrow = 1;
+                field.style.width = Length.Percent(100);
+                return field;
+            }
+
             switch (bbType)
             {
                 case BlackboardVariableType.Bool:
@@ -1549,7 +1560,7 @@ namespace CleanStateMachine
                         state.ExternalBlackboardParmValue = evt.newValue.ToString();
                         _window.NotifySidePanelChanged();
                     });
-                    return toggle;
+                    return MakeFlexField(toggle);
                 }
                 case BlackboardVariableType.Int:
                 {
@@ -1560,7 +1571,7 @@ namespace CleanStateMachine
                         state.ExternalBlackboardParmValue = evt.newValue.ToString();
                         _window.NotifySidePanelChanged();
                     });
-                    return field;
+                    return MakeFlexField(field);
                 }
                 case BlackboardVariableType.Float:
                 {
@@ -1574,18 +1585,21 @@ namespace CleanStateMachine
                             System.Globalization.CultureInfo.InvariantCulture);
                         _window.NotifySidePanelChanged();
                     });
-                    return field;
+                    return MakeFlexField(field);
                 }
                 case BlackboardVariableType.String:
                 {
                     var field = new TextField();
                     field.value = currentValue;
+                    field.multiline = true;
+                    field.style.whiteSpace = WhiteSpace.Normal;
+                    field.style.minHeight = 56;
                     field.RegisterValueChangedCallback(evt =>
                     {
                         state.ExternalBlackboardParmValue = evt.newValue;
                         _window.NotifySidePanelChanged();
                     });
-                    return field;
+                    return MakeFlexField(field);
                 }
                 case BlackboardVariableType.Vector2:
                 {
@@ -1600,7 +1614,8 @@ namespace CleanStateMachine
                     hint.style.color = new StyleColor(new Color(0.5f, 0.5f, 0.5f));
                     hint.style.fontSize = 10;
                     var container = new VisualElement();
-                    container.Add(field);
+                    container.style.flexGrow = 1;
+                    container.Add(MakeFlexField(field));
                     container.Add(hint);
                     return container;
                 }
@@ -1617,7 +1632,8 @@ namespace CleanStateMachine
                     hint.style.color = new StyleColor(new Color(0.5f, 0.5f, 0.5f));
                     hint.style.fontSize = 10;
                     var container = new VisualElement();
-                    container.Add(field);
+                    container.style.flexGrow = 1;
+                    container.Add(MakeFlexField(field));
                     container.Add(hint);
                     return container;
                 }
@@ -1630,7 +1646,7 @@ namespace CleanStateMachine
                         state.ExternalBlackboardParmValue = evt.newValue;
                         _window.NotifySidePanelChanged();
                     });
-                    return field;
+                    return MakeFlexField(field);
                 }
             }
         }
