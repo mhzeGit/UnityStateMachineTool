@@ -513,29 +513,24 @@ namespace CleanStateMachine
                             card.Add(label);
 
                             VisualElement content;
+                            var propCopy = prop.Copy();
                             if (prop.type == "BlackboardVariableReference")
                             {
-                                content = BuildBbVarRefField(so, prop.Copy());
+                                content = BuildBbVarRefField(so, propCopy);
                             }
-                            else if (prop.type == "BlackboardVariableSelector")
+                            else if (prop.propertyType == SerializedPropertyType.Enum)
                             {
-                                content = BuildBbVarSelectorField(so, prop.Copy());
+                                content = BuildEnumField(so, propCopy, prop.name == "variableType"
+                                    ? () => propsContainer.schedule.Execute(() => rebuildConditionProperties()).StartingIn(0)
+                                    : null);
                             }
-                            else if (prop.name == "variableType")
+                            else if (prop.propertyType == SerializedPropertyType.Boolean)
                             {
-                                var pf = new PropertyField(prop.Copy(), "");
-                                var isBound = false;
-                                pf.schedule.Execute(() => isBound = true).StartingIn(0);
-                                pf.RegisterCallback<SerializedPropertyChangeEvent>(_ =>
-                                {
-                                    if (!isBound) return;
-                                    propsContainer.schedule.Execute(() => rebuildConditionProperties()).StartingIn(0);
-                                });
-                                content = pf;
+                                content = BuildBoolField(so, propCopy);
                             }
                             else
                             {
-                                content = new PropertyField(prop.Copy(), "");
+                                content = new PropertyField(propCopy, "");
                             }
                             content.AddToClassList("property-card-content");
                             card.Add(content);
@@ -1339,6 +1334,62 @@ namespace CleanStateMachine
 
             rebuild();
             return row;
+        }
+
+        private VisualElement BuildEnumField(SerializedObject so, SerializedProperty prop, Action onChanged = null)
+        {
+            var names = prop.enumNames;
+            var btn = new Button();
+            btn.AddToClassList("bb-mode-button");
+
+            void UpdateText()
+            {
+                so.Update();
+                int idx = prop.enumValueIndex;
+                btn.text = idx >= 0 && idx < names.Length
+                    ? ObjectNames.NicifyVariableName(names[idx])
+                    : names[0];
+            }
+
+            UpdateText();
+
+            btn.clicked += () =>
+            {
+                var pos = _window.rootVisualElement.WorldToLocal(
+                    new Vector2(btn.worldBound.x, btn.worldBound.y + btn.worldBound.height));
+                MenuDropdown.Show(_window.rootVisualElement, pos, menu =>
+                {
+                    so.Update();
+                    for (int i = 0; i < names.Length; i++)
+                    {
+                        int capturedIndex = i;
+                        string displayName = ObjectNames.NicifyVariableName(names[i]);
+                        menu.AddItem(displayName, () =>
+                        {
+                            prop.enumValueIndex = capturedIndex;
+                            so.ApplyModifiedProperties();
+                            EditorUtility.SetDirty(so.targetObject);
+                            UpdateText();
+                            onChanged?.Invoke();
+                        });
+                    }
+                });
+            };
+
+            return btn;
+        }
+
+        private static VisualElement BuildBoolField(SerializedObject so, SerializedProperty prop)
+        {
+            var toggle = new Toggle();
+            toggle.value = prop.boolValue;
+            toggle.RegisterValueChangedCallback(evt =>
+            {
+                prop.boolValue = evt.newValue;
+                so.ApplyModifiedProperties();
+                EditorUtility.SetDirty(so.targetObject);
+            });
+            return toggle;
         }
 
         private VisualElement BuildBbVarSelectorField(SerializedObject so, SerializedProperty prop)

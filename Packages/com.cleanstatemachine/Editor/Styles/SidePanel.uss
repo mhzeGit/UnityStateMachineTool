@@ -214,6 +214,10 @@
     min-width: 40px;
 }
 
+.bb-value-area .unity-text-field {
+    min-width: 200px;
+}
+
 .bb-value-area .unity-integer-field__input,
 .bb-value-area .unity-float-field__input,
 .bb-value-area .unity-base-text-field__input {

@@ -103,6 +103,9 @@ MonoBehaviour:
     - Name: BoolPar
       Type: 0
       StringValue: False
+    - Name: TestThingy
+      Type: 3
+      StringValue: 
     PanOffset: {x: 29.723969, y: 113.46524}
     Zoom: 1.4095212
     ShowSidePanel: 1
