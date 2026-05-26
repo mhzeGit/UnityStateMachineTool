@@ -14,6 +14,9 @@ namespace CleanStateMachine
         private readonly List<CommentGroupView> _deletedGroups = new();
         private readonly Dictionary<CommentGroupView, List<StateView>> _removedFromGroup = new();
 
+        private readonly Dictionary<int, List<int>> _parentToDeletedChildren = new();
+        private readonly Dictionary<int, bool> _deletedStateWasSubEntry = new();
+
         public string Description
         {
             get
@@ -92,6 +95,33 @@ namespace CleanStateMachine
                     }
                 }
             }
+
+            var deletedDataIndices = new HashSet<int>();
+            for (int i = 0; i < _deletedStates.Count; i++)
+                deletedDataIndices.Add(_deletedStates[i].DataIndex);
+
+            for (int i = 0; i < _stateList.Count; i++)
+            {
+                var state = _stateList[i];
+                if (!state.IsSubStateMachine) continue;
+
+                for (int j = 0; j < state.ChildIndices.Count; j++)
+                {
+                    int childIdx = state.ChildIndices[j];
+                    if (deletedDataIndices.Contains(childIdx))
+                    {
+                        if (!_parentToDeletedChildren.TryGetValue(state.DataIndex, out var list))
+                        {
+                            list = new List<int>();
+                            _parentToDeletedChildren[state.DataIndex] = list;
+                        }
+                        list.Add(childIdx);
+                    }
+                }
+            }
+
+            for (int i = 0; i < _deletedStates.Count; i++)
+                _deletedStateWasSubEntry[_deletedStates[i].DataIndex] = _deletedStates[i].IsSubEntry;
         }
 
         public void Execute()
@@ -109,6 +139,19 @@ namespace CleanStateMachine
             {
                 for (int i = 0; i < kvp.Value.Count; i++)
                     kvp.Key.RemoveMember(kvp.Value[i]);
+            }
+
+            foreach (var kvp in _parentToDeletedChildren)
+            {
+                for (int i = 0; i < _stateList.Count; i++)
+                {
+                    if (_stateList[i].DataIndex == kvp.Key)
+                    {
+                        for (int j = 0; j < kvp.Value.Count; j++)
+                            _stateList[i].ChildIndices.Remove(kvp.Value[j]);
+                        break;
+                    }
+                }
             }
         }
 
@@ -130,6 +173,28 @@ namespace CleanStateMachine
             {
                 for (int i = 0; i < kvp.Value.Count; i++)
                     kvp.Key.AddMember(kvp.Value[i]);
+            }
+
+            foreach (var kvp in _parentToDeletedChildren)
+            {
+                for (int i = 0; i < _stateList.Count; i++)
+                {
+                    if (_stateList[i].DataIndex == kvp.Key)
+                    {
+                        for (int j = 0; j < kvp.Value.Count; j++)
+                        {
+                            if (!_stateList[i].ChildIndices.Contains(kvp.Value[j]))
+                                _stateList[i].ChildIndices.Add(kvp.Value[j]);
+                        }
+                        break;
+                    }
+                }
+            }
+
+            for (int i = 0; i < _deletedStates.Count; i++)
+            {
+                if (_deletedStateWasSubEntry.TryGetValue(_deletedStates[i].DataIndex, out bool wasSubEntry))
+                    _deletedStates[i].IsSubEntry = wasSubEntry;
             }
         }
 
