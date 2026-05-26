@@ -56,12 +56,11 @@ namespace CleanStateMachine
         {
             if (_isVisible) return;
 
-            BuildOverlay();
-            _window.rootVisualElement.Add(_overlay);
+            if (_overlay == null)
+                BuildOverlay();
+
+            _overlay.style.display = DisplayStyle.Flex;
             _isVisible = true;
-            _lastQuery = "";
-            _results.Clear();
-            _selectedIndex = -1;
 
             UpdatePlaceholderVisibility();
 
@@ -75,14 +74,8 @@ namespace CleanStateMachine
         {
             if (!_isVisible) return;
             _isVisible = false;
-            if (_overlay?.parent != null)
-                _overlay.RemoveFromHierarchy();
-            _overlay = null;
-            _panel = null;
-            _searchField = null;
-            _resultsScrollView = null;
-            _resultsContainer = null;
-            _noResultsLabel = null;
+            if (_overlay != null)
+                _overlay.style.display = DisplayStyle.None;
         }
 
         private void UpdatePlaceholderVisibility()
@@ -241,6 +234,9 @@ namespace CleanStateMachine
                 _panel.styleSheets.Add(ss);
 
             _overlay.Add(_panel);
+
+            _overlay.style.display = DisplayStyle.None;
+            _window.rootVisualElement.Add(_overlay);
         }
 
         private void OnOverlayKeyDown(KeyDownEvent e)

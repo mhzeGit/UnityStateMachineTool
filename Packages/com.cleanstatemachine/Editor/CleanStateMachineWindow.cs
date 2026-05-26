@@ -177,6 +177,7 @@ namespace CleanStateMachine
         internal VisualElement ExpandedModeBar;
         internal Label ExpandedModeLabel;
         internal VisualElement BreadcrumbContainer;
+        private VisualElement _searchButton;
 
         // ─── Private Helpers ──────────────────────────────────────────
 
@@ -410,35 +411,6 @@ namespace CleanStateMachine
             BreadcrumbContainer.style.overflow = Overflow.Hidden;
             ExpandedModeBar.Add(BreadcrumbContainer);
 
-            var searchBtn = new Button(() => SearchPanel.Show());
-            searchBtn.text = "\u2315";
-            searchBtn.style.width = 24f;
-            searchBtn.style.height = 20f;
-            searchBtn.style.fontSize = 13f;
-            searchBtn.style.backgroundColor = new Color(0.15f, 0.15f, 0.15f, 0.6f);
-            searchBtn.style.color = new Color(0.6f, 0.6f, 0.6f);
-            searchBtn.style.borderTopLeftRadius = 3f;
-            searchBtn.style.borderTopRightRadius = 3f;
-            searchBtn.style.borderBottomLeftRadius = 3f;
-            searchBtn.style.borderBottomRightRadius = 3f;
-            searchBtn.style.borderLeftColor = new Color(0.2f, 0.2f, 0.2f);
-            searchBtn.style.borderRightColor = new Color(0.2f, 0.2f, 0.2f);
-            searchBtn.style.borderTopColor = new Color(0.2f, 0.2f, 0.2f);
-            searchBtn.style.borderBottomColor = new Color(0.2f, 0.2f, 0.2f);
-            searchBtn.style.borderLeftWidth = 1f;
-            searchBtn.style.borderRightWidth = 1f;
-            searchBtn.style.borderTopWidth = 1f;
-            searchBtn.style.borderBottomWidth = 1f;
-            searchBtn.style.paddingLeft = 0f;
-            searchBtn.style.paddingRight = 0f;
-            searchBtn.style.paddingTop = 0f;
-            searchBtn.style.paddingBottom = 0f;
-            searchBtn.style.justifyContent = Justify.Center;
-            searchBtn.style.alignItems = Align.Center;
-            searchBtn.style.flexShrink = 0;
-            searchBtn.tooltip = "Search (Ctrl+F)";
-            ExpandedModeBar.Add(searchBtn);
-
             rootVisualElement.Add(SelectionBox.Element);
 
             GraphPreview = new GraphPreview();
@@ -454,6 +426,40 @@ namespace CleanStateMachine
             SidePanelElement.style.top = 0f;
             SidePanelElement.style.bottom = 0f;
             rootVisualElement.Add(SidePanelElement);
+
+            _searchButton = new Button(() => SearchPanel.Show());
+            _searchButton.text = "\U0001F50D";
+            _searchButton.style.position = Position.Absolute;
+            _searchButton.style.top = 32f;
+            _searchButton.style.width = 32f;
+            _searchButton.style.height = 32f;
+            _searchButton.style.fontSize = 16f;
+            _searchButton.style.backgroundColor = new Color(0.18f, 0.18f, 0.18f, 0.85f);
+            _searchButton.style.color = new Color(0.8f, 0.8f, 0.8f);
+            _searchButton.style.borderTopLeftRadius = 6f;
+            _searchButton.style.borderTopRightRadius = 6f;
+            _searchButton.style.borderBottomLeftRadius = 6f;
+            _searchButton.style.borderBottomRightRadius = 6f;
+            _searchButton.style.borderLeftColor = new Color(0.3f, 0.3f, 0.3f);
+            _searchButton.style.borderRightColor = new Color(0.3f, 0.3f, 0.3f);
+            _searchButton.style.borderTopColor = new Color(0.3f, 0.3f, 0.3f);
+            _searchButton.style.borderBottomColor = new Color(0.3f, 0.3f, 0.3f);
+            _searchButton.style.borderLeftWidth = 1f;
+            _searchButton.style.borderRightWidth = 1f;
+            _searchButton.style.borderTopWidth = 1f;
+            _searchButton.style.borderBottomWidth = 1f;
+            _searchButton.style.paddingLeft = 0f;
+            _searchButton.style.paddingRight = 0f;
+            _searchButton.style.paddingTop = 0f;
+            _searchButton.style.paddingBottom = 0f;
+            _searchButton.style.justifyContent = Justify.Center;
+            _searchButton.style.alignItems = Align.Center;
+            _searchButton.tooltip = "Search (Ctrl+F)";
+            _searchButton.RegisterCallback<MouseEnterEvent>(_ =>
+                _searchButton.style.backgroundColor = new Color(0.28f, 0.28f, 0.28f, 0.95f));
+            _searchButton.RegisterCallback<MouseLeaveEvent>(_ =>
+                _searchButton.style.backgroundColor = new Color(0.18f, 0.18f, 0.18f, 0.85f));
+            rootVisualElement.Add(_searchButton);
 
             GraphOperations.SyncGroupElements();
             rootVisualElement.schedule.Execute(() =>
@@ -620,6 +626,12 @@ namespace CleanStateMachine
                     e.Use();
                     Repaint();
                 }
+            }
+
+            if (_searchButton != null)
+            {
+                float rightPadding = _showSidePanel ? _sidePanelWidth + 8f : 8f;
+                _searchButton.style.right = rightPadding;
             }
 
             GraphValidation.RunAndUpdate();
