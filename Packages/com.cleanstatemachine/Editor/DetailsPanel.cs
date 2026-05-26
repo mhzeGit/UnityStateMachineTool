@@ -25,15 +25,18 @@ namespace CleanStateMachine
         private int _hoveredConditionIndex = -1;
         private bool _hoveringAddButton;
         private ConnectionView _activeConnection;
+        private ConnectionView _draggedStateConnection;
 
         // Reorderable list state
         private VisualElement _conditionListContainer;
         private VisualElement _behaviourListContainer;
+        private VisualElement _connectionListContainer;
         private readonly List<VisualElement> _conditionEntryElements = new();
         private readonly List<VisualElement> _behaviourEntryElements = new();
+        private readonly List<VisualElement> _connectionEntryElements = new();
         private StateView _activeBehaviourState;
 
-        private enum ReorderTarget { None, Condition, Behaviour }
+        private enum ReorderTarget { None, Condition, Behaviour, Connection }
         private ReorderTarget _reorderTarget;
         private int _reorderDragStartIndex;
         private int _reorderDragIndex;
@@ -88,11 +91,14 @@ namespace CleanStateMachine
             _hoveredConditionIndex = -1;
             _hoveringAddButton = false;
             _activeConnection = null;
+            _draggedStateConnection = null;
 
             _conditionEntryElements.Clear();
             _behaviourEntryElements.Clear();
+            _connectionEntryElements.Clear();
             _conditionListContainer = null;
             _behaviourListContainer = null;
+            _connectionListContainer = null;
             _activeBehaviourState = null;
             _reorderTarget = ReorderTarget.None;
             _isReordering = false;
@@ -896,6 +902,32 @@ namespace CleanStateMachine
             evt.StopPropagation();
         }
 
+        private void OnStateConnectionReorderHandleDown(MouseDownEvent evt)
+        {
+            if (_connectionEntryElements.Count <= 1) return;
+
+            var handle = evt.currentTarget as VisualElement;
+            var container = handle.parent;
+            var conn = container.userData as ConnectionView;
+            if (conn == null) return;
+
+            int displayedIndex = _connectionEntryElements.IndexOf(container);
+            if (displayedIndex < 0) return;
+
+            _draggedStateConnection = conn;
+            _reorderTarget = ReorderTarget.Connection;
+            _reorderDragStartIndex = displayedIndex;
+            _reorderDragIndex = displayedIndex;
+            _isReordering = true;
+            _reorderPastThreshold = false;
+            _reorderDragStartPos = evt.mousePosition;
+            container.AddToClassList("reorder-entry-drag");
+
+            this.RegisterCallback<MouseMoveEvent>(OnReorderDragMove);
+            this.RegisterCallback<MouseUpEvent>(OnReorderDragUp);
+            evt.StopPropagation();
+        }
+
         private void OnReorderDragMove(MouseMoveEvent evt)
         {
             if (!_isReordering || _reorderTarget == ReorderTarget.None) return;
@@ -907,8 +939,20 @@ namespace CleanStateMachine
                 _reorderPastThreshold = true;
             }
 
-            var entries = _reorderTarget == ReorderTarget.Condition ? _conditionEntryElements : _behaviourEntryElements;
-            var listContainer = _reorderTarget == ReorderTarget.Condition ? _conditionListContainer : _behaviourListContainer;
+            var entries = _reorderTarget switch
+            {
+                ReorderTarget.Condition => _conditionEntryElements,
+                ReorderTarget.Behaviour => _behaviourEntryElements,
+                ReorderTarget.Connection => _connectionEntryElements,
+                _ => null
+            };
+            var listContainer = _reorderTarget switch
+            {
+                ReorderTarget.Condition => _conditionListContainer,
+                ReorderTarget.Behaviour => _behaviourListContainer,
+                ReorderTarget.Connection => _connectionListContainer,
+                _ => null
+            };
 
             if (entries == null || entries.Count <= 1) return;
             if (_reorderDragIndex < 0 || _reorderDragIndex >= entries.Count) return;
@@ -932,8 +976,11 @@ namespace CleanStateMachine
             entries.RemoveAt(_reorderDragIndex);
             entries.Insert(targetIndex, element);
 
-            for (int i = 0; i < entries.Count; i++)
-                entries[i].userData = i;
+            if (_reorderTarget != ReorderTarget.Connection)
+            {
+                for (int i = 0; i < entries.Count; i++)
+                    entries[i].userData = i;
+            }
 
             _reorderDragIndex = targetIndex;
             evt.StopPropagation();
@@ -946,7 +993,13 @@ namespace CleanStateMachine
             this.UnregisterCallback<MouseMoveEvent>(OnReorderDragMove);
             this.UnregisterCallback<MouseUpEvent>(OnReorderDragUp);
 
-            var entries = _reorderTarget == ReorderTarget.Condition ? _conditionEntryElements : _behaviourEntryElements;
+            var entries = _reorderTarget switch
+            {
+                ReorderTarget.Condition => _conditionEntryElements,
+                ReorderTarget.Behaviour => _behaviourEntryElements,
+                ReorderTarget.Connection => _connectionEntryElements,
+                _ => null
+            };
 
             if (_reorderDragIndex >= 0 && _reorderDragIndex < entries.Count)
                 entries[_reorderDragIndex].RemoveFromClassList("reorder-entry-drag");
@@ -965,9 +1018,41 @@ namespace CleanStateMachine
                     _activeBehaviourState.BehaviourEntries.RemoveAt(_reorderDragStartIndex);
                     _activeBehaviourState.BehaviourEntries.Insert(_reorderDragIndex, entry);
                 }
+                else if (_reorderTarget == ReorderTarget.Connection && _connections != null)
+                {
+                    var stateConnSet = new HashSet<ConnectionView>();
+                    var orderedStateConns = new List<ConnectionView>();
+                    for (int i = 0; i < _connectionEntryElements.Count; i++)
+                    {
+                        var c = _connectionEntryElements[i].userData as ConnectionView;
+                        if (c != null)
+                        {
+                            stateConnSet.Add(c);
+                            orderedStateConns.Add(c);
+                        }
+                    }
 
-                for (int i = 0; i < entries.Count; i++)
-                    entries[i].userData = i;
+                    var newConnections = new List<ConnectionView>();
+                    newConnections.AddRange(orderedStateConns);
+
+                    for (int i = 0; i < _connections.Count; i++)
+                    {
+                        if (!stateConnSet.Contains(_connections[i]))
+                            newConnections.Add(_connections[i]);
+                    }
+
+                    _connections.Clear();
+                    _connections.AddRange(newConnections);
+
+                    for (int i = 0; i < _connections.Count; i++)
+                        _connections[i].DataIndex = i;
+                }
+
+                if (_reorderTarget != ReorderTarget.Connection)
+                {
+                    for (int i = 0; i < entries.Count; i++)
+                        entries[i].userData = i;
+                }
 
                 _window.NotifySidePanelChanged();
             }
@@ -975,6 +1060,7 @@ namespace CleanStateMachine
             _reorderTarget = ReorderTarget.None;
             _reorderDragStartIndex = -1;
             _reorderDragIndex = -1;
+            _draggedStateConnection = null;
             evt.StopPropagation();
         }
 
@@ -1089,20 +1175,34 @@ namespace CleanStateMachine
             AddDivider();
             AddSectionTitle(stateConnections.Count == 1 ? "Connection" : $"Connections ({stateConnections.Count})");
 
+            var connList = new VisualElement();
+            connList.AddToClassList("reorderable-list");
+            _connectionListContainer = connList;
+            _connectionEntryElements.Clear();
+            _scrollView.Add(connList);
+
             for (int i = 0; i < stateConnections.Count; i++)
             {
                 var conn = stateConnections[i];
                 bool isFrom = conn.From == state;
+                int globalIndex = _connections.IndexOf(conn);
 
                 var connRow = new VisualElement();
                 connRow.AddToClassList("state-conn-row");
+                connRow.userData = conn;
 
                 bool isSelected = conn.IsSelected;
                 if (isSelected)
                     connRow.AddToClassList("state-conn-row-selected");
 
+                var dragHandle = new DragHandle();
+                dragHandle.RegisterCallback<MouseDownEvent>(OnStateConnectionReorderHandleDown);
+                connRow.Add(dragHandle);
+
                 connRow.RegisterCallback<MouseDownEvent>(evt =>
                 {
+                    var row = evt.currentTarget as VisualElement;
+                    if (_isReordering) return;
                     conn.TriggerSearchHighlight();
                     Rect bounds = conn.GetGraphBounds();
                     bounds = new Rect(
@@ -1117,9 +1217,12 @@ namespace CleanStateMachine
                 string dir = isFrom ? "\u2192" : "\u2190";
                 string otherName = isFrom ? (conn.To?.Name ?? "?") : (conn.From?.Name ?? "?");
 
+                var contentArea = new VisualElement();
+                contentArea.AddToClassList("state-conn-content");
+
                 var connLabel = new Label($"{dir}  {otherName}");
                 connLabel.AddToClassList("state-conn-row-label");
-                connRow.Add(connLabel);
+                contentArea.Add(connLabel);
 
                 if (conn.ConditionEntries.Count > 0)
                 {
@@ -1134,17 +1237,19 @@ namespace CleanStateMachine
                     }
                     var condLabel = new Label(string.Join(", ", parts));
                     condLabel.AddToClassList("state-conn-row-conditions");
-                    connRow.Add(condLabel);
+                    contentArea.Add(condLabel);
                 }
                 else
                 {
                     var noCondLabel = new Label("no conditions");
                     noCondLabel.AddToClassList("state-conn-row-conditions");
                     noCondLabel.AddToClassList("state-conn-row-conditions--empty");
-                    connRow.Add(noCondLabel);
+                    contentArea.Add(noCondLabel);
                 }
 
-                _scrollView.Add(connRow);
+                connRow.Add(contentArea);
+                _connectionEntryElements.Add(connRow);
+                connList.Add(connRow);
             }
         }
 

@@ -790,6 +790,13 @@
     background-color: #304a5e;
 }
 
+.state-conn-content {
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    padding-left: 4px;
+}
+
 .state-conn-row-label {
     font-size: 11px;
     -unity-font-style: bold;
