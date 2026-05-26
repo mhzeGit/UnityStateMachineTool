@@ -333,8 +333,7 @@ namespace CleanStateMachine
                 BlackboardVariableType.Int => "int",
                 BlackboardVariableType.Float => "float",
                 BlackboardVariableType.String => "string",
-                BlackboardVariableType.Vector2 => "V2",
-                BlackboardVariableType.Vector3 => "V3",
+                BlackboardVariableType.Trigger => "trigger",
                 _ => type.ToString()
             };
         }

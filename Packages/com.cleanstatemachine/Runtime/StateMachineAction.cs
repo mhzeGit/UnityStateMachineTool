@@ -36,16 +36,17 @@ namespace CleanStateMachine
                 _stateMachine.SetStringParameter(_blackboardVariableName, value);
         }
 
-        protected void SetBlackboardValue(Vector2 value)
+        protected void SetBlackboardTrigger()
         {
             if (_stateMachine != null && !string.IsNullOrEmpty(_blackboardVariableName))
-                _stateMachine.SetVector2Parameter(_blackboardVariableName, value);
+                _stateMachine.SetTriggerParameter(_blackboardVariableName);
         }
 
-        protected void SetBlackboardValue(Vector3 value)
+        protected bool GetBlackboardTrigger()
         {
             if (_stateMachine != null && !string.IsNullOrEmpty(_blackboardVariableName))
-                _stateMachine.SetVector3Parameter(_blackboardVariableName, value);
+                return _stateMachine.GetTriggerParameter(_blackboardVariableName);
+            return false;
         }
 
         protected bool GetBlackboardBool()
@@ -76,18 +77,6 @@ namespace CleanStateMachine
             return "";
         }
 
-        protected Vector2 GetBlackboardVector2()
-        {
-            if (_stateMachine != null && !string.IsNullOrEmpty(_blackboardVariableName))
-                return _stateMachine.GetVector2Parameter(_blackboardVariableName);
-            return Vector2.zero;
-        }
 
-        protected Vector3 GetBlackboardVector3()
-        {
-            if (_stateMachine != null && !string.IsNullOrEmpty(_blackboardVariableName))
-                return _stateMachine.GetVector3Parameter(_blackboardVariableName);
-            return Vector3.zero;
-        }
     }
 }

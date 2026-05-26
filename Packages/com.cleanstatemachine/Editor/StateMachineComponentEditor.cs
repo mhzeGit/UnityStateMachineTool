@@ -306,30 +306,17 @@ namespace CleanStateMachine
                     valueContainer.Add(field);
                     break;
                 }
-                case BlackboardVariableType.Vector2:
+                case BlackboardVariableType.Trigger:
                 {
-                    var field = new Vector2Field();
-                    field.value = variable.Vector2Value;
-                    field.AddToClassList("variable-field");
-                    field.RegisterValueChangedCallback(e =>
+                    var toggle = new Toggle();
+                    toggle.value = variable.BoolValue;
+                    toggle.AddToClassList("variable-field");
+                    toggle.RegisterValueChangedCallback(e =>
                     {
-                        variable.Vector2Value = e.newValue;
+                        variable.BoolValue = e.newValue;
                         MarkDirty();
                     });
-                    valueContainer.Add(field);
-                    break;
-                }
-                case BlackboardVariableType.Vector3:
-                {
-                    var field = new Vector3Field();
-                    field.value = variable.Vector3Value;
-                    field.AddToClassList("variable-field");
-                    field.RegisterValueChangedCallback(e =>
-                    {
-                        variable.Vector3Value = e.newValue;
-                        MarkDirty();
-                    });
-                    valueContainer.Add(field);
+                    valueContainer.Add(toggle);
                     break;
                 }
             }
@@ -375,13 +362,9 @@ namespace CleanStateMachine
                         if (field is TextField tf && tf.value != variable.StringValue)
                             tf.SetValueWithoutNotify(variable.StringValue);
                         break;
-                    case BlackboardVariableType.Vector2:
-                        if (field is Vector2Field v2f && v2f.value != variable.Vector2Value)
-                            v2f.SetValueWithoutNotify(variable.Vector2Value);
-                        break;
-                    case BlackboardVariableType.Vector3:
-                        if (field is Vector3Field v3f && v3f.value != variable.Vector3Value)
-                            v3f.SetValueWithoutNotify(variable.Vector3Value);
+                    case BlackboardVariableType.Trigger:
+                        if (field is Toggle tt && tt.value != variable.BoolValue)
+                            tt.SetValueWithoutNotify(variable.BoolValue);
                         break;
                 }
             }
@@ -404,8 +387,7 @@ namespace CleanStateMachine
                 BlackboardVariableType.Int => "int",
                 BlackboardVariableType.Float => "float",
                 BlackboardVariableType.String => "string",
-                BlackboardVariableType.Vector2 => "V2",
-                BlackboardVariableType.Vector3 => "V3",
+                BlackboardVariableType.Trigger => "trigger",
                 _ => type.ToString()
             };
         }

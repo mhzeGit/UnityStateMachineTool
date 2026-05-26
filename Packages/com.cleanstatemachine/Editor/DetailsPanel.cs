@@ -1475,18 +1475,17 @@ namespace CleanStateMachine
                             valueArea.Add(field);
                             break;
                         }
-                        case BlackboardVariableType.Vector2:
-                        case BlackboardVariableType.Vector3:
+                        case BlackboardVariableType.Trigger:
                         {
-                            var field = new TextField();
-                            field.value = defaultValueProp.stringValue;
-                            field.RegisterValueChangedCallback(e =>
+                            var toggle = new Toggle();
+                            toggle.value = bool.TryParse(defaultValueProp.stringValue, out var tv) && tv;
+                            toggle.RegisterValueChangedCallback(e =>
                             {
-                                defaultValueProp.stringValue = e.newValue;
+                                defaultValueProp.stringValue = e.newValue.ToString();
                                 so.ApplyModifiedProperties();
                                 EditorUtility.SetDirty(so.targetObject);
                             });
-                            valueArea.Add(field);
+                            valueArea.Add(toggle);
                             break;
                         }
                     }
@@ -1783,41 +1782,16 @@ namespace CleanStateMachine
                     });
                     return MakeFlexField(field);
                 }
-                case BlackboardVariableType.Vector2:
+                case BlackboardVariableType.Trigger:
                 {
-                    var field = new TextField();
-                    field.value = currentValue;
-                    field.RegisterValueChangedCallback(evt =>
+                    var toggle = new Toggle();
+                    toggle.value = bool.TryParse(currentValue, out var tv) && tv;
+                    toggle.RegisterValueChangedCallback(evt =>
                     {
-                        state.ExternalBlackboardParmValue = evt.newValue;
+                        state.ExternalBlackboardParmValue = evt.newValue.ToString();
                         _window.NotifySidePanelChanged();
                     });
-                    var hint = new Label("Format: x,y");
-                    hint.style.color = new StyleColor(new Color(0.5f, 0.5f, 0.5f));
-                    hint.style.fontSize = 10;
-                    var container = new VisualElement();
-                    container.style.flexGrow = 1;
-                    container.Add(MakeFlexField(field));
-                    container.Add(hint);
-                    return container;
-                }
-                case BlackboardVariableType.Vector3:
-                {
-                    var field = new TextField();
-                    field.value = currentValue;
-                    field.RegisterValueChangedCallback(evt =>
-                    {
-                        state.ExternalBlackboardParmValue = evt.newValue;
-                        _window.NotifySidePanelChanged();
-                    });
-                    var hint = new Label("Format: x,y,z");
-                    hint.style.color = new StyleColor(new Color(0.5f, 0.5f, 0.5f));
-                    hint.style.fontSize = 10;
-                    var container = new VisualElement();
-                    container.style.flexGrow = 1;
-                    container.Add(MakeFlexField(field));
-                    container.Add(hint);
-                    return container;
+                    return MakeFlexField(toggle);
                 }
                 default:
                 {

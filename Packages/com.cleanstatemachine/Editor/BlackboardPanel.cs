@@ -144,7 +144,7 @@ namespace CleanStateMachine
             var rightGroup = new VisualElement();
             rightGroup.AddToClassList("variable-right");
 
-            if (variable.Type == BlackboardVariableType.Bool)
+            if (variable.Type == BlackboardVariableType.Bool || variable.Type == BlackboardVariableType.Trigger)
             {
                 var toggleContainer = new VisualElement();
                 toggleContainer.AddToClassList("variable-value-toggle");
@@ -207,47 +207,6 @@ namespace CleanStateMachine
                             _window.NotifySidePanelChanged();
                         });
                         rightGroup.Add(valueField);
-                        break;
-                    }
-                    case BlackboardVariableType.Vector2:
-                    {
-                        var vectorContainer = new VisualElement();
-                        vectorContainer.AddToClassList("variable-value-vector");
-                        var v2 = variable.Vector2Value;
-                        AddAxisField(vectorContainer, "X", v2.x,
-                            newValue => {
-                                var current = variable.Vector2Value;
-                                UpdateVector2(variable, newValue, current.y);
-                            });
-                        AddAxisField(vectorContainer, "Y", v2.y,
-                            newValue => {
-                                var current = variable.Vector2Value;
-                                UpdateVector2(variable, current.x, newValue);
-                            });
-                        rightGroup.Add(vectorContainer);
-                        break;
-                    }
-                    case BlackboardVariableType.Vector3:
-                    {
-                        var vectorContainer = new VisualElement();
-                        vectorContainer.AddToClassList("variable-value-vector");
-                        var v3 = variable.Vector3Value;
-                        AddAxisField(vectorContainer, "X", v3.x,
-                            newValue => {
-                                var current = variable.Vector3Value;
-                                UpdateVector3(variable, newValue, current.y, current.z);
-                            });
-                        AddAxisField(vectorContainer, "Y", v3.y,
-                            newValue => {
-                                var current = variable.Vector3Value;
-                                UpdateVector3(variable, current.x, newValue, current.z);
-                            });
-                        AddAxisField(vectorContainer, "Z", v3.z,
-                            newValue => {
-                                var current = variable.Vector3Value;
-                                UpdateVector3(variable, current.x, current.y, newValue);
-                            });
-                        rightGroup.Add(vectorContainer);
                         break;
                     }
                 }
@@ -489,42 +448,6 @@ namespace CleanStateMachine
             e.StopPropagation();
         }
 
-        private void AddAxisField(VisualElement parent, string axisName, float initialValue, Action<float> onChanged)
-        {
-            var container = new VisualElement();
-            container.AddToClassList("axis-field");
-
-            var label = new Label(axisName);
-            label.AddToClassList("axis-label");
-            container.Add(label);
-
-            var field = new FloatField();
-            field.AddToClassList("axis-input");
-            field.value = initialValue;
-            field.RegisterValueChangedCallback(e => onChanged(e.newValue));
-            container.Add(field);
-
-            parent.Add(container);
-        }
-
-        private void UpdateVector2(BlackboardVariable variable, float x, float y)
-        {
-            string oldStr = variable.StringValue;
-            variable.Vector2Value = new Vector2(x, y);
-            var cmd = new ModifyBlackboardVariableCommand(variable, oldStr, variable.StringValue);
-            _window.UndoRedoSystem.Execute(cmd);
-            _window.NotifySidePanelChanged();
-        }
-
-        private void UpdateVector3(BlackboardVariable variable, float x, float y, float z)
-        {
-            string oldStr = variable.StringValue;
-            variable.Vector3Value = new Vector3(x, y, z);
-            var cmd = new ModifyBlackboardVariableCommand(variable, oldStr, variable.StringValue);
-            _window.UndoRedoSystem.Execute(cmd);
-            _window.NotifySidePanelChanged();
-        }
-
         private void AddVariable(BlackboardVariableType type)
         {
             if (_variables == null) return;
@@ -537,8 +460,7 @@ namespace CleanStateMachine
                 {
                     BlackboardVariableType.Bool => "False",
                     BlackboardVariableType.String => "",
-                    BlackboardVariableType.Vector2 => "0,0",
-                    BlackboardVariableType.Vector3 => "0,0,0",
+                    BlackboardVariableType.Trigger => "False",
                     _ => "0"
                 }
             };

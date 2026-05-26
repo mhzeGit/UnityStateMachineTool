@@ -720,35 +720,6 @@ namespace CleanStateMachine
             }
         }
 
-        private static Vector2 ParseVector2Value(string value)
-        {
-            if (string.IsNullOrEmpty(value)) return Vector2.zero;
-            var parts = value.Split(',');
-            float x = parts.Length > 0 && float.TryParse(parts[0].Trim(),
-                System.Globalization.NumberStyles.Float,
-                System.Globalization.CultureInfo.InvariantCulture, out var fx) ? fx : 0f;
-            float y = parts.Length > 1 && float.TryParse(parts[1].Trim(),
-                System.Globalization.NumberStyles.Float,
-                System.Globalization.CultureInfo.InvariantCulture, out var fy) ? fy : 0f;
-            return new Vector2(x, y);
-        }
-
-        private static Vector3 ParseVector3Value(string value)
-        {
-            if (string.IsNullOrEmpty(value)) return Vector3.zero;
-            var parts = value.Split(',');
-            float x = parts.Length > 0 && float.TryParse(parts[0].Trim(),
-                System.Globalization.NumberStyles.Float,
-                System.Globalization.CultureInfo.InvariantCulture, out var fx) ? fx : 0f;
-            float y = parts.Length > 1 && float.TryParse(parts[1].Trim(),
-                System.Globalization.NumberStyles.Float,
-                System.Globalization.CultureInfo.InvariantCulture, out var fy) ? fy : 0f;
-            float z = parts.Length > 2 && float.TryParse(parts[2].Trim(),
-                System.Globalization.NumberStyles.Float,
-                System.Globalization.CultureInfo.InvariantCulture, out var fz) ? fz : 0f;
-            return new Vector3(x, y, z);
-        }
-
         public void StartRunning()
         {
             if (!_initialized)

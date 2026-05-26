@@ -34,11 +34,9 @@ public class SetVariable_StateBehaviour : StateBehaviour
             case BlackboardVariableType.String:
                 stateMachine.SetStringParameter(target.VariableName, value.GetStringValue(stateMachine));
                 break;
-            case BlackboardVariableType.Vector2:
-                stateMachine.SetVector2Parameter(target.VariableName, value.GetVector2Value(stateMachine));
-                break;
-            case BlackboardVariableType.Vector3:
-                stateMachine.SetVector3Parameter(target.VariableName, value.GetVector3Value(stateMachine));
+            case BlackboardVariableType.Trigger:
+                if (value.GetTriggerValue(stateMachine))
+                    stateMachine.SetTriggerParameter(target.VariableName);
                 break;
         }
     }

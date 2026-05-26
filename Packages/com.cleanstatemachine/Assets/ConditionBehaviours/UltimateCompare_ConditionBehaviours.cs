@@ -53,8 +53,7 @@ public class UltimateCompare_ConditionBehaviours : ConditionScript
             BlackboardVariableType.Int => CompareInt(stateMachine),
             BlackboardVariableType.Float => CompareFloat(stateMachine),
             BlackboardVariableType.String => CompareString(stateMachine),
-            BlackboardVariableType.Vector2 => CompareVector2(stateMachine),
-            BlackboardVariableType.Vector3 => CompareVector3(stateMachine),
+            BlackboardVariableType.Trigger => GetTrigger(stateMachine),
             _ => false
         };
     }
@@ -118,35 +117,8 @@ public class UltimateCompare_ConditionBehaviours : ConditionScript
         };
     }
 
-    private bool CompareVector2(StateMachineComponent sm)
+    private bool GetTrigger(StateMachineComponent sm)
     {
-        Vector2 a = input1.GetVector2Value(sm);
-        Vector2 b = input2.GetVector2Value(sm);
-        return comparison switch
-        {
-            CompareType.Equal => a == b,
-            CompareType.NotEqual => a != b,
-            CompareType.GreaterThan => a.sqrMagnitude > b.sqrMagnitude,
-            CompareType.GreaterThanOrEqual => a.sqrMagnitude >= b.sqrMagnitude,
-            CompareType.LessThan => a.sqrMagnitude < b.sqrMagnitude,
-            CompareType.LessThanOrEqual => a.sqrMagnitude <= b.sqrMagnitude,
-            _ => false
-        };
-    }
-
-    private bool CompareVector3(StateMachineComponent sm)
-    {
-        Vector3 a = input1.GetVector3Value(sm);
-        Vector3 b = input2.GetVector3Value(sm);
-        return comparison switch
-        {
-            CompareType.Equal => a == b,
-            CompareType.NotEqual => a != b,
-            CompareType.GreaterThan => a.sqrMagnitude > b.sqrMagnitude,
-            CompareType.GreaterThanOrEqual => a.sqrMagnitude >= b.sqrMagnitude,
-            CompareType.LessThan => a.sqrMagnitude < b.sqrMagnitude,
-            CompareType.LessThanOrEqual => a.sqrMagnitude <= b.sqrMagnitude,
-            _ => false
-        };
+        return input1.GetTriggerValue(sm);
     }
 }
