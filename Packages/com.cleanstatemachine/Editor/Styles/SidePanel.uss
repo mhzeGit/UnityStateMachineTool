@@ -835,6 +835,38 @@
     padding-bottom: 4px;
 }
 
+/* --- Reorderable List --- */
+.reorderable-list {
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+.reorder-handle {
+    width: 18px;
+    height: 22px;
+    flex-shrink: 0;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.2);
+    opacity: 0.6;
+    -unity-text-align: middle-center;
+    border-radius: 3px;
+    cursor: grab;
+    margin-right: 2px;
+}
+
+.reorder-handle:hover {
+    color: rgba(255, 255, 255, 0.6);
+    opacity: 1;
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.reorder-entry-drag {
+    opacity: 0.85;
+    background-color: rgba(255, 255, 255, 0.08);
+    border-left-color: rgba(255, 255, 255, 0.3);
+    border-left-width: 2px;
+}
+
 /* --- Multi-Condition UI --- */
 .condition-entry {
     flex-direction: column;

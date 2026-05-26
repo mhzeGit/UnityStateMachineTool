@@ -216,6 +216,8 @@ namespace CleanStateMachine
                     Category = "Navigation",
                     Items = new List<ShortcutItem>
                     {
+                        new ShortcutItem { Key = "F", Description = "Focus on selected item" },
+                        new ShortcutItem { Key = "F (double tap) / Home", Description = "Focus to show all states" },
                         new ShortcutItem { Key = "Enter", Description = "Enter or exit a sub-state-machine" },
                         new ShortcutItem { Key = "Escape", Description = "Cancel connection / Exit expanded view" },
                         new ShortcutItem { Key = "Shift + Click", Description = "Toggle multiple selection" },

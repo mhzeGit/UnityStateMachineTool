@@ -106,6 +106,30 @@ namespace CleanStateMachine
                 return true;
             }
 
+            if (e.keyCode == KeyCode.F && !e.control && !e.shift && !e.alt)
+            {
+                double now = UnityEditor.EditorApplication.timeSinceStartup;
+                bool doubleTap = (now - _window.LastFPressTime) < (CleanStateMachineWindow.DoubleClickTimeMs / 1000.0);
+                _window.LastFPressTime = now;
+
+                if (doubleTap)
+                    _window.FocusOnAll();
+                else
+                    _window.FocusOnSelection();
+
+                e.Use();
+                _window.Repaint();
+                return true;
+            }
+
+            if (e.keyCode == KeyCode.Home)
+            {
+                _window.FocusOnAll();
+                e.Use();
+                _window.Repaint();
+                return true;
+            }
+
             if (e.keyCode == KeyCode.V && e.control)
             {
                 _operations.PasteStates();

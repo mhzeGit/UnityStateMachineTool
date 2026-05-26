@@ -26,6 +26,24 @@ namespace CleanStateMachine
         private bool _hoveringAddButton;
         private ConnectionView _activeConnection;
 
+        // Reorderable list state
+        private VisualElement _conditionListContainer;
+        private VisualElement _behaviourListContainer;
+        private readonly List<VisualElement> _conditionEntryElements = new();
+        private readonly List<VisualElement> _behaviourEntryElements = new();
+        private StateView _activeBehaviourState;
+
+        private enum ReorderTarget { None, Condition, Behaviour }
+        private ReorderTarget _reorderTarget;
+        private int _reorderDragStartIndex;
+        private int _reorderDragIndex;
+        private bool _isReordering;
+        private Vector2 _reorderDragStartPos;
+        private bool _reorderPastThreshold;
+        private const float ReorderThreshold = 5f;
+        private const float ReorderAutoScrollEdgeThreshold = 20f;
+        private const float ReorderAutoScrollSpeed = 30f;
+
         public DetailsPanel(CleanStateMachineWindow window)
         {
             _window = window;
@@ -70,6 +88,19 @@ namespace CleanStateMachine
             _hoveredConditionIndex = -1;
             _hoveringAddButton = false;
             _activeConnection = null;
+
+            _conditionEntryElements.Clear();
+            _behaviourEntryElements.Clear();
+            _conditionListContainer = null;
+            _behaviourListContainer = null;
+            _activeBehaviourState = null;
+            _reorderTarget = ReorderTarget.None;
+            _isReordering = false;
+            _reorderPastThreshold = false;
+            _reorderDragStartIndex = -1;
+            _reorderDragIndex = -1;
+            this.UnregisterCallback<MouseMoveEvent>(OnReorderDragMove);
+            this.UnregisterCallback<MouseUpEvent>(OnReorderDragUp);
 
             _scrollView.Clear();
             _emptyLabel.RemoveFromHierarchy();
@@ -246,6 +277,13 @@ namespace CleanStateMachine
                 AddDivider();
                 AddSectionTitle("State Behaviours");
 
+                var behaviourList = new VisualElement();
+                behaviourList.AddToClassList("reorderable-list");
+                _behaviourListContainer = behaviourList;
+                _behaviourEntryElements.Clear();
+                _scrollView.Add(behaviourList);
+                _activeBehaviourState = state;
+
                 for (int i = 0; i < state.BehaviourEntries.Count; i++)
                 {
                     BuildBehaviourEntry(state, i);
@@ -269,9 +307,15 @@ namespace CleanStateMachine
 
             var container = new VisualElement();
             container.AddToClassList("behaviour-entry");
+            container.userData = index;
 
             var header = new VisualElement();
             header.AddToClassList("behaviour-entry-header");
+
+            var dragHandle = new Label("\u2807");
+            dragHandle.AddToClassList("reorder-handle");
+            dragHandle.RegisterCallback<MouseDownEvent>(OnBehaviourReorderHandleDown);
+            header.Add(dragHandle);
 
             var headerLabel = new Label(entry.GetScript() != null ? GetBehaviourDisplayName(entry.GetScript()) : $"Behaviour {index + 1}");
             headerLabel.AddToClassList("behaviour-entry-label");
@@ -284,7 +328,7 @@ namespace CleanStateMachine
                     Object.DestroyImmediate(entry.Instance, true);
                     entry.Instance = null;
                 }
-                state.BehaviourEntries.RemoveAt(index);
+                state.BehaviourEntries.RemoveAt((int)container.userData);
                 _window.NotifySidePanelChanged();
                 UpdateSelection(_selected, _states, _connections, _blackboardVariables);
             });
@@ -307,12 +351,12 @@ namespace CleanStateMachine
                     new Vector2(pickerBtn.worldBound.x, pickerBtn.worldBound.y + pickerBtn.worldBound.height));
                 MenuDropdown.Show(_window.rootVisualElement, pos, menu =>
                 {
-                    menu.AddItem("None", () => OnBehaviourEntryScriptChanged(state, index, null));
+                    menu.AddItem("None", () => OnBehaviourEntryScriptChanged(state, (int)container.userData, null));
                     menu.AddSeparator();
                     foreach (var script in filtered)
                     {
                         var captured = script;
-                        menu.AddItem(GetBehaviourDisplayName(script), () => OnBehaviourEntryScriptChanged(state, index, captured));
+                        menu.AddItem(GetBehaviourDisplayName(script), () => OnBehaviourEntryScriptChanged(state, (int)container.userData, captured));
                     }
                     if (filtered.Count == 0)
                         menu.AddDisabledItem("No matching scripts found");
@@ -390,7 +434,8 @@ namespace CleanStateMachine
                 container.Add(hint);
             }
 
-            _scrollView.Add(container);
+            _behaviourEntryElements.Add(container);
+            _behaviourListContainer.Add(container);
         }
 
         private void OnBehaviourEntryScriptChanged(StateView state, int index, MonoScript next)
@@ -483,6 +528,12 @@ namespace CleanStateMachine
             AddDivider();
             AddSectionTitle("Transition Conditions");
 
+            var conditionList = new VisualElement();
+            conditionList.AddToClassList("reorderable-list");
+            _conditionListContainer = conditionList;
+            _conditionEntryElements.Clear();
+            _scrollView.Add(conditionList);
+
             for (int i = 0; i < conn.ConditionEntries.Count; i++)
             {
                 BuildConditionEntry(conn, i);
@@ -537,6 +588,12 @@ namespace CleanStateMachine
 
             var header = new VisualElement();
             header.AddToClassList("condition-entry-header");
+            container.userData = index;
+
+            var dragHandle = new Label("\u2807");
+            dragHandle.AddToClassList("reorder-handle");
+            dragHandle.RegisterCallback<MouseDownEvent>(OnConditionReorderHandleDown);
+            header.Add(dragHandle);
 
             string condName = entry.GetScript() != null ? GetConditionDisplayName(entry.GetScript()) : $"Condition {index + 1}";
             var headerLabel = new Label(condName);
@@ -550,7 +607,7 @@ namespace CleanStateMachine
                     Object.DestroyImmediate(entry.Instance, true);
                     entry.Instance = null;
                 }
-                conn.ConditionEntries.RemoveAt(index);
+                conn.ConditionEntries.RemoveAt((int)container.userData);
                 _window.NotifySidePanelChanged();
                 UpdateSelection(_selected, _states, _connections, _blackboardVariables);
             });
@@ -558,16 +615,14 @@ namespace CleanStateMachine
             removeBtn.AddToClassList("condition-remove-button");
             header.Add(removeBtn);
 
-            var capturedIndex = index;
-
             container.RegisterCallback<MouseEnterEvent>(_ =>
             {
-                _hoveredConditionIndex = capturedIndex;
+                _hoveredConditionIndex = (int)container.userData;
                 _hoveringAddButton = false;
             });
             container.RegisterCallback<MouseLeaveEvent>(_ =>
             {
-                if (_hoveredConditionIndex == capturedIndex)
+                if (_hoveredConditionIndex == (int)container.userData)
                     _hoveredConditionIndex = -1;
             });
 
@@ -583,7 +638,7 @@ namespace CleanStateMachine
                         menu.AddDisabledItem("Copy Condition");
 
                     if (_conditionClipboard != null && _conditionClipboard.GetScript() != null)
-                        menu.AddItem("Paste Condition", () => PasteCondition(conn, capturedIndex));
+                        menu.AddItem("Paste Condition", () => PasteCondition(conn, (int)container.userData));
                     else
                         menu.AddDisabledItem("Paste Condition");
                 });
@@ -604,12 +659,12 @@ namespace CleanStateMachine
                     new Vector2(pickerBtn.worldBound.x, pickerBtn.worldBound.y + pickerBtn.worldBound.height));
                 MenuDropdown.Show(_window.rootVisualElement, pos, menu =>
                 {
-                    menu.AddItem("None", () => OnConditionEntryScriptChanged(conn, capturedIndex, null));
+                    menu.AddItem("None", () => OnConditionEntryScriptChanged(conn, (int)container.userData, null));
                     menu.AddSeparator();
                     foreach (var script in filtered)
                     {
                         var captured = script;
-                        menu.AddItem(GetConditionDisplayName(script), () => OnConditionEntryScriptChanged(conn, capturedIndex, captured));
+                        menu.AddItem(GetConditionDisplayName(script), () => OnConditionEntryScriptChanged(conn, (int)container.userData, captured));
                     }
                     if (filtered.Count == 0)
                         menu.AddDisabledItem("No matching scripts found");
@@ -704,7 +759,8 @@ namespace CleanStateMachine
                 container.Add(hint);
             }
 
-            _scrollView.Add(container);
+            _conditionEntryElements.Add(container);
+            _conditionListContainer.Add(container);
         }
 
         private void CopyCondition(ConditionEntry entry)
@@ -797,6 +853,146 @@ namespace CleanStateMachine
                 }
             }
         }
+
+        // ─── REORDER DRAG HANDLERS ────────────────────────────────────
+
+        private void OnConditionReorderHandleDown(MouseDownEvent evt)
+        {
+            if (_conditionEntryElements.Count <= 1) return;
+
+            var handle = evt.currentTarget as VisualElement;
+            var container = handle.parent.parent;
+            int index = (int)container.userData;
+
+            _reorderTarget = ReorderTarget.Condition;
+            _reorderDragStartIndex = index;
+            _reorderDragIndex = index;
+            _isReordering = true;
+            _reorderPastThreshold = false;
+            _reorderDragStartPos = evt.mousePosition;
+            container.AddToClassList("reorder-entry-drag");
+
+            this.RegisterCallback<MouseMoveEvent>(OnReorderDragMove);
+            this.RegisterCallback<MouseUpEvent>(OnReorderDragUp);
+            evt.StopPropagation();
+        }
+
+        private void OnBehaviourReorderHandleDown(MouseDownEvent evt)
+        {
+            if (_behaviourEntryElements.Count <= 1) return;
+
+            var handle = evt.currentTarget as VisualElement;
+            var container = handle.parent.parent;
+            int index = (int)container.userData;
+
+            _reorderTarget = ReorderTarget.Behaviour;
+            _reorderDragStartIndex = index;
+            _reorderDragIndex = index;
+            _isReordering = true;
+            _reorderPastThreshold = false;
+            _reorderDragStartPos = evt.mousePosition;
+            container.AddToClassList("reorder-entry-drag");
+
+            this.RegisterCallback<MouseMoveEvent>(OnReorderDragMove);
+            this.RegisterCallback<MouseUpEvent>(OnReorderDragUp);
+            evt.StopPropagation();
+        }
+
+        private void OnReorderDragMove(MouseMoveEvent evt)
+        {
+            if (!_isReordering || _reorderTarget == ReorderTarget.None) return;
+
+            if (!_reorderPastThreshold)
+            {
+                if (Vector2.Distance(evt.mousePosition, _reorderDragStartPos) < ReorderThreshold)
+                    return;
+                _reorderPastThreshold = true;
+            }
+
+            var entries = _reorderTarget == ReorderTarget.Condition ? _conditionEntryElements : _behaviourEntryElements;
+            var listContainer = _reorderTarget == ReorderTarget.Condition ? _conditionListContainer : _behaviourListContainer;
+
+            if (entries == null || entries.Count <= 1) return;
+            if (_reorderDragIndex < 0 || _reorderDragIndex >= entries.Count) return;
+
+            // Auto-scroll when near edges of the scroll view
+            Vector2 scrollViewLocal = _scrollView.WorldToLocal(evt.mousePosition);
+            float viewHeight = _scrollView.resolvedStyle.height;
+            if (scrollViewLocal.y < ReorderAutoScrollEdgeThreshold)
+                _scrollView.scrollOffset = new Vector2(0, Mathf.Max(0, _scrollView.scrollOffset.y - ReorderAutoScrollSpeed));
+            else if (scrollViewLocal.y > viewHeight - ReorderAutoScrollEdgeThreshold)
+                _scrollView.scrollOffset = new Vector2(0, _scrollView.scrollOffset.y + ReorderAutoScrollSpeed);
+
+            int targetIndex = DetermineReorderTargetIndex(entries, evt.mousePosition);
+
+            if (targetIndex == _reorderDragIndex) return;
+
+            var element = entries[_reorderDragIndex];
+            listContainer.Remove(element);
+            listContainer.Insert(targetIndex, element);
+
+            entries.RemoveAt(_reorderDragIndex);
+            entries.Insert(targetIndex, element);
+
+            for (int i = 0; i < entries.Count; i++)
+                entries[i].userData = i;
+
+            _reorderDragIndex = targetIndex;
+            evt.StopPropagation();
+        }
+
+        private void OnReorderDragUp(MouseUpEvent evt)
+        {
+            _isReordering = false;
+
+            this.UnregisterCallback<MouseMoveEvent>(OnReorderDragMove);
+            this.UnregisterCallback<MouseUpEvent>(OnReorderDragUp);
+
+            var entries = _reorderTarget == ReorderTarget.Condition ? _conditionEntryElements : _behaviourEntryElements;
+
+            if (_reorderDragIndex >= 0 && _reorderDragIndex < entries.Count)
+                entries[_reorderDragIndex].RemoveFromClassList("reorder-entry-drag");
+
+            if (_reorderDragStartIndex >= 0 && _reorderDragStartIndex != _reorderDragIndex)
+            {
+                if (_reorderTarget == ReorderTarget.Condition && _activeConnection != null)
+                {
+                    var entry = _activeConnection.ConditionEntries[_reorderDragStartIndex];
+                    _activeConnection.ConditionEntries.RemoveAt(_reorderDragStartIndex);
+                    _activeConnection.ConditionEntries.Insert(_reorderDragIndex, entry);
+                }
+                else if (_reorderTarget == ReorderTarget.Behaviour && _activeBehaviourState != null)
+                {
+                    var entry = _activeBehaviourState.BehaviourEntries[_reorderDragStartIndex];
+                    _activeBehaviourState.BehaviourEntries.RemoveAt(_reorderDragStartIndex);
+                    _activeBehaviourState.BehaviourEntries.Insert(_reorderDragIndex, entry);
+                }
+
+                for (int i = 0; i < entries.Count; i++)
+                    entries[i].userData = i;
+
+                _window.NotifySidePanelChanged();
+            }
+
+            _reorderTarget = ReorderTarget.None;
+            _reorderDragStartIndex = -1;
+            _reorderDragIndex = -1;
+            evt.StopPropagation();
+        }
+
+        private static int DetermineReorderTargetIndex(List<VisualElement> entries, Vector2 mousePos)
+        {
+            for (int i = 0; i < entries.Count; i++)
+            {
+                var bounds = entries[i].worldBound;
+                float midY = bounds.y + bounds.height * 0.5f;
+                if (mousePos.y < midY)
+                    return i;
+            }
+            return entries.Count - 1;
+        }
+
+        // ─── CONDITION ENTRY SCRIPT HANDLING ──────────────────────────
 
         private void OnConditionEntryScriptChanged(ConnectionView conn, int index, MonoScript next)
         {

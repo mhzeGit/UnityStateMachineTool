@@ -138,6 +138,7 @@ namespace CleanStateMachine
         internal double AnimStartTime;
 
         internal long LastClickTimestamp;
+        internal double LastFPressTime;
         internal StateView LastDoubleClickCandidate;
         internal CommentGroupView LastDoubleClickCandidateGroup;
 
@@ -177,7 +178,7 @@ namespace CleanStateMachine
         internal VisualElement ExpandedModeBar;
         internal Label ExpandedModeLabel;
         internal VisualElement BreadcrumbContainer;
-        private VisualElement _searchButton;
+        private Button _searchButton;
 
         // ─── Private Helpers ──────────────────────────────────────────
 
@@ -428,14 +429,11 @@ namespace CleanStateMachine
             rootVisualElement.Add(SidePanelElement);
 
             _searchButton = new Button(() => SearchPanel.Show());
-            _searchButton.text = "\U0001F50D";
             _searchButton.style.position = Position.Absolute;
             _searchButton.style.top = 32f;
             _searchButton.style.width = 32f;
             _searchButton.style.height = 32f;
-            _searchButton.style.fontSize = 16f;
             _searchButton.style.backgroundColor = new Color(0.18f, 0.18f, 0.18f, 0.85f);
-            _searchButton.style.color = new Color(0.8f, 0.8f, 0.8f);
             _searchButton.style.borderTopLeftRadius = 6f;
             _searchButton.style.borderTopRightRadius = 6f;
             _searchButton.style.borderBottomLeftRadius = 6f;
@@ -455,6 +453,48 @@ namespace CleanStateMachine
             _searchButton.style.justifyContent = Justify.Center;
             _searchButton.style.alignItems = Align.Center;
             _searchButton.tooltip = "Search (Ctrl+F)";
+
+            var iconContainer = new VisualElement();
+            iconContainer.style.width = 18f;
+            iconContainer.style.height = 18f;
+            iconContainer.style.flexShrink = 0;
+            iconContainer.pickingMode = PickingMode.Ignore;
+
+            var lens = new VisualElement();
+            lens.style.position = Position.Absolute;
+            lens.style.width = 10f;
+            lens.style.height = 10f;
+            lens.style.left = 0f;
+            lens.style.top = 0f;
+            lens.style.borderLeftColor = new Color(0.75f, 0.75f, 0.75f);
+            lens.style.borderRightColor = new Color(0.75f, 0.75f, 0.75f);
+            lens.style.borderTopColor = new Color(0.75f, 0.75f, 0.75f);
+            lens.style.borderBottomColor = new Color(0.75f, 0.75f, 0.75f);
+            lens.style.borderLeftWidth = 1.5f;
+            lens.style.borderRightWidth = 1.5f;
+            lens.style.borderTopWidth = 1.5f;
+            lens.style.borderBottomWidth = 1.5f;
+            lens.style.borderTopLeftRadius = 6f;
+            lens.style.borderTopRightRadius = 6f;
+            lens.style.borderBottomLeftRadius = 6f;
+            lens.style.borderBottomRightRadius = 6f;
+            lens.style.backgroundColor = Color.clear;
+            lens.pickingMode = PickingMode.Ignore;
+            iconContainer.Add(lens);
+
+            var handle = new VisualElement();
+            handle.style.position = Position.Absolute;
+            handle.style.width = 11f;
+            handle.style.height = 1.5f;
+            handle.style.left = 7f;
+            handle.style.top = 9f;
+            handle.style.backgroundColor = new Color(0.75f, 0.75f, 0.75f);
+            handle.style.rotate = new Rotate(Angle.Degrees(45));
+            handle.pickingMode = PickingMode.Ignore;
+            iconContainer.Add(handle);
+
+            _searchButton.Add(iconContainer);
+
             _searchButton.RegisterCallback<MouseEnterEvent>(_ =>
                 _searchButton.style.backgroundColor = new Color(0.28f, 0.28f, 0.28f, 0.95f));
             _searchButton.RegisterCallback<MouseLeaveEvent>(_ =>
@@ -1002,6 +1042,55 @@ namespace CleanStateMachine
         internal void StartSmoothFocusOnContentInternal()
         {
             ViewAnimator.StartSmoothFocusOnContent(ExpandedView.ComputeVisibleContentBounds());
+        }
+
+        internal void FocusOnSelection()
+        {
+            var selection = SelectionController.Selected;
+            if (selection.Count == 0)
+            {
+                FocusOnAll();
+                return;
+            }
+
+            bool first = true;
+            float minX = 0f, minY = 0f, maxX = 0f, maxY = 0f;
+
+            for (int i = 0; i < selection.Count; i++)
+            {
+                Rect bounds = selection[i].GetGraphBounds();
+                if (bounds.width < 0.001f || bounds.height < 0.001f)
+                    continue;
+
+                if (first)
+                {
+                    minX = bounds.xMin;
+                    minY = bounds.yMin;
+                    maxX = bounds.xMax;
+                    maxY = bounds.yMax;
+                    first = false;
+                }
+                else
+                {
+                    if (bounds.xMin < minX) minX = bounds.xMin;
+                    if (bounds.yMin < minY) minY = bounds.yMin;
+                    if (bounds.xMax > maxX) maxX = bounds.xMax;
+                    if (bounds.yMax > maxY) maxY = bounds.yMax;
+                }
+            }
+
+            if (first)
+            {
+                FocusOnAll();
+                return;
+            }
+
+            ViewAnimator.StartSmoothFocusOnContent(Rect.MinMaxRect(minX, minY, maxX, maxY));
+        }
+
+        internal void FocusOnAll()
+        {
+            StartSmoothFocusOnContentInternal();
         }
 
         internal void BeginGroupResize(CommentGroupView group, ResizeEdge edge, Vector2 graphPos)
