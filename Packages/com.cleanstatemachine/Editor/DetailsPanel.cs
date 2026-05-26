@@ -124,6 +124,14 @@ namespace CleanStateMachine
             nameField.AddToClassList("details-name-field");
 
             string oldName = state.Name;
+            nameField.RegisterValueChangedCallback(evt =>
+            {
+                if (!string.IsNullOrEmpty(evt.newValue))
+                    state.Name = evt.newValue;
+                else
+                    nameField.SetValueWithoutNotify(state.Name);
+            });
+
             nameField.RegisterCallback<FocusOutEvent>(evt =>
             {
                 string newName = nameField.value;
@@ -133,10 +141,6 @@ namespace CleanStateMachine
                     _window.UndoRedoSystem.Execute(cmd);
                     _window.NotifySidePanelChanged();
                     oldName = newName;
-                }
-                else if (string.IsNullOrEmpty(newName))
-                {
-                    nameField.value = oldName;
                 }
             });
 

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace CleanStateMachine
 {
@@ -299,6 +300,12 @@ namespace CleanStateMachine
 
         private void OnLeftMouseDown(Vector2 graphPos, Event e)
         {
+            var focused = _window.rootVisualElement?.panel?.focusController?.focusedElement;
+            if (focused is VisualElement ve && ve.focusable)
+            {
+                ve.Blur();
+            }
+
             if (_window.EditingState == null && _window.EditingGroup == null && !e.shift)
             {
                 for (int i = _window.Groups.Count - 1; i >= 0; i--)
