@@ -224,7 +224,7 @@
 }
 
 .state-view__error-icon-text {
-    color: white;
+    color: rgba(255, 255, 255, 0.71);
     -unity-text-align: middle-center;
     font-size: 12px;
     -unity-font-style: bold;
