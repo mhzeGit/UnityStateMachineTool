@@ -40,8 +40,8 @@ namespace CleanStateMachine
         private string _lastQuery = "";
         private readonly List<SearchResult> _results = new List<SearchResult>();
         private int _selectedIndex = -1;
-        private const float MaxHeight = 400f;
-        private const float MinHeight = 60f;
+        private const float PanelHeight = 380f;
+        private Label _placeholder;
 
         private static readonly Color AccentColor = new Color(0.3f, 0.85f, 1f);
 
@@ -63,6 +63,8 @@ namespace CleanStateMachine
             _results.Clear();
             _selectedIndex = -1;
 
+            UpdatePlaceholderVisibility();
+
             _overlay.schedule.Execute(() =>
             {
                 _searchField?.Focus();
@@ -81,6 +83,14 @@ namespace CleanStateMachine
             _resultsScrollView = null;
             _resultsContainer = null;
             _noResultsLabel = null;
+        }
+
+        private void UpdatePlaceholderVisibility()
+        {
+            if (_placeholder == null || _searchField == null) return;
+            _placeholder.style.display = string.IsNullOrEmpty(_searchField.value)
+                ? DisplayStyle.Flex
+                : DisplayStyle.None;
         }
 
         private void BuildOverlay()
@@ -108,8 +118,7 @@ namespace CleanStateMachine
             _panel.style.left = Length.Percent(25);
             _panel.style.right = Length.Percent(25);
             _panel.style.top = 40;
-            _panel.style.maxHeight = MaxHeight;
-            _panel.style.minHeight = MinHeight;
+            _panel.style.height = PanelHeight;
             _panel.style.flexDirection = FlexDirection.Column;
             _panel.style.backgroundColor = new Color(0.16f, 0.16f, 0.16f);
             _panel.style.borderTopLeftRadius = 8;
@@ -143,6 +152,18 @@ namespace CleanStateMachine
             searchIcon.style.flexShrink = 0;
             inputRow.Add(searchIcon);
 
+            _placeholder = new Label("Search states, behaviours, conditions...");
+            _placeholder.style.position = Position.Absolute;
+            _placeholder.style.left = 44f;
+            _placeholder.style.right = 44f;
+            _placeholder.style.top = 0f;
+            _placeholder.style.bottom = 0f;
+            _placeholder.style.fontSize = 14;
+            _placeholder.style.color = new Color(0.4f, 0.4f, 0.4f);
+            _placeholder.style.unityTextAlign = TextAnchor.MiddleLeft;
+            _placeholder.pickingMode = PickingMode.Ignore;
+            inputRow.Add(_placeholder);
+
             _searchField = new TextField();
             _searchField.style.flexGrow = 1;
             _searchField.style.flexShrink = 1;
@@ -152,6 +173,7 @@ namespace CleanStateMachine
             _searchField.style.borderTopWidth = 0;
             _searchField.style.borderBottomWidth = 0;
             _searchField.RegisterValueChangedCallback(OnSearchTextChanged);
+            _searchField.RegisterValueChangedCallback(_ => UpdatePlaceholderVisibility());
 
             var searchInput = _searchField.Q(className: "unity-base-text-field__input");
             if (searchInput != null)
