@@ -107,8 +107,7 @@ namespace CleanStateMachine
             row.userData = index;
 
             // Drag handle
-            var handle = new Label("\u2807");
-            handle.AddToClassList("drag-handle");
+            var handle = new DragHandle();
             handle.RegisterCallback<MouseDownEvent>(OnHandleDown);
             row.Add(handle);
 

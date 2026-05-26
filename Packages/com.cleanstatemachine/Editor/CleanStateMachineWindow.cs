@@ -106,6 +106,12 @@ namespace CleanStateMachine
 
         internal readonly List<int> ExpandedSubStateStack = new();
 
+        private int _dataIndexCounter = 0;
+
+        internal int GetNextDataIndex() => _dataIndexCounter++;
+
+        internal void ResetDataIndexCounter() => _dataIndexCounter = States.Count;
+
         internal StateView EntryState;
         internal StateView EditingState;
         internal CommentGroupView EditingGroup;
@@ -256,6 +262,7 @@ namespace CleanStateMachine
             {
                 CurrentData = new SerializableData();
                 GraphOperations.EnsureEntryStateExists();
+                ResetDataIndexCounter();
             }
 
             ContextMenu.CreateStateRequested += OnCreateStateRequested;

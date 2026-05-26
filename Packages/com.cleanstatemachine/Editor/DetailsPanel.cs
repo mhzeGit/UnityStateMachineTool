@@ -312,8 +312,7 @@ namespace CleanStateMachine
             var header = new VisualElement();
             header.AddToClassList("behaviour-entry-header");
 
-            var dragHandle = new Label("\u2807");
-            dragHandle.AddToClassList("reorder-handle");
+            var dragHandle = new DragHandle();
             dragHandle.RegisterCallback<MouseDownEvent>(OnBehaviourReorderHandleDown);
             header.Add(dragHandle);
 
@@ -590,8 +589,7 @@ namespace CleanStateMachine
             header.AddToClassList("condition-entry-header");
             container.userData = index;
 
-            var dragHandle = new Label("\u2807");
-            dragHandle.AddToClassList("reorder-handle");
+            var dragHandle = new DragHandle();
             dragHandle.RegisterCallback<MouseDownEvent>(OnConditionReorderHandleDown);
             header.Add(dragHandle);
 
@@ -1105,8 +1103,15 @@ namespace CleanStateMachine
 
                 connRow.RegisterCallback<MouseDownEvent>(evt =>
                 {
-                    _window.SelectionController.Clear();
-                    _window.SelectionController.Select(conn);
+                    conn.TriggerSearchHighlight();
+                    Rect bounds = conn.GetGraphBounds();
+                    bounds = new Rect(
+                        bounds.x - 60f,
+                        bounds.y - 60f,
+                        bounds.width + 120f,
+                        bounds.height + 120f
+                    );
+                    _window.ViewAnimator.StartSmoothFocusOnContent(bounds);
                 });
 
                 string dir = isFrom ? "\u2192" : "\u2190";

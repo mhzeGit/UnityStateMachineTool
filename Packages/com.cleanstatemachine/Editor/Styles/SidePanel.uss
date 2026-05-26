@@ -307,20 +307,37 @@
 /* Drag handle */
 .drag-handle {
     width: 22px;
-    height: 26px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.25);
-    opacity: 0.65;
-    -unity-text-align: middle-center;
-    transition: opacity 0.15s, background-color 0.15s;
+    padding: 1px 0;
+    cursor: grab;
+    opacity: 0.7;
     border-radius: 3px;
 }
 
 .drag-handle:hover {
-    color: rgba(255, 255, 255, 0.6);
     opacity: 1;
     background-color: rgba(255, 255, 255, 0.06);
+}
+
+.drag-handle-row {
+    flex-direction: row;
+    flex-shrink: 0;
+}
+
+.drag-handle-dot {
+    width: 2px;
+    height: 2px;
+    border-radius: 1px;
+    background-color: rgba(255, 255, 255, 0.35);
+    margin: 0.5px;
+    flex-shrink: 0;
+}
+
+.drag-handle:hover .drag-handle-dot {
+    background-color: rgba(255, 255, 255, 0.7);
 }
 
 /* Variable name — label (display) and input (edit) swap */
@@ -841,30 +858,11 @@
     flex-shrink: 0;
 }
 
-.reorder-handle {
-    width: 18px;
-    height: 22px;
-    flex-shrink: 0;
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.2);
-    opacity: 0.6;
-    -unity-text-align: middle-center;
-    border-radius: 3px;
-    cursor: grab;
-    margin-right: 2px;
-}
-
-.reorder-handle:hover {
-    color: rgba(255, 255, 255, 0.6);
-    opacity: 1;
-    background-color: rgba(255, 255, 255, 0.06);
-}
-
 .reorder-entry-drag {
-    opacity: 0.85;
     background-color: rgba(255, 255, 255, 0.08);
-    border-left-color: rgba(255, 255, 255, 0.3);
-    border-left-width: 2px;
+    border-left-color: rgba(130, 200, 255, 0.7);
+    border-left-width: 3px;
+    padding-left: 1px;
 }
 
 /* --- Multi-Condition UI --- */

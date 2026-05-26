@@ -256,6 +256,7 @@ namespace CleanStateMachine
             _window.EnsureEntryStateExistsInternal();
             _window.GraphOperations.SyncGroupElements();
             _window.GraphOperations.SyncStatesWithSubMachines();
+            _window.ResetDataIndexCounter();
             _window.IsLoading = false;
             if (_window.GraphValidation != null)
             {
@@ -354,6 +355,7 @@ namespace CleanStateMachine
 
             _window.EnsureEntryStateExistsInternal();
             _window.GraphOperations.SyncGroupElements();
+            _window.ResetDataIndexCounter();
 
             if (_window.GraphValidation != null)
             {

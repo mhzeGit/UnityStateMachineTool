@@ -64,7 +64,10 @@ namespace CleanStateMachine
             if (conn.SearchHighlightStartTime < 0) return default;
 
             float elapsed = (float)(Time.realtimeSinceStartup - conn.SearchHighlightStartTime);
-            float duration = 1.5f;
+            float blinkPeriod = 0.15f;
+            int blinkCount = 4;
+            float blinkEnd = blinkCount * blinkPeriod;
+            float duration = blinkEnd + 0.05f;
 
             if (elapsed > duration)
             {
@@ -72,13 +75,9 @@ namespace CleanStateMachine
                 return default;
             }
 
-            float blinkPeriod = 0.15f;
-            int blinkCount = 4;
-            float blinkEnd = blinkCount * blinkPeriod;
-
             bool isOn = elapsed < blinkEnd
                 ? (Mathf.FloorToInt(elapsed / blinkPeriod) % 2 == 0)
-                : true;
+                : false;
 
             return new SearchHighlightState { IsOn = isOn };
         }

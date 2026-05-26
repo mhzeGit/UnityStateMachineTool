@@ -643,7 +643,10 @@ namespace CleanStateMachine
         private void OnSearchHighlightUpdate()
         {
             float elapsed = (float)(Time.realtimeSinceStartup - _searchHighlightStartTime);
-            float duration = 1.5f;
+            float blinkPeriod = 0.15f;
+            int blinkCount = 4;
+            float blinkEnd = blinkCount * blinkPeriod;
+            float duration = blinkEnd + 0.05f;
 
             if (elapsed > duration)
             {
@@ -653,19 +656,9 @@ namespace CleanStateMachine
                 return;
             }
 
-            float blinkPeriod = 0.15f;
-            int blinkCount = 4;
-            float blinkEnd = blinkCount * blinkPeriod;
-
-            bool highlightOn;
-            if (elapsed < blinkEnd)
-            {
-                highlightOn = (Mathf.FloorToInt(elapsed / blinkPeriod) % 2) == 0;
-            }
-            else
-            {
-                highlightOn = elapsed < duration;
-            }
+            bool highlightOn = elapsed < blinkEnd
+                ? (Mathf.FloorToInt(elapsed / blinkPeriod) % 2 == 0)
+                : false;
 
             if (_fill != null)
                 _fill.EnableInClassList("state-view__fill--search-highlight", highlightOn);

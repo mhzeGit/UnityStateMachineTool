@@ -274,7 +274,7 @@ namespace CleanStateMachine
                     }
                     else
                     {
-                        var newState = new StateView(graphMousePos - new Vector2(80f, 20f)) { DataIndex = _window.States.Count };
+                        var newState = new StateView(graphMousePos - new Vector2(80f, 20f)) { DataIndex = _window.GetNextDataIndex() };
                         var cmd = new CompositeCommand("Create State and Connect");
 
                         if (source.IsEntry)

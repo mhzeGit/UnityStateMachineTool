@@ -17,7 +17,7 @@ namespace CleanStateMachine
 
         public void CreateState(Vector2 graphMousePosition)
         {
-            var state = new StateView(graphMousePosition) { DataIndex = _window.States.Count };
+            var state = new StateView(graphMousePosition) { DataIndex = _window.GetNextDataIndex() };
 
             if (_window.EntryState != null && GetEntryOutgoingConnection() == null)
             {
@@ -43,7 +43,7 @@ namespace CleanStateMachine
         {
             var container = new StateView(graphMousePosition, "Sub State Machine")
             {
-                DataIndex = _window.States.Count,
+                DataIndex = _window.GetNextDataIndex(),
                 IsSubStateMachine = true
             };
 
@@ -71,7 +71,7 @@ namespace CleanStateMachine
         {
             var state = new StateView(graphMousePosition, "External Reference")
             {
-                DataIndex = _window.States.Count,
+                DataIndex = _window.GetNextDataIndex(),
                 IsExternalReference = true
             };
 
@@ -98,7 +98,7 @@ namespace CleanStateMachine
         {
             var state = new StateView(graphMousePosition, "Any State", isAnyState: true)
             {
-                DataIndex = _window.States.Count
+                DataIndex = _window.GetNextDataIndex()
             };
 
             var cmd = new CreateStateCommand(_window.States, state);
@@ -263,7 +263,7 @@ namespace CleanStateMachine
             for (int i = 0; i < _window.Clipboard.Count; i++)
             {
                 var data = _window.Clipboard[i];
-                int newIndex = _window.States.Count;
+                int newIndex = _window.GetNextDataIndex();
                 oldToNewIndex[data.sourceDataIndex] = newIndex;
 
                 var state = new StateView(data.position + offset, data.name, isAnyState: data.isAnyState)
@@ -526,6 +526,7 @@ namespace CleanStateMachine
             {
                 _window.EntryState = new StateView(CleanStateMachineWindow.EntryStatePosition, "Entry", isEntry: true) { DataIndex = 0 };
                 _window.States.Insert(0, _window.EntryState);
+                _window.ResetDataIndexCounter();
             }
         }
 
@@ -649,7 +650,8 @@ namespace CleanStateMachine
                                 for (int k = 0; k < container.ChildIndices.Count; k++)
                                 {
                                     int ci = container.ChildIndices[k];
-                                    if (ci >= 0 && ci < _window.States.Count && _window.States[ci].IsSubEntry)
+                                    var childState = GetStateByIndex(ci);
+                                    if (childState != null && childState.IsSubEntry)
                                     {
                                         hasSubEntry = true;
                                         break;
