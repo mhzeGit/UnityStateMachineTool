@@ -147,6 +147,8 @@ namespace CleanStateMachine
         private VisualElement _externalIcon;
         private VisualElement _anyStateIcon;
         private VisualElement _breakpointIcon;
+        private Label _warningIcon;
+        private Label _errorIcon;
         private bool _glowScheduled;
 
         private StateValidationStatus _validationStatus;
@@ -162,8 +164,15 @@ namespace CleanStateMachine
         private void UpdateValidationVisual()
         {
             if (_fill == null) return;
-            _fill.EnableInClassList("state-view__fill--orphaned", _validationStatus == StateValidationStatus.Orphaned);
+            _fill.EnableInClassList("state-view__fill--ignored", _validationStatus == StateValidationStatus.Ignored);
+            _fill.EnableInClassList("state-view__fill--unreachable", _validationStatus == StateValidationStatus.Unreachable);
             _fill.EnableInClassList("state-view__fill--dead-end", _validationStatus == StateValidationStatus.DeadEnd);
+
+            if (_warningIcon != null)
+                _warningIcon.style.display = (_validationStatus == StateValidationStatus.Unreachable || _validationStatus == StateValidationStatus.DeadEnd)
+                    ? DisplayStyle.Flex : DisplayStyle.None;
+            if (_errorIcon != null)
+                _errorIcon.style.display = _validationStatus == StateValidationStatus.Ignored ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
         public const float DefaultWidth = 160f;
@@ -273,6 +282,20 @@ namespace CleanStateMachine
             _breakpointIcon.style.position = UnityEngine.UIElements.Position.Absolute;
             _breakpointIcon.style.display = DisplayStyle.None;
             Add(_breakpointIcon);
+
+            _warningIcon = new Label("\u26A0");
+            _warningIcon.AddToClassList("state-view__warning-icon");
+            _warningIcon.pickingMode = PickingMode.Ignore;
+            _warningIcon.style.position = UnityEngine.UIElements.Position.Absolute;
+            _warningIcon.style.display = DisplayStyle.None;
+            Add(_warningIcon);
+
+            _errorIcon = new Label("\u2716");
+            _errorIcon.AddToClassList("state-view__error-icon");
+            _errorIcon.pickingMode = PickingMode.Ignore;
+            _errorIcon.style.position = UnityEngine.UIElements.Position.Absolute;
+            _errorIcon.style.display = DisplayStyle.None;
+            Add(_errorIcon);
 
             InitializeGlowAnimation();
         }
@@ -414,6 +437,19 @@ namespace CleanStateMachine
                 _breakpointIcon.style.borderTopRightRadius = dotSize / 2;
                 _breakpointIcon.style.borderBottomLeftRadius = dotSize / 2;
                 _breakpointIcon.style.borderBottomRightRadius = dotSize / 2;
+            }
+
+            if (_warningIcon != null && _warningIcon.style.display == DisplayStyle.Flex)
+            {
+                _warningIcon.style.right = Mathf.RoundToInt(-6 * zoom);
+                _warningIcon.style.top = Mathf.RoundToInt(-8 * zoom);
+                _warningIcon.style.fontSize = Mathf.RoundToInt(14 * zoom);
+            }
+            if (_errorIcon != null && _errorIcon.style.display == DisplayStyle.Flex)
+            {
+                _errorIcon.style.right = Mathf.RoundToInt(-6 * zoom);
+                _errorIcon.style.top = Mathf.RoundToInt(-8 * zoom);
+                _errorIcon.style.fontSize = Mathf.RoundToInt(14 * zoom);
             }
 
             if (IsEditing)

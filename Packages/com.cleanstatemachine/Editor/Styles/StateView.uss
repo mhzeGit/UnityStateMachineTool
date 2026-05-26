@@ -174,12 +174,21 @@
     background-color: rgb(110, 110, 100);
 }
 
-.state-view__fill--orphaned {
-    background-color: rgb(140, 55, 55);
-    border-color: rgb(220, 90, 90);
+.state-view__fill--ignored {
+    background-color: rgb(140, 45, 45);
+    border-color: rgb(230, 80, 80);
 }
 
-.state-view__fill--orphaned.state-view__fill--selected {
+.state-view__fill--ignored.state-view__fill--selected {
+    border-color: rgb(137, 180, 250);
+}
+
+.state-view__fill--unreachable {
+    background-color: rgb(130, 100, 35);
+    border-color: rgb(220, 180, 60);
+}
+
+.state-view__fill--unreachable.state-view__fill--selected {
     border-color: rgb(137, 180, 250);
 }
 
@@ -190,6 +199,20 @@
 
 .state-view__fill--dead-end.state-view__fill--selected {
     border-color: rgb(137, 180, 250);
+}
+
+.state-view__warning-icon {
+    position: absolute;
+    color: rgb(255, 200, 50);
+    -unity-text-align: upper-right;
+    text-shadow: 0 0 4px rgba(0,0,0,0.8);
+}
+
+.state-view__error-icon {
+    position: absolute;
+    color: rgb(230, 60, 60);
+    -unity-text-align: upper-right;
+    text-shadow: 0 0 4px rgba(0,0,0,0.8);
 }
 
 .state-view__breakpoint {

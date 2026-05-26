@@ -1062,7 +1062,8 @@
 }
 
 .validation-row--error .validation-icon {
-    color: rgb(230, 80, 80);
+    color: rgb(230, 60, 60);
+    font-size: 14px;
 }
 
 .validation-row--warning .validation-icon {

@@ -6,7 +6,8 @@ namespace CleanStateMachine
     public enum StateValidationStatus
     {
         None,
-        Orphaned,
+        Ignored,
+        Unreachable,
         DeadEnd,
     }
 
@@ -60,11 +61,15 @@ namespace CleanStateMachine
 
                 if (!hasIncoming && !hasOutgoing)
                 {
-                    state.SetValidationStatus(StateValidationStatus.Orphaned);
+                    state.SetValidationStatus(StateValidationStatus.Ignored);
                 }
                 else if (hasIncoming && !hasOutgoing && !state.IsSubStateMachine)
                 {
                     state.SetValidationStatus(StateValidationStatus.DeadEnd);
+                }
+                else if (!hasIncoming && hasOutgoing)
+                {
+                    state.SetValidationStatus(StateValidationStatus.Unreachable);
                 }
                 else
                 {
@@ -100,8 +105,10 @@ namespace CleanStateMachine
                 }
             }
 
-            if (state.ValidationStatus == StateValidationStatus.Orphaned)
-                messages.Add(new ValidationMessage(ValidationMessageType.Warning, "State has no incoming connections — unreachable"));
+            if (state.ValidationStatus == StateValidationStatus.Ignored)
+                messages.Add(new ValidationMessage(ValidationMessageType.Error, "State has no connections at all — completely ignored"));
+            else if (state.ValidationStatus == StateValidationStatus.Unreachable)
+                messages.Add(new ValidationMessage(ValidationMessageType.Warning, "State has no incoming connections — unreachable from entry"));
             else if (state.ValidationStatus == StateValidationStatus.DeadEnd)
                 messages.Add(new ValidationMessage(ValidationMessageType.Warning, "State has no outgoing transitions — can get stuck after entering"));
 
