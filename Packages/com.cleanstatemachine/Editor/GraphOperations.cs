@@ -420,17 +420,6 @@ namespace CleanStateMachine
                     deletedStates.Add(s);
             }
 
-            foreach (var state in _window.States)
-            {
-                if (state.IsSubStateMachine && state.ChildIndices.Count > 0)
-                {
-                    foreach (var deleted in deletedStates)
-                    {
-                        state.ChildIndices.Remove(deleted.DataIndex);
-                    }
-                }
-            }
-
             if (_window.ExpandedSubStateStack.Count > 0)
             {
                 bool expandedBeingDeleted = false;

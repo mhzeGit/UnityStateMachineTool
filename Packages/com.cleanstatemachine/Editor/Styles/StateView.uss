@@ -210,9 +210,24 @@
 
 .state-view__error-icon {
     position: absolute;
-    color: rgb(230, 60, 60);
-    -unity-text-align: upper-right;
-    text-shadow: 0 0 4px rgba(0,0,0,0.8);
+    background-color: rgb(220, 40, 40);
+    border-left-color: rgb(255, 60, 60);
+    border-right-color: rgb(255, 60, 60);
+    border-top-color: rgb(255, 60, 60);
+    border-bottom-color: rgb(255, 60, 60);
+    border-left-width: 1.5px;
+    border-right-width: 1.5px;
+    border-top-width: 1.5px;
+    border-bottom-width: 1.5px;
+    justify-content: center;
+    align-items: center;
+}
+
+.state-view__error-icon-text {
+    color: white;
+    -unity-text-align: middle-center;
+    font-size: 12px;
+    -unity-font-style: bold;
 }
 
 .state-view__breakpoint {

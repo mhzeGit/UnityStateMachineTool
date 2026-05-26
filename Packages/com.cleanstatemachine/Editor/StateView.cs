@@ -148,7 +148,7 @@ namespace CleanStateMachine
         private VisualElement _anyStateIcon;
         private VisualElement _breakpointIcon;
         private Label _warningIcon;
-        private Label _errorIcon;
+        private VisualElement _errorIcon;
         private bool _glowScheduled;
 
         private StateValidationStatus _validationStatus;
@@ -290,11 +290,15 @@ namespace CleanStateMachine
             _warningIcon.style.display = DisplayStyle.None;
             Add(_warningIcon);
 
-            _errorIcon = new Label("\u2716");
+            _errorIcon = new VisualElement();
             _errorIcon.AddToClassList("state-view__error-icon");
             _errorIcon.pickingMode = PickingMode.Ignore;
             _errorIcon.style.position = UnityEngine.UIElements.Position.Absolute;
             _errorIcon.style.display = DisplayStyle.None;
+            var errorLabel = new Label("!");
+            errorLabel.AddToClassList("state-view__error-icon-text");
+            errorLabel.pickingMode = PickingMode.Ignore;
+            _errorIcon.Add(errorLabel);
             Add(_errorIcon);
 
             InitializeGlowAnimation();
@@ -447,9 +451,18 @@ namespace CleanStateMachine
             }
             if (_errorIcon != null && _errorIcon.style.display == DisplayStyle.Flex)
             {
-                _errorIcon.style.right = Mathf.RoundToInt(-6 * zoom);
-                _errorIcon.style.top = Mathf.RoundToInt(-8 * zoom);
-                _errorIcon.style.fontSize = Mathf.RoundToInt(14 * zoom);
+                int dotSize = Mathf.RoundToInt(16 * zoom);
+                _errorIcon.style.right = Mathf.RoundToInt(-4 * zoom);
+                _errorIcon.style.top = Mathf.RoundToInt(-4 * zoom);
+                _errorIcon.style.width = dotSize;
+                _errorIcon.style.height = dotSize;
+                _errorIcon.style.borderTopLeftRadius = dotSize / 2;
+                _errorIcon.style.borderTopRightRadius = dotSize / 2;
+                _errorIcon.style.borderBottomLeftRadius = dotSize / 2;
+                _errorIcon.style.borderBottomRightRadius = dotSize / 2;
+                var errLabel = _errorIcon.Q<Label>(className: "state-view__error-icon-text");
+                if (errLabel != null)
+                    errLabel.style.fontSize = Mathf.RoundToInt(12 * zoom);
             }
 
             if (IsEditing)
